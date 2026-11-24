@@ -43,7 +43,37 @@ function bakeCustomer(scene) {
     const part = new THREE.Mesh(mergeGeometries(geos), null);
     part.name = name;
     part.position.copy(node.position);
+    // jambes : version « assise », genou plié (la jambe d'origine est droite, sans articulation)
+    if (name === 'LegL' || name === 'LegR') part.userData.seated = bendKnee(part.geometry);
     out.add(part);
   }
   return out;
+}
+
+/**
+ * Plie le genou d'une jambe (repère de la hanche, jambe vers le bas) : tout ce qui est sous le genou
+ * tourne autour de l'axe du genou, avec une transition douce pour que la jambe reste d'un seul tenant.
+ * Avec la cuisse levée à l'horizontale (rotation x ≈ -1,4), le mollet redescend alors à la verticale.
+ */
+function bendKnee(geo, angle = 1.45) {
+  const g = geo.clone();
+  g.computeBoundingBox();
+  const top = g.boundingBox.max.y, bottom = g.boundingBox.min.y;
+  const kneeY = top + (bottom - top) * 0.5, band = 0.07;
+  const pos = g.attributes.position, nor = g.attributes.normal;
+  const v = new THREE.Vector3(), n = new THREE.Vector3(), q = new THREE.Quaternion(), axis = new THREE.Vector3(1, 0, 0);
+  const knee = new THREE.Vector3(0, kneeY, -0.02);
+  for (let i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i);
+    const t = THREE.MathUtils.smoothstep(kneeY + band - v.y, 0, 2 * band); // 0 au-dessus du genou, 1 en dessous
+    if (t <= 0) continue;
+    q.setFromAxisAngle(axis, angle * t);
+    v.sub(knee).applyQuaternion(q).add(knee);
+    pos.setXYZ(i, v.x, v.y, v.z);
+    n.fromBufferAttribute(nor, i).applyQuaternion(q);
+    nor.setXYZ(i, n.x, n.y, n.z);
+  }
+  pos.needsUpdate = true; nor.needsUpdate = true;
+  g.computeBoundingSphere();
+  return g;
 }

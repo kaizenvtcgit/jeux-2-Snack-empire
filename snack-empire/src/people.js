@@ -48,6 +48,7 @@ export class Customer {
       m.position.copy(p.position);
       m.castShadow = PEOPLE.shadows;
       m.name = p.name;
+      if (p.userData.seated) m.userData = { standGeo: p.geometry, sitGeo: p.userData.seated }; // jambe droite / genou plié
       root.add(m);
       parts[p.name] = m;
     }
@@ -89,10 +90,14 @@ export class Customer {
   face(yaw) { this.faceYaw = yaw; }
 
   /** S'asseoir (orienté vers yaw) / se relever. */
-  sit(yaw) { this.seated = true; this.yaw = yaw; this.root.rotation.y = yaw; this.faceYaw = yaw; }
+  sit(yaw) {
+    this.seated = true; this.yaw = yaw; this.root.rotation.y = yaw; this.faceYaw = yaw;
+    this.legs.forEach((l) => { if (l.userData.sitGeo) l.geometry = l.userData.sitGeo; }); // genoux pliés
+  }
   standUp() {
     this.seated = false;
     this.root.position.y = 0;
+    this.legs.forEach((l) => { if (l.userData.standGeo) l.geometry = l.userData.standGeo; });
     this.legs.forEach((l) => { l.rotation.x = 0; });
     this.arms.forEach((a) => { a.rotation.x = 0; });
   }
