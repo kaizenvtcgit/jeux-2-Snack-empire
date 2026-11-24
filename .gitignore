@@ -1,0 +1,11 @@
+# dépendances (réinstallées avec « npm install »)
+node_modules/
+# version compilée (refaite avec « npm run build »)
+dist/
+# réglages locaux de Claude Code et de l'éditeur
+.claude/settings.local.json
+.vscode/
+# fichiers système
+Thumbs.db
+.DS_Store
+*.log
