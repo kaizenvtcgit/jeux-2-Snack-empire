@@ -365,6 +365,9 @@ export class UI {
     const g = this.game, S = g.state;
     $('#money').textContent = fmt(S.money);
     $('#rate').textContent = `+${fmt(S.rate)} $/s`;
+    // la barre des niveaux se place juste sous les pastilles du haut (1 ou 2 lignes selon la largeur de l'écran)
+    const hudBottom = Math.round($('#hud').getBoundingClientRect().bottom);
+    if (hudBottom !== this.hudBottom) { this.hudBottom = hudBottom; document.documentElement.style.setProperty('--hud-bottom', `${hudBottom}px`); }
     // pas de pubs possibles (autre site, hors ligne) : boutons de bonus masqués ; bloqueur : petit message à la place
     document.body.classList.toggle('no-ads', !ads.available);
     document.body.classList.toggle('adblocked', ads.blocked);

@@ -22,7 +22,8 @@ button { font: inherit; cursor: pointer; }
 #overlay { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
 
 /* ---------- HUD ---------- */
-#hud { position: fixed; left: 16px; top: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+/* le haut de l'écran ne passe jamais sous la boutique (à droite) : les pastilles passent à la ligne */
+#hud { position: fixed; left: 16px; top: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; max-width: calc(100vw - 394px); }
 .pill { padding: 10px 18px; border-radius: var(--radius); background: var(--panel); border: 1px solid var(--panel-border); box-shadow: var(--shadow); font-weight: 800; backdrop-filter: blur(6px); }
 .pill.money { font-size: 26px; }
 .pill.rate { font-size: 17px; }
@@ -119,7 +120,8 @@ button { font: inherit; cursor: pointer; }
 
 /* ---------- Onglets de zone (niveaux) ---------- */
 /* repliés : petites icônes ; au survol, la barre se déplie et affiche les noms */
-#zones { position: fixed; left: 16px; top: 92px; display: flex; flex-direction: column; gap: 4px; padding: 4px; border-radius: 14px; background: var(--panel); box-shadow: var(--shadow); backdrop-filter: blur(6px); z-index: 9; }
+/* (placée juste sous les pastilles du haut, qui peuvent tenir sur 1 ou 2 lignes : --hud-bottom, mis à jour par ui.js) */
+#zones { position: fixed; left: 16px; top: calc(var(--hud-bottom, 76px) + 16px); display: flex; flex-direction: column; gap: 4px; padding: 4px; border-radius: 14px; background: var(--panel); box-shadow: var(--shadow); backdrop-filter: blur(6px); z-index: 9; }
 #zones button { position: relative; display: flex; align-items: center; gap: 0; width: 40px; height: 40px; padding: 0 7px; overflow: hidden; border-radius: 10px; border: 2px solid transparent; background: transparent; color: var(--text); text-align: left; white-space: nowrap; transition: width .18s ease, gap .18s ease, background .12s; }
 #zones .zi { font-size: 20px; flex: none; }
 #zones .zt { display: flex; flex-direction: column; font-weight: 800; font-size: 14px; line-height: 1.1; opacity: 0; transition: opacity .15s; }
@@ -151,7 +153,8 @@ button { font: inherit; cursor: pointer; }
 @keyframes tutoRing { from { opacity: 1; scale: 1; } to { opacity: 0.55; scale: 1.06; } }
 /* écran moyen (tablette, petite fenêtre) : les pubs passent au-dessus de la boutique, à gauche */
 @media (max-width: 1250px) and (min-width: 901px) {
-  #ad-bar { left: 16px; transform: none; justify-content: flex-start; max-width: calc(100vw - 380px); }
+  /* (à droite des boutons ⚙️ et 🔇, en bas à gauche) */
+  #ad-bar { left: 124px; transform: none; justify-content: flex-start; max-width: calc(100vw - 124px - 370px); }
 }
 
 /* ---------- Mobile ---------- */
@@ -170,7 +173,8 @@ button { font: inherit; cursor: pointer; }
   #mute-btn { top: 10px; bottom: auto; left: auto; right: 56px; width: 40px; height: 40px; }
   #hud { right: 104px; }
   /* Niveaux : petites icônes à gauche, sous les pastilles */
-  #zones { left: 10px; top: 112px; }
+  #zones { left: 10px; top: calc(var(--hud-bottom, 96px) + 12px); }
+  #hud { max-width: none; }
   #zones:hover button { width: 40px; gap: 0; } /* sur téléphone : pas de dépliage, juste les icônes */
   #zones:hover .zt { opacity: 0; }
   #zones button { width: 44px; height: 44px; }
