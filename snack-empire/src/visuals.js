@@ -1,4 +1,5 @@
 import { THREE, M, add, cyl, sph, rbox, canvasTex } from './util.js';
+import { L } from './i18n.js';
 import * as E from './economy.js';
 import { queueLocal, QUEUE_ALONG } from './stand.js';
 import { buildMarketHall, hallFront, setRoofFade, HALL } from './market.js';
@@ -411,7 +412,7 @@ function makeResources() {
     g.fillStyle = '#1b1a24'; g.fillRect(0, 0, w, h);
     g.strokeStyle = '#ffd23f'; g.lineWidth = 8; g.strokeRect(6, 6, w - 12, h - 12);
     g.fillStyle = '#ffd23f'; g.font = 'bold 40px "Segoe UI", sans-serif'; g.textAlign = 'center';
-    g.fillText('FILE', w / 2, 62); g.fillText("D'ATTENTE", w / 2, 110);
+    g.fillText(L('FILE', 'QUEUE'), w / 2, 62); g.fillText(L("D'ATTENTE", 'HERE'), w / 2, 110);
   }) });
   // Peinture au sol : « COMMANDEZ ICI » + flèche, et empreintes de pas
   const orderDecal = new THREE.MeshStandardMaterial({ transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, roughness: 0.9,
@@ -419,7 +420,7 @@ function makeResources() {
       g.clearRect(0, 0, w, h);
       g.fillStyle = 'rgba(255,210,63,.92)';
       g.font = '900 68px "Arial Black", Impact, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillText('COMMANDEZ ICI', w / 2, 112);
+      g.fillText(L('COMMANDEZ ICI', 'ORDER HERE'), w / 2, 112);
       // flèche vers la fenêtre du camion (haut de la texture = côté camion)
       g.beginPath(); g.moveTo(w / 2 - 34, 52); g.lineTo(w / 2 + 34, 52); g.lineTo(w / 2, 10); g.closePath(); g.fill();
     }) });
@@ -525,7 +526,7 @@ function buildBillboard(R) {
     c.fillStyle = '#ffffff'; c.textAlign = 'center';
     c.font = '900 96px "Arial Black", Impact, sans-serif'; c.fillText('SNACK', w / 2, 140);
     c.fillStyle = '#ffd23f'; c.fillText('EMPIRE', w / 2, 245);
-    c.fillStyle = '#ffffff'; c.font = 'bold 44px "Segoe UI Emoji", "Segoe UI", sans-serif'; c.fillText('🍔 Les meilleurs burgers de la ville ! 🍟', w / 2, 330);
+    c.fillStyle = '#ffffff'; c.font = 'bold 44px "Segoe UI Emoji", "Segoe UI", sans-serif'; c.fillText(L('🍔 Les meilleurs burgers de la ville ! 🍟', '🍔 The best burgers in town! 🍟'), w / 2, 330);
   });
   const face = new THREE.Mesh(new THREE.PlaneGeometry(6.9, 2.65), M('#ffffff', { map: tex, emap: tex, emissive: '#ffffff', ei: 0.35, r: 0.6 }));
   face.position.set(0, 6.1, 0.08); g.add(face);

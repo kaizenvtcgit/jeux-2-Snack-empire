@@ -1,4 +1,5 @@
 import { THREE, M, add, rbox, box, cyl, sph, canvasTex, shadows, mergeStatic } from './util.js';
+import { L } from './i18n.js';
 
 /*
  * Niveau 2 : le marché couvert.
@@ -20,12 +21,12 @@ export const FRONT_Z = 33;
 export function hallFront(hasRow2) { return hasRow2 ? ROW2_Z + HALL.z1 : HALL.z1; }
 
 export const STALL_TYPES = [
-  { name: 'BOULANGERIE', awning: '#c0392b', board: '#5a2f1c', produce: 'bread' },
-  { name: 'FROMAGERIE', awning: '#e9a23b', board: '#2f4a3f', produce: 'cheese' },
-  { name: 'PRIMEUR', awning: '#2a9d8f', board: '#22302a', produce: 'fruit' },
-  { name: 'POISSONNERIE', awning: '#2a6f97', board: '#1d3557', produce: 'fish' },
-  { name: 'CHARCUTERIE', awning: '#8d1b2c', board: '#3d1f1a', produce: 'charcuterie' },
-  { name: 'PÂTISSERIE', awning: '#e57aa5', board: '#5a2d47', produce: 'pastry' },
+  { name: L('BOULANGERIE', 'BAKERY'), awning: '#c0392b', board: '#5a2f1c', produce: 'bread' },
+  { name: L('FROMAGERIE', 'CHEESE SHOP'), awning: '#e9a23b', board: '#2f4a3f', produce: 'cheese' },
+  { name: L('PRIMEUR', 'GREENGROCER'), awning: '#2a9d8f', board: '#22302a', produce: 'fruit' },
+  { name: L('POISSONNERIE', 'FISHMONGER'), awning: '#2a6f97', board: '#1d3557', produce: 'fish' },
+  { name: L('CHARCUTERIE', 'DELI'), awning: '#8d1b2c', board: '#3d1f1a', produce: 'charcuterie' },
+  { name: L('PÂTISSERIE', 'PASTRY SHOP'), awning: '#e57aa5', board: '#5a2d47', produce: 'pastry' },
 ];
 
 /* ---------- La halle ---------- */
@@ -101,7 +102,7 @@ export function buildMarketHall(z1 = HALL.z1) {
     c.fillStyle = '#2f5446'; c.fillRect(0, 0, w, hh);
     c.strokeStyle = '#e6c873'; c.lineWidth = 8; c.strokeRect(10, 10, w - 20, hh - 20);
     c.fillStyle = '#f3e7c6'; c.font = '900 92px Georgia, "Times New Roman", serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.fillText('MARCHÉ COUVERT', w / 2, hh / 2 + 4);
+    c.fillText(L('MARCHÉ COUVERT', 'COVERED MARKET'), w / 2, hh / 2 + 4);
   });
   add(rbox(9, 1.4, 0.15, 0.04, M('#ffffff', { map: signTex, r: 0.5 })), (x0 + x1) / 2, h + 1.0, z1 + 0.2, g);
 
@@ -234,7 +235,7 @@ export function buildStall(k, recipes) {
     const c = menuCanvas.getContext('2d'), w = 256, h = 360;
     c.fillStyle = '#22302a'; c.fillRect(0, 0, w, h);
     c.strokeStyle = '#b88a52'; c.lineWidth = 18; c.strokeRect(0, 0, w, h);
-    c.fillStyle = '#fff'; c.textAlign = 'center'; c.font = 'bold 40px Georgia, serif'; c.fillText('MARCHÉ', w / 2, 66);
+    c.fillStyle = '#fff'; c.textAlign = 'center'; c.font = 'bold 40px Georgia, serif'; c.fillText(L('MARCHÉ', 'MARKET'), w / 2, 66);
     c.textAlign = 'left'; c.font = '26px "Segoe UI Emoji", "Segoe UI", sans-serif';
     recipes.filter((r) => (levels[r.id] || 0) > 0).forEach((r, i) => { c.fillStyle = '#f4f1e8'; c.fillText(`${r.emoji} ${r.name}`, 18, 122 + i * 46); });
     menuTex.needsUpdate = true;

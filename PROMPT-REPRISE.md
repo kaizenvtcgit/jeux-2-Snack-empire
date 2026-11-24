@@ -26,6 +26,10 @@ Déjà fait : recettes / améliorations / vendeurs, sauvegarde auto + gains hors
 
 `main.js` (démarrage, boucle, branchement des sons) · `game.js` (logique, clients, événements, affluence) · `economy.js` (TOUS les prix et constantes) · `stand.js` (emplacements, orientation, file, tables) · `ui.js` (HUD, boutique, zones) · `visuals.js` (décors qui apparaissent avec les améliorations) · `world.js` (scène, caméra, quai) · `market.js` / `port.js` / `beach.js` / `fair.js` (décors et stands de chaque niveau) · `fairnav.js` + `nav.js` (chemins) · `people.js` + `models.js` (clients) · `platform.js` / `ads.js` / `save.js` (CrazyGames) · `tutorial.js` · `audio.js`.
 
+## Langues (important)
+
+Le jeu est **en anglais par défaut** (exigé par CrazyGames) et en français si le navigateur du joueur est en français ; le joueur peut changer dans ⚙️ (le jeu se recharge). Tout nouveau texte visible doit avoir ses deux versions : `L('texte français', 'English text')` (import depuis `./i18n.js`) ; les sommes d'argent passent par `money(n)` (« 12 M $ » / « $12 M »). Les textes de `index.html` sont en anglais avec la version française dans un attribut `data-fr`.
+
 ## Pièges connus (important)
 
 - **Ne jamais changer la clé de sauvegarde** `street-food-empire-save-v1` (ancien nom du jeu) : ça effacerait les parties des joueurs. Toute modification de la structure de sauvegarde doit convertir les anciennes (exemple : `levelSwap45` dans le constructeur de `Game`).

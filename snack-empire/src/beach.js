@@ -1,4 +1,5 @@
 import { THREE, M, add, rbox, box, cyl, sph, canvasTex, speckle, rng, mergeStatic } from './util.js';
+import { L } from './i18n.js';
 import { createNav } from './nav.js';
 
 /*
@@ -24,14 +25,14 @@ export const BEACH_GATES = [-24.5, -13.5, -2.5, 6.5].map((x) => new THREE.Vector
 const SIGN_X = -13.5;
 
 export const BEACH_TYPES = [
-  { name: 'GLACES', a: '#ff8fab', b: '#fff1e6', produce: 'icecream' },
-  { name: 'GRANITÉS', a: '#4cc9f0', b: '#ffffff', produce: 'granita' },
-  { name: 'PASTÈQUE', a: '#2a9d8f', b: '#ff6b6b', produce: 'watermelon' },
-  { name: 'CRÊPES', a: '#f4a261', b: '#fff3d6', produce: 'crepe' },
-  { name: 'CREVETTES', a: '#e76f51', b: '#fff3d6', produce: 'shrimp' },
-  { name: 'PANINIS', a: '#bc6c25', b: '#fefae0', produce: 'panini' },
-  { name: 'NOIX DE COCO', a: '#6b4226', b: '#f1faee', produce: 'coconut' },
-  { name: 'SMOOTHIES', a: '#9d4edd', b: '#ffd166', produce: 'smoothie' },
+  { name: L('GLACES', 'ICE CREAM'), a: '#ff8fab', b: '#fff1e6', produce: 'icecream' },
+  { name: L('GRANITÉS', 'SLUSHIES'), a: '#4cc9f0', b: '#ffffff', produce: 'granita' },
+  { name: L('PASTÈQUE', 'WATERMELON'), a: '#2a9d8f', b: '#ff6b6b', produce: 'watermelon' },
+  { name: L('CRÊPES', 'CREPES'), a: '#f4a261', b: '#fff3d6', produce: 'crepe' },
+  { name: L('CREVETTES', 'SHRIMP'), a: '#e76f51', b: '#fff3d6', produce: 'shrimp' },
+  { name: L('PANINIS', 'PANINIS'), a: '#bc6c25', b: '#fefae0', produce: 'panini' },
+  { name: L('NOIX DE COCO', 'COCONUTS'), a: '#6b4226', b: '#f1faee', produce: 'coconut' },
+  { name: L('SMOOTHIES', 'SMOOTHIES'), a: '#9d4edd', b: '#ffd166', produce: 'smoothie' },
 ];
 
 /* ======================= Trajets sur la plage ======================= */
@@ -106,7 +107,7 @@ export function buildBeachDecor() {
     c.fillStyle = '#2a9d8f'; c.fillRect(0, 0, w, h);
     c.fillStyle = '#ffd166'; for (let x = 0; x < w; x += 80) { c.beginPath(); c.arc(x + 40, h, 34, Math.PI, 0); c.fill(); }
     c.fillStyle = '#ffffff'; c.strokeStyle = '#1d3557'; c.lineWidth = 12; c.font = '900 130px "Arial Black", Impact, sans-serif';
-    c.textAlign = 'center'; c.textBaseline = 'middle'; c.strokeText('LA PLAGE', w / 2, h / 2 - 6); c.fillText('LA PLAGE', w / 2, h / 2 - 6);
+    c.textAlign = 'center'; c.textBaseline = 'middle'; c.strokeText(L('LA PLAGE', 'THE BEACH'), w / 2, h / 2 - 6); c.fillText(L('LA PLAGE', 'THE BEACH'), w / 2, h / 2 - 6);
   });
   const woodM = M('#8a5a34', { r: 0.8, cached: true });
   for (const s of [-3, 3]) add(cyl(0.16, 0.2, 4.6, woodM, 10), SIGN_X + s, 2.3, 37.2, stat);
@@ -303,7 +304,7 @@ export function buildBeachHut(k, recipes) {
     const c = menuCanvas.getContext('2d'), w = 256, h = 380;
     c.fillStyle = '#1d3557'; c.fillRect(0, 0, w, h);
     c.strokeStyle = '#ffd166'; c.lineWidth = 14; c.strokeRect(0, 0, w, h);
-    c.fillStyle = '#fff'; c.textAlign = 'center'; c.font = 'bold 36px "Arial Black", sans-serif'; c.fillText('PLAGE', w / 2, 60);
+    c.fillStyle = '#fff'; c.textAlign = 'center'; c.font = 'bold 36px "Arial Black", sans-serif'; c.fillText(L('PLAGE', 'BEACH'), w / 2, 60);
     c.textAlign = 'left'; c.font = '22px "Segoe UI Emoji", "Segoe UI", sans-serif';
     recipes.filter((r) => (levels[r.id] || 0) > 0).forEach((r, i) => { c.fillStyle = '#f4f1e8'; c.fillText(`${r.emoji} ${r.name}`, 14, 104 + i * 34); });
     menuTex.needsUpdate = true;

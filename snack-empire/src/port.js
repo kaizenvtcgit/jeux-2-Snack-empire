@@ -1,4 +1,5 @@
 import { THREE, M, add, rbox, box, cyl, sph, canvasTex, speckle, shadows, rng, mergeStatic } from './util.js';
+import { L } from './i18n.js';
 
 /*
  * Niveau 3 : le port, à gauche du parking.
@@ -15,15 +16,15 @@ export const DOCK = new THREE.Vector3(-97, 0, -8.5);
 const PONTOONS = [-70, -57, -45];
 
 export const SHOP_TYPES = [
-  { name: 'FRITERIE DU PORT', roof: '#2a6f97', wall: '#d9e6ec', trim: '#1d3557', produce: 'fishchips', deco: 'net' },
-  { name: 'BAR À CREVETTES', roof: '#e76f51', wall: '#f4e3c3', trim: '#7a3b1e', produce: 'shrimp', deco: 'lampions' },
-  { name: 'ÉCAILLER', roof: '#457b9d', wall: '#f1f1ea', trim: '#1d3557', produce: 'oysters', deco: 'buoy' },
-  { name: 'SUSHI BAR', roof: '#1b1b1d', wall: '#f3e9d7', trim: '#b5222b', produce: 'sushi', deco: 'noren' },
-  { name: 'GUINGUETTE', roof: '#2a9d8f', wall: '#fbf3e4', trim: '#7a5230', produce: 'paella', deco: 'lampions' },
-  { name: 'GLACIER DU PHARE', roof: '#d62828', wall: '#ffffff', trim: '#d62828', produce: 'icecream', deco: 'stripes' },
+  { name: L('FRITERIE DU PORT', 'HARBOR CHIPPY'), roof: '#2a6f97', wall: '#d9e6ec', trim: '#1d3557', produce: 'fishchips', deco: 'net' },
+  { name: L('BAR À CREVETTES', 'SHRIMP SHACK'), roof: '#e76f51', wall: '#f4e3c3', trim: '#7a3b1e', produce: 'shrimp', deco: 'lampions' },
+  { name: L('ÉCAILLER', 'OYSTER BAR'), roof: '#457b9d', wall: '#f1f1ea', trim: '#1d3557', produce: 'oysters', deco: 'buoy' },
+  { name: L('SUSHI BAR', 'SUSHI BAR'), roof: '#1b1b1d', wall: '#f3e9d7', trim: '#b5222b', produce: 'sushi', deco: 'noren' },
+  { name: L('GUINGUETTE', 'PAELLA HOUSE'), roof: '#2a9d8f', wall: '#fbf3e4', trim: '#7a5230', produce: 'paella', deco: 'lampions' },
+  { name: L('GLACIER DU PHARE', 'LIGHTHOUSE CONES'), roof: '#d62828', wall: '#ffffff', trim: '#d62828', produce: 'icecream', deco: 'stripes' },
   // ajoutées à gauche de l'écailler (fond) et du glacier (devant)
-  { name: 'FUMOIR À SAUMON', roof: '#5b4636', wall: '#e8dccb', trim: '#7a3b1e', produce: 'salmon', deco: 'chimney' },
-  { name: 'BAR À COCKTAILS', roof: '#06d6a0', wall: '#fff6e0', trim: '#ef476f', produce: 'cocktail', deco: 'palm' },
+  { name: L('FUMOIR À SAUMON', 'SALMON SMOKEHOUSE'), roof: '#5b4636', wall: '#e8dccb', trim: '#7a3b1e', produce: 'salmon', deco: 'chimney' },
+  { name: L('BAR À COCKTAILS', 'COCKTAIL BAR'), roof: '#06d6a0', wall: '#fff6e0', trim: '#ef476f', produce: 'cocktail', deco: 'palm' },
 ];
 
 /* ======================= Décor ======================= */
@@ -132,8 +133,8 @@ export function buildPortDecor(scene, animators) {
   const signTex = canvasTex(1024, 220, (c, w, h) => {
     c.fillStyle = '#1d3557'; c.fillRect(0, 0, w, h);
     c.strokeStyle = '#f1faee'; c.lineWidth = 10; c.strokeRect(12, 12, w - 24, h - 24);
-    c.fillStyle = '#f1faee'; c.font = '900 110px Georgia, serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.fillText('⚓ PORT DE PÊCHE', w / 2, h / 2 + 6);
+    c.fillStyle = '#f1faee'; c.font = '900 92px Georgia, serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(L('⚓ PORT DE PÊCHE', '⚓ FISHING HARBOR'), w / 2, h / 2 + 6);
   });
   for (const x of [-66, -58]) add(cyl(0.1, 0.12, 4.2, M('#6e4a2a', { r: 0.8, cached: true }), 10), x, 2.1, quayZ + 1.2, deco);
   add(rbox(9, 1.9, 0.18, 0.05, M('#ffffff', { map: signTex, r: 0.6 })), -62, 4.0, quayZ + 1.2, deco);
@@ -173,7 +174,7 @@ export function buildPortDecor(scene, animators) {
   add(box(4, 3.4, 0.1, M('#9aa5ab', { r: 0.4, m: 0.5, cached: true })), 0, 1.7, -7.52, hall);
   const criee = canvasTex(512, 120, (c, w, h) => {
     c.fillStyle = '#1d3557'; c.fillRect(0, 0, w, h);
-    c.fillStyle = '#ffffff'; c.font = '900 76px Georgia, serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText('LA CRIÉE', w / 2, h / 2 + 4);
+    c.fillStyle = '#ffffff'; c.font = '900 76px Georgia, serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillText(L('LA CRIÉE', 'FISH MARKET'), w / 2, h / 2 + 4);
   });
   const crieeSign = box(0.12, 1.1, 5.2, M('#ffffff', { map: criee, r: 0.5 })); crieeSign.position.set(5.6, 4.3, 0); crieeSign.rotation.y = 0; hall.add(crieeSign);
   hall.position.set(-97, 0, 12);
@@ -459,7 +460,7 @@ export function buildPortShop(k, recipes) {
     const c = menuCanvas.getContext('2d'), w = 256, h = 380;
     c.fillStyle = '#1d2a33'; c.fillRect(0, 0, w, h);
     c.strokeStyle = '#b88a52'; c.lineWidth = 18; c.strokeRect(0, 0, w, h);
-    c.fillStyle = '#fff'; c.textAlign = 'center'; c.font = 'bold 38px Georgia, serif'; c.fillText('PORT', w / 2, 62);
+    c.fillStyle = '#fff'; c.textAlign = 'center'; c.font = 'bold 38px Georgia, serif'; c.fillText(L('PORT', 'HARBOR'), w / 2, 62);
     c.textAlign = 'left'; c.font = '22px "Segoe UI Emoji", "Segoe UI", sans-serif';
     recipes.filter((r) => (levels[r.id] || 0) > 0).forEach((r, i) => { c.fillStyle = '#f4f1e8'; c.fillText(`${r.emoji} ${r.name}`, 16, 110 + i * 38); });
     menuTex.needsUpdate = true;

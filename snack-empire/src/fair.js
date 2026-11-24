@@ -1,4 +1,5 @@
 import { THREE, M, add, rbox, box, cyl, sph, canvasTex, speckle, shadows, rng, mergeStatic } from './util.js';
+import { L } from './i18n.js';
 
 /*
  * Niveau 5 : la fête foraine, devant le marché couvert.
@@ -45,14 +46,14 @@ export function slotWorld(s, lx, lz) {
 export const FAIR_MASTS = FAIR_SLOTS.flatMap((s, i) => [slotWorld(s, -3.0, -1.65), slotWorld(s, 2.0, -1.65)].map((p) => Object.assign(p, { slot: i })));
 
 export const FAIR_TYPES = [
-  { name: 'BARBE À PAPA', a: '#ff8fc7', b: '#ffffff', produce: 'cotton' },
-  { name: "POMMES D'AMOUR", a: '#d62828', b: '#ffffff', produce: 'apple' },
-  { name: 'CHURROS', a: '#f77f00', b: '#fff3b0', produce: 'churros' },
-  { name: 'GAUFRES', a: '#f4c21d', b: '#7a4a1e', produce: 'waffle' },
-  { name: 'POPCORN', a: '#e63946', b: '#ffffff', produce: 'popcorn' },
-  { name: 'HOT-DOGS GÉANTS', a: '#2a6f97', b: '#ffd166', produce: 'hotdog' },
-  { name: 'BEIGNETS', a: '#9b5de5', b: '#ffffff', produce: 'donut' },
-  { name: 'LIMONADE', a: '#ffd60a', b: '#06d6a0', produce: 'lemonade' },
+  { name: L('BARBE À PAPA', 'COTTON CANDY'), a: '#ff8fc7', b: '#ffffff', produce: 'cotton' },
+  { name: L("POMMES D'AMOUR", 'CANDY APPLES'), a: '#d62828', b: '#ffffff', produce: 'apple' },
+  { name: L('CHURROS', 'CHURROS'), a: '#f77f00', b: '#fff3b0', produce: 'churros' },
+  { name: L('GAUFRES', 'WAFFLES'), a: '#f4c21d', b: '#7a4a1e', produce: 'waffle' },
+  { name: L('POPCORN', 'POPCORN'), a: '#e63946', b: '#ffffff', produce: 'popcorn' },
+  { name: L('HOT-DOGS GÉANTS', 'GIANT HOT DOGS'), a: '#2a6f97', b: '#ffd166', produce: 'hotdog' },
+  { name: L('BEIGNETS', 'DONUTS'), a: '#9b5de5', b: '#ffffff', produce: 'donut' },
+  { name: L('LIMONADE', 'LEMONADE'), a: '#ffd60a', b: '#06d6a0', produce: 'lemonade' },
 ];
 
 /** Ampoules de la fête : plus lumineuses la nuit (voir setFairNight). */
@@ -197,7 +198,7 @@ export function buildFairDecor(pathFn = null) {
     const gr = c.createLinearGradient(0, 0, w, 0); gr.addColorStop(0, '#ff5d8f'); gr.addColorStop(0.5, '#ffd166'); gr.addColorStop(1, '#4cc9f0');
     c.fillStyle = gr; c.fillRect(0, 0, w, h);
     c.fillStyle = '#ffffff'; c.strokeStyle = '#3a2a60'; c.lineWidth = 10; c.font = '900 120px "Arial Black", Impact, sans-serif';
-    c.textAlign = 'center'; c.textBaseline = 'middle'; c.strokeText('FÊTE FORAINE', w / 2, h / 2 + 6); c.fillText('FÊTE FORAINE', w / 2, h / 2 + 6);
+    c.textAlign = 'center'; c.textBaseline = 'middle'; c.strokeText(L('FÊTE FORAINE', 'FUN FAIR'), w / 2, h / 2 + 6); c.fillText(L('FÊTE FORAINE', 'FUN FAIR'), w / 2, h / 2 + 6);
   });
   const archX = ENTRY_X, archZ = z0;
   for (const s of [-1, 1]) {
@@ -309,7 +310,7 @@ function buildBumperCars() {
   const sign = canvasTex(512, 96, (c, w, h) => {
     c.fillStyle = '#3a2a60'; c.fillRect(0, 0, w, h);
     c.fillStyle = '#ffd166'; c.font = '900 56px "Arial Black", Impact, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.fillText('AUTOS TAMPONNEUSES', w / 2, h / 2 + 4);
+    c.fillText(L('AUTOS TAMPONNEUSES', 'BUMPER CARS'), w / 2, h / 2 + 4);
   });
   add(rbox(9, 0.9, 0.12, 0.04, M('#ffffff', { map: sign, emap: sign, emissive: '#ffffff', ei: 0.5, r: 0.5 })), 0, 5.15, D / 2 + 0.3, root);
   for (let i = 0; i < 16; i++) add(sph(0.09, BULB_COLORS[i % BULB_COLORS.length], 6, 4), -W / 2 + 0.3 + i * (W - 0.6) / 15, 4.38, D / 2 + 0.32, root);
@@ -386,8 +387,8 @@ function buildCoaster() {
   add(box(4.2, 0.2, 10, M('#ffffff', { map: roofT, r: 0.6 })), 0.4, 4.45, 0, st);
   const signT = canvasTex(1024, 200, (c, w, h) => {
     c.fillStyle = '#1d3557'; c.fillRect(0, 0, w, h);
-    c.fillStyle = '#ffd166'; c.font = '900 108px "Arial Black", Impact, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.fillText('GRAND HUIT', w / 2, h / 2 + 6);
+    c.fillStyle = '#ffd166'; c.font = '900 84px "Arial Black", Impact, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(L('GRAND HUIT', 'ROLLER COASTER'), w / 2, h / 2 + 6);
   });
   const sign = box(0.15, 1.4, 7, M('#ffffff', { map: signT, emap: signT, emissive: '#ffffff', ei: 0.5, r: 0.5 })); sign.position.set(-1.7, 5.3, 0); sign.rotation.y = 0; st.add(sign);
   for (let k = 0; k < 4; k++) add(box(0.8, 0.22, 1.0, M('#a0764c', { r: 0.8, cached: true })), -2.0, 0.11 + k * 0.24, 4.2 - k * 0.9, st);
@@ -645,7 +646,7 @@ export function buildFairStand(k, recipes) {
     const c = menuCanvas.getContext('2d'), w = 256, h = 380;
     c.fillStyle = '#2a1e3d'; c.fillRect(0, 0, w, h);
     c.strokeStyle = '#ffd166'; c.lineWidth = 14; c.strokeRect(0, 0, w, h);
-    c.fillStyle = '#fff'; c.textAlign = 'center'; c.font = 'bold 36px "Arial Black", sans-serif'; c.fillText('FÊTE', w / 2, 60);
+    c.fillStyle = '#fff'; c.textAlign = 'center'; c.font = 'bold 36px "Arial Black", sans-serif'; c.fillText(L('FÊTE', 'FAIR'), w / 2, 60);
     c.textAlign = 'left'; c.font = '22px "Segoe UI Emoji", "Segoe UI", sans-serif';
     recipes.filter((r) => (levels[r.id] || 0) > 0).forEach((r, i) => { c.fillStyle = '#f4f1e8'; c.fillText(`${r.emoji} ${r.name}`, 14, 104 + i * 34); });
     menuTex.needsUpdate = true;
