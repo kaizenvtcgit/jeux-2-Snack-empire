@@ -78,6 +78,11 @@ export class Game {
     this.adCooldown.heat = 0;
     this.earnAcc = 0;
     this.rateT = 0;
+    // Affluence : le nombre de clients visibles est plafonné (fluidité) ; chaque vente compte alors pour
+    // la foule « réelle » qui viendrait sans plafond, pour que chaque nouveau stand augmente vraiment les revenus
+    this.affluence = 1;
+    this.salesAcc = 0;
+    this.salesRate = 0.3;
     this.saveT = 0;
     this.time = 0;
   }
@@ -311,6 +316,10 @@ export class Game {
     this.rateT += dt;
     if (this.rateT >= 1) {
       S.rate = S.rate * 0.92 + (this.earnAcc / this.rateT) * 0.08;
+      // ventes réellement faites (moyenne glissante) et demande théorique des stands ouverts
+      this.salesRate = this.salesRate * 0.9 + (this.salesAcc / this.rateT) * 0.1;
+      this.salesAcc = 0;
+      this.affluence = this.computeAffluence(open);
       this.earnAcc = 0; this.rateT = 0;
     }
     this.saveT += dt;
@@ -448,10 +457,26 @@ export class Game {
     return pts;
   }
 
+  /**
+   * Affluence (≥ 1) : clients « théoriques » par seconde / ventes réellement faites.
+   * Chaque stand attire 1 / (3,2 × 0,9^publicité) clients par seconde, dans la limite de ce qu'il sait servir
+   * (vitesse de cuisson × équipe). Tant que le plafond de clients visibles n'est pas atteint, l'affluence reste à 1.
+   */
+  computeAffluence(open) {
+    const S = this.state;
+    const demand = 1 / (3.2 * 0.9 ** S.up.marketing);
+    let theo = 0;
+    for (const s of open) theo += Math.min(demand, 1 / E.serviceTime(S.up.speed, s.cooks));
+    const target = Math.max(1, theo / Math.max(0.3, this.salesRate));
+    return this.affluence + (Math.min(target, 400) - this.affluence) * 0.15; // évolue en douceur
+  }
+
   finishOrder(stand) {
     const c = stand.serving;
     const lvl = this.state.recipes[stand.recipe.id];
+    this.salesAcc += 1;
     const amount = E.recipePrice(stand.recipe, lvl)
+      * this.affluence
       * (this.boost > 0 ? 2 : 1)
       * (stand.zone === 'port' && this.arrival > 0 ? E.ARRIVAL_MULT : 1) // arrivage du pêcheur
       * (stand.zone === 'fair' && this.nightLeft > 0 ? E.NIGHT_MULT : 1) // nuit à la fête foraine
