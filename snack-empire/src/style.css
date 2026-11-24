@@ -197,3 +197,14 @@ button { font: inherit; cursor: pointer; }
   .toast { top: 96px; width: calc(100vw - 32px); font-size: 14px; }
   .plot-btn .pb { font-size: 13px; padding: 8px 12px; }
 }
+
+/* ---------- Publicités (SDK CrazyGames) ---------- */
+/* pendant la demande d'une pub : le jeu est en pause et l'écran bloqué */
+.ad-wait { position: fixed; inset: 0; z-index: 45; display: grid; place-items: center; background: rgba(0, 0, 0, 0.45); }
+.ad-wait-box { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-radius: 14px; background: var(--panel); font-weight: 800; box-shadow: var(--shadow); }
+.ad-spin { width: 22px; height: 22px; border-radius: 50%; border: 3px solid rgba(255, 255, 255, 0.25); border-top-color: var(--gold); animation: adSpin .8s linear infinite; }
+@keyframes adSpin { to { transform: rotate(360deg); } }
+/* pas de pubs possibles : pas de boutons de bonus (jamais de bouton cliquable sans effet) */
+body.no-ads #ad-bar > button { display: none !important; }
+#ad-note { display: none; padding: 8px 12px; border-radius: 12px; background: var(--panel); color: var(--muted); font-size: 12px; font-weight: 700; }
+body.adblocked #ad-note { display: block; }

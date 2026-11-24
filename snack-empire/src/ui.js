@@ -1,6 +1,7 @@
 import { fmt, fmtDuration } from './util.js';
 import * as E from './economy.js';
 import { ads } from './ads.js';
+import { happytime } from './platform.js';
 import { audio } from './audio.js';
 import { THREE } from './util.js';
 import { HALL, hallFront } from './market.js';
@@ -153,23 +154,23 @@ export class UI {
     // Pubs récompensées
     $('#ad-rush').addEventListener('click', async () => {
       if (game.adCooldown.rush > 0 || game.boost > 0) return;
-      if (await ads.rewarded()) game.startRush();
+      if (await this.watchAd()) game.startRush();
     });
     $('#ad-vip').addEventListener('click', async () => {
       if (game.adCooldown.vip > 0) return;
-      if (await ads.rewarded()) game.claimVip();
+      if (await this.watchAd()) game.claimVip();
     });
     $('#ad-night').addEventListener('click', async () => {
       if (game.adCooldown.night > 0 || game.nightLeft > 0) return;
-      if (await ads.rewarded()) { game.callNight(); this.setZone('fair'); }
+      if (await this.watchAd()) { game.callNight(); this.setZone('fair'); }
     });
     $('#ad-heat').addEventListener('click', async () => {
       if (game.adCooldown.heat > 0 || game.heatLeft > 0) return;
-      if (await ads.rewarded()) { game.callHeat(); this.setZone('beach'); }
+      if (await this.watchAd()) { game.callHeat(); this.setZone('beach'); }
     });
     $('#ad-boat').addEventListener('click', async () => {
       if (game.adCooldown.boat > 0 || game.arrival > 0) return;
-      if (await ads.rewarded()) { game.callBoat(); this.setZone('port'); }
+      if (await this.watchAd()) { game.callBoat(); this.setZone('port'); }
     });
 
     // Son : effets / musique (réglages) et bouton « couper le son »
@@ -226,9 +227,13 @@ export class UI {
                   : zone === 'beach' ? '🛖 Nouvelle paillote sur la plage !'
                     : '🎉 Nouveau stand ouvert !');
       this.setZone(zone);
-      // laisser le joueur admirer son nouveau camion avant la pub
-      await new Promise((r) => setTimeout(r, 2200));
-      await ads.midgame();
+      // nouveau niveau : petite fête sur le site, puis (après avoir admiré la nouvelle zone) une pub de mi-partie.
+      // (règles CrazyGames : pubs de mi-partie seulement aux moments charnières, jamais pendant le jeu)
+      if (i === E.zoneOf(i).first) {
+        happytime();
+        await new Promise((r) => setTimeout(r, 2500));
+        await ads.midgame();
+      }
     }
   }
 
@@ -360,6 +365,9 @@ export class UI {
     const g = this.game, S = g.state;
     $('#money').textContent = fmt(S.money);
     $('#rate').textContent = `+${fmt(S.rate)} $/s`;
+    // pas de pubs possibles (autre site, hors ligne) : boutons de bonus masqués ; bloqueur : petit message à la place
+    document.body.classList.toggle('no-ads', !ads.available);
+    document.body.classList.toggle('adblocked', ads.blocked);
     const rush = $('#ad-rush');
     if (g.boost > 0) { rush.disabled = true; rush.innerHTML = `🔥 Coup de feu ×2 · ${fmtDuration(g.boost)}`; rush.classList.add('active'); }
     else { rush.classList.remove('active'); rush.disabled = g.adCooldown.rush > 0; rush.innerHTML = g.adCooldown.rush > 0 ? `📺 Coup de feu · ${Math.ceil(g.adCooldown.rush)} s` : '📺 Coup de feu ×2 (3 min)'; }
@@ -498,7 +506,7 @@ export class UI {
       <h2>Bon retour, patron ! 👋</h2>
       <p>Pendant ton absence (${fmtDuration(gain.seconds)}), tes stands ont gagné :</p>
       <div class="big">${fmt(gain.amount)} $</div>
-      <div class="row"><button class="ghost" data-x="1">Récupérer</button><button class="gold" data-x="2">📺 Récupérer ×2</button></div>
+      <div class="row"><button class="gold" data-x="1">Récupérer</button>${ads.available ? '<button class="gold" data-x="2">📺 Récupérer ×2</button>' : ''}</div>
     </div>`);
     document.body.appendChild(m);
     m.addEventListener('click', async (e) => {
@@ -506,7 +514,7 @@ export class UI {
       if (!b) return;
       m.remove();
       let mult = 1;
-      if (b.dataset.x === '2' && await ads.rewarded()) mult = 2;
+      if (b.dataset.x === '2' && await this.watchAd()) mult = 2;
       onClaim(gain.amount * mult);
     });
   }
@@ -530,6 +538,16 @@ export class UI {
         resolve(!!b && b.dataset.x === '1');
       });
     });
+  }
+
+  /**
+   * Pub récompensée : true si regardée jusqu'au bout. Sinon, un petit message (pas de récompense,
+   * on invite à réessayer plus tard, comme le demande CrazyGames).
+   */
+  async watchAd() {
+    const ok = await ads.rewarded();
+    if (!ok && ads.lastError && ads.lastError !== 'adblock') this.toast('📺 Pas de publicité disponible pour le moment : réessaie un peu plus tard');
+    return ok;
   }
 
   /** Ouvre un onglet de la boutique (recettes, améliorations, stands) et déplie la liste. */

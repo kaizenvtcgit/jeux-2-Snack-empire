@@ -8,12 +8,14 @@ import { initQuality } from './quality.js';
 import { UpgradeVisuals } from './visuals.js';
 import { audio, sfx, setScene } from './audio.js';
 import { initTutorial } from './tutorial.js';
+import { platform, initPlatform, gameReady } from './platform.js';
 
 // Écran de chargement : la barre suit le téléchargement des modèles, puis la construction de la ville
 const ldFill = document.getElementById('ld-fill');
 const setLoad = (k) => { if (ldFill) ldFill.style.width = `${Math.round(3 + k * 97)}%`; };
 const nextFrame = () => new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
-await loadModels((k) => setLoad(k * 0.65));
+// (le SDK CrazyGames s'initialise pendant le téléchargement : la sauvegarde du joueur en dépend)
+await Promise.all([initPlatform(), loadModels((k) => setLoad(k * 0.65))]);
 setLoad(0.7); await nextFrame();
 const world = createWorld(document.getElementById('app'));
 setLoad(0.85); await nextFrame();
@@ -69,7 +71,7 @@ function loop(now) {
   ui.frame(dt);
   tuto.frame();
   // sons : ambiance de la zone regardée, coupés pendant une pub
-  audio.setMuted(!!ads.active);
+  audio.setMuted(ads.playing || platform.muteAudio); // son coupé pendant une pub, ou si CrazyGames le demande
   setScene(ui.zone, game.night, game.heat, world.camera.position.distanceTo(world.controls.target));
   audio.update(dt);
   hudT += dt;
@@ -81,6 +83,7 @@ requestAnimationFrame(loop);
 
 // fin du chargement : la barre se remplit, puis l'écran s'efface en fondu (visible au moins ~1,2 s pour voir le logo)
 setLoad(1);
+gameReady(); // CrazyGames : fin du chargement, début de la partie
 const ld = document.getElementById('loading');
 setTimeout(() => { ld.classList.add('done'); setTimeout(() => ld.remove(), 700); }, Math.max(350, 1200 - performance.now()));
 // Accès console pour les tests : window.sfe.game.addMoney(100000)

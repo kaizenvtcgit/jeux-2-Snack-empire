@@ -2,6 +2,8 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8">
+  <!-- SDK CrazyGames (pubs, sauvegarde dans le compte du joueur) : sans lui, le jeu tourne sans pubs -->
+  <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>Snack Empire</title>
   <meta name="description" content="Snack Empire : construis ton empire du snack ! Sers des clients, améliore tes recettes, ouvre food trucks, étals, boutiques du port, stands de fête foraine et paillotes de plage.">
@@ -73,6 +75,7 @@
 
   <div id="ad-bar">
     <button id="ad-toggle">📺 Bonus</button>
+    <div id="ad-note">📺 Bonus indisponibles : un bloqueur de publicités est actif</div>
     <button id="ad-rush">📺 Coup de feu ×2 (3 min)</button>
     <button id="ad-vip">📺 Livraison VIP</button>
     <button id="ad-boat" style="display:none">📺 Faire venir un bateau</button>

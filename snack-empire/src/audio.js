@@ -217,6 +217,8 @@ export const audio = {
 // Le son démarre au premier geste du joueur (règle des navigateurs) ; coupé quand l'onglet est caché
 const unlock = () => { init(); if (ctx && ctx.state === 'suspended' && !document.hidden) ctx.resume(); };
 addEventListener('pointerdown', unlock, { capture: true });
+addEventListener('touchend', unlock, { capture: true }); // iPhone : le son ne démarre que sur un toucher terminé
+addEventListener('click', unlock, { capture: true });
 addEventListener('keydown', unlock, { capture: true });
 document.addEventListener('visibilitychange', () => {
   if (!ctx) return;
