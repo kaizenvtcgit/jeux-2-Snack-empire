@@ -523,7 +523,7 @@ function buildBillboard(R) {
     c.fillStyle = 'rgba(255,255,255,.12)';
     for (let i = 0; i < 12; i++) { c.beginPath(); c.arc(80 + i * 90, 360, 60, 0, Math.PI * 2); c.fill(); }
     c.fillStyle = '#ffffff'; c.textAlign = 'center';
-    c.font = '900 96px "Arial Black", Impact, sans-serif'; c.fillText('STREET FOOD', w / 2, 140);
+    c.font = '900 96px "Arial Black", Impact, sans-serif'; c.fillText('SNACK', w / 2, 140);
     c.fillStyle = '#ffd23f'; c.fillText('EMPIRE', w / 2, 245);
     c.fillStyle = '#ffffff'; c.font = 'bold 44px "Segoe UI Emoji", "Segoe UI", sans-serif'; c.fillText('🍔 Les meilleurs burgers de la ville ! 🍟', w / 2, 330);
   });

@@ -2,9 +2,9 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "street-food-empire",
+      "name": "snack-empire",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "street-food-empire", "run", "dev"],
+      "runtimeArgs": ["--prefix", "snack-empire", "run", "dev"],
       "port": 5173
     }
   ]

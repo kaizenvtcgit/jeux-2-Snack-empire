@@ -1,5 +1,5 @@
 """
-Client articulé pour Street Food Empire (Blender 4.5).
+Client articulé pour Snack Empire (Blender 4.5).
 
 Le personnage regarde vers -Y (devient +Z dans Three.js).
 Nœuds utilisés par le jeu :

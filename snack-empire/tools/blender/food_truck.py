@@ -1,5 +1,5 @@
 """
-Food truck détaillé pour Street Food Empire.
+Food truck détaillé pour Snack Empire.
 Exécuté dans Blender (4.5) : construit le modèle puis l'exporte en GLB.
 
 Repères : Blender Z = haut. Le côté de service (fenêtre) est en -Y,

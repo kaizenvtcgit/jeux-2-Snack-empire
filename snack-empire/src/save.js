@@ -1,3 +1,4 @@
+// (clé gardée de l'ancien nom « Street Food Empire » : la changer effacerait les parties des joueurs)
 const KEY = 'street-food-empire-save-v1';
 
 export function loadSave() {

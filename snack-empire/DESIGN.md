@@ -1,4 +1,4 @@
-# Street Food Empire — mini document de design
+# Snack Empire — mini document de design
 
 ## Pitch
 Jeu de gestion idle en 3D, au style **semi-réaliste stylisé**, jouable dans le navigateur.

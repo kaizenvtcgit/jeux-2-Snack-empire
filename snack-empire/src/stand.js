@@ -255,7 +255,7 @@ function buildTruck(index) {
     g.font = '900 128px "Arial Black", Impact, sans-serif';
     g.textAlign = 'center'; g.textBaseline = 'middle';
     g.shadowColor = '#ff8a00'; g.shadowBlur = 28; g.fillStyle = '#ffd23f';
-    g.fillText('STREET FOOD', w / 2, h / 2 + 6);
+    g.fillText('SNACK EMPIRE', w / 2, h / 2 + 6);
     g.shadowBlur = 0; g.strokeStyle = '#ffd23f'; g.lineWidth = 6; g.strokeRect(12, 12, w - 24, h - 24);
   });
 
