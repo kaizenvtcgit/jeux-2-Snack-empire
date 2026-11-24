@@ -139,6 +139,17 @@ button { font: inherit; cursor: pointer; }
   .pill .s { display: inline; }
 }
 
+/* ---------- Tutoriel ---------- */
+#tuto { position: fixed; z-index: 40; width: min(300px, calc(100vw - 20px)); padding: 14px 16px 12px; border-radius: 16px; background: #fffaf0; color: #2b2118; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); border: 3px solid var(--gold); pointer-events: auto; transition: left .25s ease, top .25s ease; }
+#tuto .tuto-step { font-size: 11px; font-weight: 800; color: #b07a12; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+#tuto .tuto-text { font-size: 15px; line-height: 1.35; }
+#tuto .tuto-text small { color: #7a6a58; }
+#tuto .tuto-text.hint::before { content: '👉 Ouvre d’abord la boutique 🛒'; display: block; margin-bottom: 6px; font-weight: 800; color: #d0471f; }
+#tuto .tuto-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
+#tuto .tuto-ok { padding: 9px 14px; border: 0; border-radius: 10px; background: var(--gold); color: #1b1b1b; font-weight: 800; box-shadow: 0 3px 0 var(--gold-dark); }
+#tuto .tuto-skip { margin-left: auto; padding: 4px 2px; border: 0; background: none; color: #8a7a68; font-size: 12px; text-decoration: underline; }
+#tuto-ring { position: fixed; z-index: 39; display: none; border-radius: 14px; border: 3px solid var(--gold); box-shadow: 0 0 0 4px rgba(255, 210, 63, 0.35), 0 0 22px rgba(255, 210, 63, 0.8); pointer-events: none; animation: tutoRing 0.9s ease-in-out infinite alternate; }
+@keyframes tutoRing { from { opacity: 1; scale: 1; } to { opacity: 0.55; scale: 1.06; } }
 /* écran moyen (tablette, petite fenêtre) : les pubs passent au-dessus de la boutique, à gauche */
 @media (max-width: 1250px) and (min-width: 901px) {
   #ad-bar { left: 16px; transform: none; justify-content: flex-start; max-width: calc(100vw - 380px); }

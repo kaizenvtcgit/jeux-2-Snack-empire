@@ -7,6 +7,7 @@ import { loadModels } from './models.js';
 import { initQuality } from './quality.js';
 import { UpgradeVisuals } from './visuals.js';
 import { audio, sfx, setScene } from './audio.js';
+import { initTutorial } from './tutorial.js';
 
 await loadModels();
 const world = createWorld(document.getElementById('app'));
@@ -40,7 +41,8 @@ ui.bind(game, quality);
 
 const gain = game.offlineGain();
 if (gain) ui.offline(gain, (amount) => { game.addMoney(amount); sfx.jackpot(); ui.toast(`💰 +${amount.toLocaleString('fr-FR')} $`); });
-else if (game.isNewPlayer) ui.welcome();
+// (nouveau joueur : le tutoriel prend le relais)
+const tuto = initTutorial(ui, game);
 
 // Sauvegarde à la fermeture / mise en arrière-plan
 const persist = () => { if (!game.resetting) game.save(); };
@@ -59,6 +61,7 @@ function loop(now) {
   world.updateCamera(dt);
   world.animate(dt);
   ui.frame(dt);
+  tuto.frame();
   // sons : ambiance de la zone regardée, coupés pendant une pub
   audio.setMuted(!!ads.active);
   setScene(ui.zone, game.night, game.heat, world.camera.position.distanceTo(world.controls.target));

@@ -128,12 +128,7 @@ export class UI {
       const shop = $('#shop');
       if (b.dataset.tab === this.tab) {
         shop.classList.toggle('collapsed');
-      } else {
-        this.tab = b.dataset.tab;
-        shop.classList.remove('collapsed');
-        document.querySelectorAll('#tabs button').forEach((x) => x.classList.toggle('on', x === b));
-        this.rebuildShop();
-      }
+      } else this.selectTab(b.dataset.tab);
       try { localStorage.setItem(SHOP_KEY, shop.classList.contains('collapsed') ? '1' : '0'); } catch { /* rien */ }
     }));
     try { if (localStorage.getItem(SHOP_KEY) === '1') $('#shop').classList.add('collapsed'); } catch { /* rien */ }
@@ -535,6 +530,14 @@ export class UI {
         resolve(!!b && b.dataset.x === '1');
       });
     });
+  }
+
+  /** Ouvre un onglet de la boutique (recettes, améliorations, stands) et déplie la liste. */
+  selectTab(tab) {
+    this.tab = tab;
+    $('#shop').classList.remove('collapsed');
+    document.querySelectorAll('#tabs button').forEach((x) => x.classList.toggle('on', x.dataset.tab === tab));
+    this.rebuildShop();
   }
 
   welcome() {
