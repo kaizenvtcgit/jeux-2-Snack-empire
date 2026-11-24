@@ -116,7 +116,6 @@ button { font: inherit; cursor: pointer; }
 .ad-sub { color: var(--muted); font-size: 13px; margin: 6px 0 16px; }
 .ad-count { font-size: 56px; font-weight: 900; color: var(--gold); }
 
-#loading { position: fixed; inset: 0; display: grid; place-items: center; background: #6d8fe0; font-size: 22px; font-weight: 800; z-index: 50; }
 
 /* ---------- Onglets de zone (niveaux) ---------- */
 /* repliés : petites icônes ; au survol, la barre se déplie et affiche les noms */

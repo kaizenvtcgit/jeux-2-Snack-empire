@@ -5,7 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>Snack Empire</title>
   <meta name="description" content="Snack Empire : construis ton empire du snack ! Sers des clients, améliore tes recettes, ouvre food trucks, étals, boutiques du port, stands de fête foraine et paillotes de plage.">
-</head>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <meta name="theme-color" content="#f4a262">
+  <!-- écran de chargement : styles ici (et non dans style.css) pour qu'il soit beau dès la première image -->
+  <style>
+    #loading { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+      background: radial-gradient(ellipse at 50% 120%, #ffd9a0 0%, #ffb27a 30%, #8aa7e8 75%, #6d8fe0 100%); font-family: system-ui, "Segoe UI", Roboto, sans-serif; transition: opacity .6s ease; }
+    #loading.done { opacity: 0; pointer-events: none; }
+    #loading .ld-logo { width: min(520px, 82vw); height: auto; animation: ldIn .8s cubic-bezier(.2, 1.6, .4, 1) both, ldFloat 2.6s ease-in-out .8s infinite; }
+    #loading .ld-bar { width: min(360px, 70vw); height: 22px; padding: 4px; border-radius: 14px; background: rgba(40, 20, 10, .35); box-shadow: inset 0 2px 6px rgba(0, 0, 0, .3); }
+    #loading .ld-bar i { display: block; height: 100%; width: 3%; border-radius: 10px; transition: width .35s ease;
+      background: repeating-linear-gradient(-45deg, #ff5a4e 0 14px, #fff4e6 14px 28px); background-size: 40px 40px; animation: ldStripes .8s linear infinite; box-shadow: 0 0 10px rgba(255, 210, 63, .7); }
+    #loading .ld-tip { max-width: min(420px, 86vw); color: #fff; font-weight: 700; font-size: 15px; text-align: center; text-shadow: 0 2px 6px rgba(60, 20, 0, .45); min-height: 2.6em; }
+    @keyframes ldIn { from { transform: scale(.4) translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+    @keyframes ldFloat { 50% { transform: translateY(-8px) rotate(-1deg); } }
+    @keyframes ldStripes { to { background-position: 40px 0; } }
+  </style></head>
 <body>
   <div id="app"></div>
   <div id="overlay"></div>
@@ -65,7 +80,25 @@
     <button id="ad-night" style="display:none">📺 Faire tomber la nuit</button>
   </div>
 
-  <div id="loading">Chargement…</div>
+  <div id="loading">
+    <img class="ld-logo" src="logo.svg" alt="Snack Empire">
+    <div class="ld-bar"><i id="ld-fill"></i></div>
+    <div class="ld-tip" id="ld-tip">Les food trucks chauffent leurs plaques…</div>
+  </div>
+  <script>
+    // astuce au hasard pendant le chargement
+    (function () {
+      var tips = [
+        '💡 Améliore tes recettes : chaque niveau fait monter le prix de vente.',
+        '💡 Tous les 10 niveaux, le prix d\'une recette double !',
+        '💡 Embauche des cuisiniers : un stand bien équipé sert bien plus vite.',
+        '💡 Le bateau du pêcheur, la canicule et la nuit à la fête : ventes ×3 !',
+        '💡 Même quand tu fermes le jeu, tes stands continuent de gagner de l\'argent.',
+        '💡 Les bonus 📺 doublent tes gains pendant 3 minutes.'
+      ];
+      document.getElementById('ld-tip').textContent = tips[Math.floor(Math.random() * tips.length)];
+    })();
+  </script>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>

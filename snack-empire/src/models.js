@@ -9,10 +9,14 @@ export const MODELS = { truck: null, customer: null };
 export const PALETTE_SLOTS = ['Skin', 'Shirt', 'Pants', 'Shoes', 'Hair', 'CapColor', 'EyeWhite', 'Pupil', 'Mouth', 'Sole'];
 const CUSTOMER_PARTS = ['Body', 'LegL', 'LegR', 'ArmL', 'ArmR', 'HairShort', 'HairLong', 'Cap'];
 
-export async function loadModels() {
+/** Charge les modèles ; onProgress(0 → 1) suit le téléchargement (barre de l'écran de chargement). */
+export async function loadModels(onProgress = () => {}) {
   const loader = new GLTFLoader();
   const url = (f) => new URL('models/' + f, document.baseURI).href;
-  const [truck, customer] = await Promise.all([loader.loadAsync(url('food_truck.glb')), loader.loadAsync(url('customer.glb'))]);
+  const done = [0, 0], size = [0, 0];
+  const track = (k) => (e) => { if (e.total) { done[k] = e.loaded; size[k] = e.total; } const t = size[0] + size[1]; if (t) onProgress(Math.min(1, (done[0] + done[1]) / t)); };
+  const [truck, customer] = await Promise.all([loader.loadAsync(url('food_truck.glb'), track(0)), loader.loadAsync(url('customer.glb'), track(1))]);
+  onProgress(1);
   MODELS.truck = truck.scene;
   MODELS.customer = bakeCustomer(customer.scene);
 }
