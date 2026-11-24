@@ -372,6 +372,8 @@ export class UI {
     const g = this.game, S = g.state;
     $('#money').textContent = money(S.money);
     $('#rate').textContent = `+${money(S.rate)}/s`;
+    // bonus offerts sans pub (pubs désactivées par CrazyGames) : 🎁 au lieu de 📺 sur les boutons
+    if (ads.free) setTimeout(() => document.querySelectorAll('#ad-bar button').forEach((b) => { if (b.innerHTML.includes('📺')) b.innerHTML = b.innerHTML.replaceAll('📺', '🎁'); }), 0);
     // la barre des niveaux se place juste sous les pastilles du haut (1 ou 2 lignes selon la largeur de l'écran)
     const hudBottom = Math.round($('#hud').getBoundingClientRect().bottom);
     if (hudBottom !== this.hudBottom) { this.hudBottom = hudBottom; document.documentElement.style.setProperty('--hud-bottom', `${hudBottom}px`); }

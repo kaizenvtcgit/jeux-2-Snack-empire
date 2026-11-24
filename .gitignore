@@ -9,3 +9,6 @@ dist/
 Thumbs.db
 .DS_Store
 *.log
+
+# paquet à envoyer sur CrazyGames (refait à chaque mise à jour)
+*.zip

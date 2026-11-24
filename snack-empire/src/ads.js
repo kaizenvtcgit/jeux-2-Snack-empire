@@ -15,6 +15,8 @@ export const ads = {
   playing: false,
   /** Code de la dernière erreur ('unfilled', 'adCooldown', 'adblock', 'adsDisabled'…). */
   lastError: null,
+  /** Pubs désactivées par CrazyGames : bonus offerts sans pub. */
+  free: false,
 
   /** Les pubs sont-elles possibles ? (sinon on masque les boutons de bonus) */
   get available() { return !!platform.sdk && !platform.adblock; },
@@ -38,6 +40,8 @@ function block(on) {
 }
 
 function request(type) {
+  // pubs désactivées par CrazyGames (« Basic Launch », mode enfant…) : les bonus sont offerts, sans pub
+  if (ads.free) return Promise.resolve(type === 'rewarded');
   if (!ads.available || ads.active) return Promise.resolve(false);
   ads.active = true;
   ads.lastError = null;
@@ -60,7 +64,13 @@ function request(type) {
       platform.sdk.ad.requestAd(type, {
         adStarted: () => { ads.playing = true; clearTimeout(startTimer); },
         adFinished: () => done(true),
-        adError: (error) => { ads.lastError = (error && error.code) || 'other'; done(false); },
+        adError: (error) => {
+          ads.lastError = (error && error.code) || 'other';
+          // pubs désactivées pour cette session : CrazyGames refuse les boutons de bonus « sans effet »,
+          // alors le bonus est donné quand même, et les suivants le seront sans pub (icône 🎁)
+          if (ads.lastError === 'adsDisabled' || ads.lastError === 'adsDisabledBasicLaunch') { ads.free = true; done(type === 'rewarded'); return; }
+          done(false);
+        },
       });
     } catch (e) {
       ads.lastError = 'other';
