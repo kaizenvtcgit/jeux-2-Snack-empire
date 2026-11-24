@@ -133,19 +133,6 @@ button { font: inherit; cursor: pointer; }
 #zones button.locked .zi::after { content: '🔒'; position: absolute; left: 22px; top: 1px; font-size: 10px; }
 #zones button.dot::after { content: ''; position: absolute; top: 2px; right: 2px; width: 9px; height: 9px; border-radius: 50%; background: #ff3b5c; border: 2px solid #fff; }
 
-/* ---------- Panneau de test (développement uniquement) ---------- */
-#debug { position: fixed; left: 16px; bottom: 70px; z-index: 15; }
-#debug .dbg-toggle { padding: 8px 12px; border-radius: 10px; border: 2px dashed #ff9f1c; background: rgba(20, 20, 30, 0.85); color: #ffb347; font-weight: 800; }
-#debug .dbg-body { display: none; margin-top: 8px; width: 250px; padding: 12px; border-radius: 12px; border: 2px dashed #ff9f1c; background: rgba(20, 20, 30, 0.92); }
-#debug.open .dbg-body { display: block; }
-#debug .dbg-title { font-size: 12px; font-weight: 800; color: #ffb347; margin: 8px 0 4px; text-transform: uppercase; }
-#debug .dbg-row { display: flex; flex-wrap: wrap; gap: 4px; }
-#debug .dbg-row.col { flex-direction: column; }
-#debug .dbg-row button { flex: 1; padding: 6px 8px; border: 0; border-radius: 8px; background: #3a3a4a; color: #fff; font-size: 12px; font-weight: 700; text-align: left; }
-#debug .dbg-row button:hover { background: #4a4a5e; }
-#debug .dbg-row button.on { background: #ff9f1c; color: #1b1b1b; }
-#debug .dbg-note { margin-top: 8px; font-size: 11px; color: var(--muted); }
-
 /* pastilles d'événements en version courte quand la place manque (la boutique occupe la droite) */
 @media (max-width: 1500px) {
   .pill .l { display: none; }
@@ -182,8 +169,6 @@ button { font: inherit; cursor: pointer; }
   body.shop-open #shop { transform: none; height: 58%; }
   #shop.collapsed { height: auto !important; }
   #tabs button { padding: 11px 4px; font-size: 13px; }
-  /* (panneau de test, développement uniquement : en haut à droite pour ne rien cacher) */
-  #debug { left: auto; right: 10px; bottom: auto; top: 58px; }
   .card { padding: 9px 10px; gap: 10px; }
   .card .ic { font-size: 26px; width: 30px; }
   .card .tt { font-size: 14px; }

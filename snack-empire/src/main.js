@@ -6,7 +6,6 @@ import { ads } from './ads.js';
 import { loadModels } from './models.js';
 import { initQuality } from './quality.js';
 import { UpgradeVisuals } from './visuals.js';
-import { initDebug } from './debug.js';
 import { audio, sfx, setScene } from './audio.js';
 
 await loadModels();
@@ -38,7 +37,6 @@ for (const [name, play] of [['startArrival', sfx.horn], ['startNight', sfx.night
 document.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b && !b.closest('.card') && !b.closest('.plot-btn')) sfx.click(); });
 const quality = initQuality(world);
 ui.bind(game, quality);
-const debug = initDebug(game, ui, world); // panneau de test (développement uniquement)
 
 const gain = game.offlineGain();
 if (gain) ui.offline(gain, (amount) => { game.addMoney(amount); sfx.jackpot(); ui.toast(`💰 +${amount.toLocaleString('fr-FR')} $`); });
@@ -56,8 +54,7 @@ function loop(now) {
   const dt = Math.min(0.1, realDt);
   last = now;
   quality.tick(realDt);
-  // en test, le temps peut être accéléré (plusieurs pas de simulation par image)
-  if (!ads.active) for (let k = 0; k < debug.speed; k++) game.update(dt);
+  if (!ads.active) game.update(dt);
   visuals.update(dt);
   world.updateCamera(dt);
   world.animate(dt);

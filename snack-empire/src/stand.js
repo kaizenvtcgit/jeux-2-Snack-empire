@@ -12,12 +12,12 @@ import { rigChefs, STAND_ACTION } from './chefanim.js';
 // Marché et port : une rangée du fond (z = 0) et une rangée devant (z = ROW2_Z), séparées par une allée.
 // (port : les 2 dernières boutiques sont à gauche de l'écailler (fond) et du glacier (devant))
 // Fête foraine et plage : stands éparpillés, chacun dans son sens (voir fair.js, beach.js).
-export const SLOT_X = [0, 11, -11, 22, 36, 47, 58, 36, 47, 58, -48, -59, -70, -48, -59, -70, -81, -81, ...FAIR_SLOTS.map((s) => s.x), ...BEACH_SLOTS.map((s) => s.x)];
-export const SLOT_Z = [0, 0, 0, 0, 0, 0, 0, ROW2_Z, ROW2_Z, ROW2_Z, 0, 0, 0, ROW2_Z, ROW2_Z, ROW2_Z, 0, ROW2_Z, ...FAIR_SLOTS.map((s) => s.z), ...BEACH_SLOTS.map((s) => s.z)];
+export const SLOT_X = [0, 11, -11, 22, 36, 47, 58, 36, 47, 58, -48, -59, -70, -48, -59, -70, -81, -81, ...BEACH_SLOTS.map((s) => s.x), ...FAIR_SLOTS.map((s) => s.x)];
+export const SLOT_Z = [0, 0, 0, 0, 0, 0, 0, ROW2_Z, ROW2_Z, ROW2_Z, 0, 0, 0, ROW2_Z, ROW2_Z, ROW2_Z, 0, ROW2_Z, ...BEACH_SLOTS.map((s) => s.z), ...FAIR_SLOTS.map((s) => s.z)];
 /** Rangée : 0 = rangée du fond (accès par l'allée derrière la file), 1 = rangée de devant. */
-export const SLOT_ROW = [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 1, ...FAIR_SLOTS.map(() => 0), ...BEACH_SLOTS.map(() => 0)];
+export const SLOT_ROW = [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 1, ...BEACH_SLOTS.map(() => 0), ...FAIR_SLOTS.map(() => 0)];
 /** Orientation de l'emplacement (0 = comptoir tourné vers la caméra). Les stands forains font face à l'allée. */
-export const SLOT_YAW = [...Array(18).fill(0), ...FAIR_SLOTS.map((s) => s.yaw), ...BEACH_SLOTS.map((s) => s.yaw)];
+export const SLOT_YAW = [...Array(18).fill(0), ...BEACH_SLOTS.map((s) => s.yaw), ...FAIR_SLOTS.map((s) => s.yaw)];
 
 /** Nombre de places qui longent le camion avant que la file ne tourne vers le parking. */
 export const QUEUE_ALONG = 4;

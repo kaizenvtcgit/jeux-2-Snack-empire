@@ -36,43 +36,42 @@ export const PORT_RECIPES = [
   { id: 'salmon', name: 'Saumon fumé maison', emoji: '🐠', base: 1.2e8, unlock: 5e16, up: 5e10 },
   { id: 'cocktail', name: 'Cocktail de fruits', emoji: '🍹', base: 3e8, unlock: 3e17, up: 1.2e11 },
 ];
-/* Niveau 4 : la fête foraine (devant le marché, s'ouvre après les 8 boutiques du port) */
-export const FAIR_RECIPES = [
-  { id: 'cottoncandy', name: 'Barbe à papa', emoji: '🍭', base: 8e8, unlock: 0, up: 4e10 },
-  { id: 'candyapple', name: "Pomme d'amour", emoji: '🍎', base: 2e9, unlock: 3e18, up: 1.2e11 },
-  { id: 'churros', name: 'Churros', emoji: '🥖', base: 5e9, unlock: 2e19, up: 4e11 },
-  { id: 'fairwaffle', name: 'Gaufre chantilly', emoji: '🧇', base: 1.2e10, unlock: 1.5e20, up: 1.5e12 },
-  { id: 'popcorn', name: 'Popcorn caramel', emoji: '🍿', base: 3e10, unlock: 1e21, up: 5e12 },
-  { id: 'bighotdog', name: 'Hot-dog géant', emoji: '🌭', base: 8e10, unlock: 7e21, up: 2e13 },
-  { id: 'donut', name: 'Beignet au sucre', emoji: '🍩', base: 2e11, unlock: 5e22, up: 8e13 },
-  { id: 'lemonade', name: 'Limonade maison', emoji: '🍋', base: 5e11, unlock: 3e23, up: 3e14 },
-];
-/* Niveau 5 : la plage (à gauche de la fête foraine, s'ouvre après ses 8 stands) */
+/* Niveau 4 : la plage (à gauche de la fête, s'ouvre après les 8 boutiques du port) */
 export const BEACH_RECIPES = [
-  { id: 'icecream', name: 'Glace italienne', emoji: '🍦', base: 8e11, unlock: 0, up: 4e13 },
-  { id: 'granita', name: 'Granité', emoji: '🍧', base: 2e12, unlock: 2e25, up: 1.2e14 },
-  { id: 'watermelon', name: 'Pastèque fraîche', emoji: '🍉', base: 5e12, unlock: 1.5e26, up: 4e14 },
-  { id: 'crepe', name: 'Crêpe au sucre', emoji: '🥞', base: 1.2e13, unlock: 1e27, up: 1.5e15 },
-  { id: 'shrimp', name: 'Beignets de crevettes', emoji: '🍤', base: 3e13, unlock: 7e27, up: 5e15 },
-  { id: 'panini', name: 'Panini', emoji: '🥪', base: 8e13, unlock: 5e28, up: 2e16 },
-  { id: 'coconut', name: 'Noix de coco', emoji: '🥥', base: 2e14, unlock: 3e29, up: 8e16 },
-  { id: 'smoothie', name: 'Smoothie tropical', emoji: '🥤', base: 5e14, unlock: 2e30, up: 3e17 },
+  { id: 'icecream', name: 'Glace italienne', emoji: '🍦', base: 8e8, unlock: 0, up: 4e10 },
+  { id: 'granita', name: 'Granité', emoji: '🍧', base: 2e9, unlock: 3e18, up: 1.2e11 },
+  { id: 'watermelon', name: 'Pastèque fraîche', emoji: '🍉', base: 5e9, unlock: 2e19, up: 4e11 },
+  { id: 'crepe', name: 'Crêpe au sucre', emoji: '🥞', base: 1.2e10, unlock: 1.5e20, up: 1.5e12 },
+  { id: 'shrimp', name: 'Beignets de crevettes', emoji: '🍤', base: 3e10, unlock: 1e21, up: 5e12 },
+  { id: 'panini', name: 'Panini', emoji: '🥪', base: 8e10, unlock: 7e21, up: 2e13 },
+  { id: 'coconut', name: 'Noix de coco', emoji: '🥥', base: 2e11, unlock: 5e22, up: 8e13 },
+  { id: 'smoothie', name: 'Smoothie tropical', emoji: '🥤', base: 5e11, unlock: 3e23, up: 3e14 },
 ];
-export const allRecipes = () => [...RECIPES, ...MARKET_RECIPES, ...PORT_RECIPES, ...FAIR_RECIPES, ...BEACH_RECIPES];
+/* Niveau 5 : la fête foraine (devant le marché, s'ouvre après les 8 paillotes de la plage) */
+export const FAIR_RECIPES = [
+  { id: 'cottoncandy', name: 'Barbe à papa', emoji: '🍭', base: 8e11, unlock: 0, up: 4e13 },
+  { id: 'candyapple', name: "Pomme d'amour", emoji: '🍎', base: 2e12, unlock: 2e25, up: 1.2e14 },
+  { id: 'churros', name: 'Churros', emoji: '🥖', base: 5e12, unlock: 1.5e26, up: 4e14 },
+  { id: 'fairwaffle', name: 'Gaufre chantilly', emoji: '🧇', base: 1.2e13, unlock: 1e27, up: 1.5e15 },
+  { id: 'popcorn', name: 'Popcorn caramel', emoji: '🍿', base: 3e13, unlock: 7e27, up: 5e15 },
+  { id: 'bighotdog', name: 'Hot-dog géant', emoji: '🌭', base: 8e13, unlock: 5e28, up: 2e16 },
+  { id: 'donut', name: 'Beignet au sucre', emoji: '🍩', base: 2e14, unlock: 3e29, up: 8e16 },
+  { id: 'lemonade', name: 'Limonade maison', emoji: '🍋', base: 5e14, unlock: 2e30, up: 3e17 },
+];
+export const allRecipes = () => [...RECIPES, ...MARKET_RECIPES, ...PORT_RECIPES, ...BEACH_RECIPES, ...FAIR_RECIPES];
 
-/** Premier emplacement de chaque zone (0-3 : camions, 4-9 : étals du marché, 10-15 : boutiques du port). */
+/** Premier emplacement de chaque zone (0-3 : camions, 4-9 : marché, 10-17 : port, 18-25 : plage, 26-33 : fête). */
 export const MARKET_FIRST = 4;
 export const PORT_FIRST = 10;
-export const FAIR_FIRST = 18;
-export const BEACH_FIRST = 26;
-
+export const BEACH_FIRST = 18;
+export const FAIR_FIRST = 26;
 /** Les zones (niveaux) du jeu, dans l'ordre. */
 export const ZONES = [
   { id: 'parking', first: 0, count: 4, recipes: RECIPES, level: 1 },
   { id: 'market', first: MARKET_FIRST, count: 6, recipes: MARKET_RECIPES, level: 2 },
   { id: 'port', first: PORT_FIRST, count: 8, recipes: PORT_RECIPES, level: 3 },
-  { id: 'fair', first: FAIR_FIRST, count: 8, recipes: FAIR_RECIPES, level: 4 },
-  { id: 'beach', first: BEACH_FIRST, count: 8, recipes: BEACH_RECIPES, level: 5 },
+  { id: 'beach', first: BEACH_FIRST, count: 8, recipes: BEACH_RECIPES, level: 4 },
+  { id: 'fair', first: FAIR_FIRST, count: 8, recipes: FAIR_RECIPES, level: 5 },
 ];
 /** Zone d'un emplacement. */
 export const zoneOf = (i) => ZONES.find((z) => i >= z.first && i < z.first + z.count);

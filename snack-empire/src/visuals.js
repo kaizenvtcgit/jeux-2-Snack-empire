@@ -96,9 +96,9 @@ export class UpgradeVisuals {
       this.hallZ1 = hallZ1;
     }
 
-    // Niveau 4 : décor de la fête foraine à l'ouverture du 1er stand forain
+    // Niveau 5 : décor de la fête foraine à l'ouverture du 1er stand forain
     this.toggleGlobal('fair', this.game.fairOpen(), () => buildFairDecor(fairPath), first);
-    // Niveau 5 : la plage (le quai de gauche s'efface, le sable descend jusqu'à l'eau)
+    // Niveau 4 : la plage (le quai de gauche s'efface, le sable descend jusqu'à l'eau)
     const beachOpen = this.game.beachOpen();
     this.toggleGlobal('beach', beachOpen, () => buildBeachDecor(), first);
     if (this.scene.userData.beachQuay) this.scene.userData.beachQuay.visible = !beachOpen;

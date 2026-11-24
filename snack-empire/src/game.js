@@ -34,6 +34,13 @@ export class Game {
     for (const k of ['runTotal', 'stars', 'franchises', 'location']) delete this.state[k];
     // anciennes sauvegardes (4 camions) : on ajoute les emplacements du marché, verrouillés
     while (this.state.stands.length < SLOT_X.length) this.state.stands.push({ unlocked: false, cooks: 1 });
+    // la plage (niveau 4) et la fête foraine (niveau 5) ont échangé leur place : on échange aussi leurs emplacements
+    // dans les anciennes sauvegardes (18-25 : fête → 26-33 ; 26-33 : plage → 18-25), rien n'est perdu
+    if (saved && !saved.levelSwap45) {
+      const st = this.state.stands, oldFair = st.slice(18, 26), oldBeach = st.slice(26, 34);
+      st.splice(18, 16, ...oldBeach, ...oldFair);
+    }
+    this.state.levelSwap45 = true;
     this.isNewPlayer = !saved;
 
     this.stands = SLOT_X.map((_, i) => new Stand(world.scene, i));

@@ -57,7 +57,7 @@ export class UI {
       const prev = E.ZONES[E.ZONES.indexOf(Z) - 1];
       const prevDone = this.zoneStands(prev.id).every((i) => g.state.stands[i].unlocked);
       const label = { market: 'le marché', port: 'le port', fair: 'la fête foraine', beach: 'la plage' }[zone];
-      const need = { market: 'les 4 camions', port: 'les 6 étals du marché', fair: 'les 8 boutiques du port', beach: 'les 8 stands de la fête' }[zone];
+      const need = { market: 'les 4 camions', port: 'les 6 étals du marché', beach: 'les 8 boutiques du port', fair: 'les 8 paillotes de la plage' }[zone];
       this.toast(prevDone
         ? `🔒 ${label[0].toUpperCase() + label.slice(1)} s'achète sur son emplacement : ${fmt(E.STAND_COST[Z.first])} $`
         : `🔒 Ouvre d'abord ${need} pour débloquer ${label}`);
@@ -223,8 +223,8 @@ export class UI {
       this.toast(
         i === E.MARKET_FIRST ? '🏛️ Niveau 2 : le marché couvert ouvre ses portes ! (onglet « Marché » à gauche)'
           : i === E.PORT_FIRST ? '⚓ Niveau 3 : bienvenue au port ! Guette l\'arrivage du pêcheur ⛵'
-            : i === E.FAIR_FIRST ? '🎡 Niveau 4 : la fête foraine ouvre ! Attends la nuit 🌙'
-            : i === E.BEACH_FIRST ? '🏖️ Niveau 5 : la plage ouvre ! Guette la canicule ☀️'
+            : i === E.BEACH_FIRST ? '🏖️ Niveau 4 : la plage ouvre ! Guette la canicule ☀️'
+            : i === E.FAIR_FIRST ? '🎡 Niveau 5 : la fête foraine ouvre ! Attends la nuit 🌙'
               : zone === 'market' ? '🧺 Nouvel étal ouvert !'
                 : zone === 'port' ? '⚓ Nouvelle boutique ouverte !'
                   : zone === 'fair' ? '🎪 Nouveau stand forain !'
@@ -291,8 +291,8 @@ export class UI {
         const cost = E.STAND_COST[n];
         const card = n === E.MARKET_FIRST ? { emoji: '🏛️', title: 'Marché couvert <b>niveau 2</b>', sub: 'Nouvelle zone : 6 étals + 7 nouvelles recettes' }
           : n === E.PORT_FIRST ? { emoji: '⚓', title: 'Le port <b>niveau 3</b>', sub: 'Nouvelle zone : 8 boutiques, 9 recettes, arrivages ×3' }
-            : n === E.FAIR_FIRST ? { emoji: '🎡', title: 'Fête foraine <b>niveau 4</b>', sub: 'Nouvelle zone : 8 stands, 8 recettes, nuits ×3' }
-            : n === E.BEACH_FIRST ? { emoji: '🏖️', title: 'La plage <b>niveau 5</b>', sub: 'Nouvelle zone : 8 paillotes, 8 recettes, canicules ×3' }
+            : n === E.BEACH_FIRST ? { emoji: '🏖️', title: 'La plage <b>niveau 4</b>', sub: 'Nouvelle zone : 8 paillotes, 8 recettes, canicules ×3' }
+            : n === E.FAIR_FIRST ? { emoji: '🎡', title: 'Fête foraine <b>niveau 5</b>', sub: 'Nouvelle zone : 8 stands, 8 recettes, nuits ×3' }
               : nz.id === 'market' ? { emoji: '🧺', title: nameOf(n), sub: 'Un nouvel étal dans le marché' }
                 : nz.id === 'port' ? { emoji: '⚓', title: nameOf(n), sub: 'Une nouvelle boutique sur le quai' }
                   : nz.id === 'fair' ? { emoji: '🎪', title: nameOf(n), sub: 'Un nouveau stand à la fête' }

@@ -2,7 +2,7 @@ import { THREE, M, add, rbox, box, cyl, sph, canvasTex, speckle, rng, mergeStati
 import { createNav } from './nav.js';
 
 /*
- * Niveau 5 : la plage, à gauche de la fête foraine, entre la promenade et la mer.
+ * Niveau 4 : la plage, à gauche de la fête foraine, entre la promenade et la mer.
  * On descend de la promenade sur un chemin de planches, puis on marche dans le sable jusqu'aux paillotes,
  * éparpillées face à la mer. Parasols, serviettes et poste de secours au bord de l'eau, baigneurs dans la mer.
  * - buildBeachDecor() : le décor (apparaît à l'ouverture) ; update(dt, t, canicule) anime l'eau et les baigneurs.
@@ -244,21 +244,21 @@ export function buildBeachHut(k, recipes) {
   const fringe = new THREE.Mesh(new THREE.CylinderGeometry(3.55, 3.6, 0.35, 4, 1, true), roofM);
   fringe.rotation.y = Math.PI / 4; fringe.scale.set(1, 1, 0.66); fringe.position.set(-0.6, 2.55, 0.05); group.add(fringe);
 
-  // Enseigne en bois au nom de la paillote
-  const signTex = canvasTex(512, 112, (c, w, h) => {
-    c.fillStyle = '#6b4226'; c.fillRect(0, 0, w, h);
-    c.fillStyle = T.a; c.fillRect(8, 8, w - 16, h - 16);
-    c.fillStyle = '#ffffff'; c.strokeStyle = '#3a2412'; c.lineWidth = 6;
-    c.font = `900 ${T.name.length > 9 ? 46 : 56}px "Arial Black", Impact, sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.strokeText(T.name, w / 2, h / 2 + 4); c.fillText(T.name, w / 2, h / 2 + 4);
+  // Comptoir en planches, avec le nom de la paillote peint en grand sur la devanture (bien visible de loin)
+  const front = canvasTex(1024, 240, (c, w, h) => {
+    // planches de bois clair
+    for (let i = 0; i < 6; i++) { c.fillStyle = i % 2 ? '#c49a6c' : '#b98d5e'; c.fillRect(0, i * h / 6, w, h / 6); c.fillStyle = 'rgba(80,50,20,0.35)'; c.fillRect(0, (i + 1) * h / 6 - 3, w, 3); }
+    // bandeau coloré aux couleurs de la paillote, avec des vagues en bas
+    c.fillStyle = T.a; c.fillRect(30, 26, w - 60, h - 52);
+    c.fillStyle = T.b; for (let x = 30; x < w - 30; x += 48) { c.beginPath(); c.arc(x + 24, h - 26, 22, Math.PI, 0); c.fill(); }
+    c.strokeStyle = '#3a2412'; c.lineWidth = 6; c.strokeRect(30, 26, w - 60, h - 52);
+    // le nom
+    c.font = `900 ${T.name.length > 9 ? 92 : 108}px "Arial Black", Impact, sans-serif`; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.lineWidth = 14; c.strokeStyle = '#3a2412'; c.strokeText(T.name, w / 2, h / 2 - 8);
+    c.fillStyle = '#ffffff'; c.fillText(T.name, w / 2, h / 2 - 8);
   });
-  add(rbox(3.4, 0.7, 0.1, 0.04, M('#ffffff', { map: signTex, r: 0.6 })), -0.6, 2.95, 1.12, group).rotation.x = -0.12;
-
-  // Comptoir en planches avec bandeau coloré
-  add(rbox(4.8, 1.1, 0.9, 0.04, wood), -0.6, 0.55, 0.95, group);
-  add(box(4.82, 0.22, 0.92, ca), -0.6, 0.85, 0.95, group);
+  add(rbox(4.8, 1.1, 0.9, 0.04, M('#ffffff', { map: front, r: 0.75 })), -0.6, 0.55, 0.95, group);
   add(rbox(5.0, 0.08, 1.1, 0.02, dark), -0.6, 1.14, 1.0, group);
-
   // Torches tiki et planche de surf contre le côté
   for (const tx of [-3.35, 2.15]) {
     add(cyl(0.05, 0.06, 1.9, dark, 8), tx, 0.95, 1.35, group);

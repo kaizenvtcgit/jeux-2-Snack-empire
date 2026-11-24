@@ -1,7 +1,7 @@
 import { THREE, M, add, rbox, box, cyl, sph, canvasTex, speckle, shadows, rng, mergeStatic } from './util.js';
 
 /*
- * Niveau 4 : la fête foraine, devant le marché couvert.
+ * Niveau 5 : la fête foraine, devant le marché couvert.
  * - buildFairDecor() : terrain, grande roue, carrousel, guirlandes, arche d'entrée (apparaît à l'ouverture).
  * - buildFairStand(k) : un stand forain (même encombrement qu'un camion → même file, tables, service).
  * - FAIR_BULBS : les ampoules de la fête, qui brillent plus fort la nuit.
