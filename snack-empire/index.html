@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="fr">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <!-- SDK CrazyGames (pubs, sauvegarde dans le compte du joueur) : sans lui, le jeu tourne sans pubs -->
   <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>Snack Empire</title>
-  <meta name="description" content="Snack Empire : construis ton empire du snack ! Sers des clients, améliore tes recettes, ouvre food trucks, étals, boutiques du port, stands de fête foraine et paillotes de plage.">
+  <meta name="description" content="Snack Empire: build your snack empire! Serve customers, upgrade recipes and open food trucks, market stalls, harbor shops, beach huts and fair stands.">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <meta name="theme-color" content="#f4a262">
   <!-- écran de chargement : styles ici (et non dans style.css) pour qu'il soit beau dès la première image -->
@@ -28,8 +28,8 @@
   <div id="overlay"></div>
 
   <div id="hud">
-    <div class="pill money">💰 <span id="money">0</span> $</div>
-    <div class="pill rate" id="rate">+0 $/s</div>
+    <div class="pill money">💰 <span id="money">0</span></div>
+    <div class="pill rate" id="rate">+0/s</div>
     <div class="pill boost" id="boost-badge">🔥 ×2</div>
     <div class="pill port" id="port-pill"></div>
     <div class="pill heat" id="heat-pill"></div>
@@ -37,60 +37,81 @@
   </div>
 
   <nav id="zones">
-    <button data-zone="parking"><span class="zi">🚚</span><span class="zt">Camions<small>Niveau 1</small></span></button>
-    <button data-zone="market"><span class="zi">🏛️</span><span class="zt">Marché<small>Niveau 2</small></span></button>
-    <button data-zone="port"><span class="zi">⚓</span><span class="zt">Port<small>Niveau 3</small></span></button>
-    <button data-zone="beach"><span class="zi">🏖️</span><span class="zt">Plage<small>Niveau 4</small></span></button>
-    <button data-zone="fair"><span class="zi">🎡</span><span class="zt">Fête<small>Niveau 5</small></span></button>
+    <button data-zone="parking"><span class="zi">🚚</span><span class="zt" data-fr="Camions&lt;small&gt;Niveau 1&lt;/small&gt;">Trucks<small>Level 1</small></span></button>
+    <button data-zone="market"><span class="zi">🏛️</span><span class="zt" data-fr="Marché&lt;small&gt;Niveau 2&lt;/small&gt;">Market<small>Level 2</small></span></button>
+    <button data-zone="port"><span class="zi">⚓</span><span class="zt" data-fr="Port&lt;small&gt;Niveau 3&lt;/small&gt;">Harbor<small>Level 3</small></span></button>
+    <button data-zone="beach"><span class="zi">🏖️</span><span class="zt" data-fr="Plage&lt;small&gt;Niveau 4&lt;/small&gt;">Beach<small>Level 4</small></span></button>
+    <button data-zone="fair"><span class="zi">🎡</span><span class="zt" data-fr="Fête&lt;small&gt;Niveau 5&lt;/small&gt;">Fair<small>Level 5</small></span></button>
   </nav>
 
-  <button id="settings-btn" title="Réglages">⚙️</button>
-  <button id="mute-btn" title="Couper / remettre le son">🔊</button>
+  <button id="settings-btn" title="Settings" data-fr-title="Réglages">⚙️</button>
+  <button id="mute-btn" title="Sound on / off" data-fr-title="Couper / remettre le son">🔊</button>
   <div id="settings">
-    <div class="set-label">Qualité graphique</div>
+    <div class="set-label" data-fr="Qualité graphique">Graphics quality</div>
     <div class="seg" id="quality-seg">
       <button data-q="auto">Auto</button>
-      <button data-q="high">Haute</button>
-      <button data-q="low">Basse</button>
+      <button data-q="high" data-fr="Haute">High</button>
+      <button data-q="low" data-fr="Basse">Low</button>
     </div>
     <div class="set-note" id="quality-note"></div>
-    <div class="set-label">Son</div>
+    <div class="set-label" data-fr="Son">Sound</div>
     <div class="seg" id="sound-seg">
-      <button data-s="sfx">🔊 Effets</button>
-      <button data-s="music">🎵 Musique</button>
+      <button data-s="sfx" data-fr="🔊 Effets">🔊 Effects</button>
+      <button data-s="music" data-fr="🎵 Musique">🎵 Music</button>
     </div>
     <div class="set-note"></div>
-    <button id="reset-btn">Recommencer à zéro</button>
+    <div class="set-label">Language / Langue</div>
+    <div class="seg" id="lang-seg">
+      <button data-lang="en">English</button>
+      <button data-lang="fr">Français</button>
+    </div>
+    <div class="set-note"></div>
+    <button id="reset-btn" data-fr="Recommencer à zéro">Start over</button>
   </div>
 
   <aside id="shop">
     <div id="tabs">
-      <button data-tab="recipes" class="on">🍔 Recettes</button>
-      <button data-tab="upgrades">⚡ Améliorations</button>
+      <button data-tab="recipes" class="on">🍔 Recipes</button>
+      <button data-tab="upgrades" data-fr="⚡ Améliorations">⚡ Upgrades</button>
       <button data-tab="stands">🚚 Stands</button>
     </div>
     <div id="shop-list"></div>
   </aside>
-  <button id="shop-toggle">🛒 Boutique</button>
+  <button id="shop-toggle" data-fr="🛒 Boutique">🛒 Shop</button>
 
   <div id="ad-bar">
     <button id="ad-toggle">📺 Bonus</button>
-    <div id="ad-note">📺 Bonus indisponibles : un bloqueur de publicités est actif</div>
-    <button id="ad-rush">📺 Coup de feu ×2 (3 min)</button>
-    <button id="ad-vip">📺 Livraison VIP</button>
-    <button id="ad-boat" style="display:none">📺 Faire venir un bateau</button>
-    <button id="ad-heat" style="display:none">📺 Déclencher la canicule</button>
-    <button id="ad-night" style="display:none">📺 Faire tomber la nuit</button>
+    <div id="ad-note" data-fr="📺 Bonus indisponibles : un bloqueur de publicités est actif">📺 Bonuses unavailable: an ad blocker is active</div>
+    <button id="ad-rush">📺 Rush ×2 (3 min)</button>
+    <button id="ad-vip">📺 VIP order</button>
+    <button id="ad-boat" style="display:none">📺 Call a fishing boat</button>
+    <button id="ad-heat" style="display:none">📺 Start a heatwave</button>
+    <button id="ad-night" style="display:none">📺 Make it night</button>
   </div>
 
   <div id="loading">
     <img class="ld-logo" src="logo.svg" alt="Snack Empire">
     <div class="ld-bar"><i id="ld-fill"></i></div>
-    <div class="ld-tip" id="ld-tip">Les food trucks chauffent leurs plaques…</div>
+    <div class="ld-tip" id="ld-tip">The food trucks are heating up their grills…</div>
   </div>
   <script>
-    // astuce au hasard pendant le chargement
+    // langue (même règle que src/i18n.js : choix du joueur, sinon anglais, ou français si le navigateur est en français)
+    // puis textes de la page en français si besoin (attributs data-fr), et astuce au hasard pendant le chargement
     (function () {
+      var lang = 'en';
+      try { var s = localStorage.getItem('snack-empire-lang'); if (s === 'fr' || s === 'en') lang = s; else if (((navigator.languages && navigator.languages[0]) || navigator.language || '').toLowerCase().indexOf('fr') === 0) lang = 'fr'; } catch (e) {}
+      if (lang === 'fr') {
+        document.querySelectorAll('[data-fr]').forEach(function (el) { el.innerHTML = el.getAttribute('data-fr'); });
+        document.querySelectorAll('[data-fr-title]').forEach(function (el) { el.title = el.getAttribute('data-fr-title'); });
+      }
+      var tipsEn = [
+        '💡 Upgrade your recipes: every level raises the selling price.',
+        '💡 Every 10 levels, a recipe\'s price doubles!',
+        '💡 Hire cooks: a well-staffed stand serves much faster.',
+        '💡 Fishing boat, heatwave and fair night: sales ×3!',
+        '💡 Even when the game is closed, your stands keep making money.',
+        '💡 📺 bonuses double your earnings for 3 minutes.'
+      ];
       var tips = [
         '💡 Améliore tes recettes : chaque niveau fait monter le prix de vente.',
         '💡 Tous les 10 niveaux, le prix d\'une recette double !',
@@ -99,6 +120,7 @@
         '💡 Même quand tu fermes le jeu, tes stands continuent de gagner de l\'argent.',
         '💡 Les bonus 📺 doublent tes gains pendant 3 minutes.'
       ];
+      if (lang !== 'fr') tips = tipsEn;
       document.getElementById('ld-tip').textContent = tips[Math.floor(Math.random() * tips.length)];
     })();
   </script>

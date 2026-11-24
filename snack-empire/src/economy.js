@@ -1,62 +1,63 @@
+import { L } from './i18n.js';
 // Toutes les valeurs d'équilibrage du jeu sont ici.
 
 export const RECIPES = [
-  { id: 'burger', name: 'Burger', emoji: '🍔', base: 5, unlock: 0, up: 10 },
-  { id: 'fries', name: 'Frites', emoji: '🍟', base: 8, unlock: 150, up: 40 },
-  { id: 'tacos', name: 'Tacos', emoji: '🌮', base: 20, unlock: 1200, up: 300 },
-  { id: 'hotdog', name: 'Hot-dog', emoji: '🌭', base: 55, unlock: 8000, up: 2000 },
-  { id: 'bubble', name: 'Bubble tea', emoji: '🧋', base: 150, unlock: 45000, up: 12000 },
+  { id: 'burger', name: L('Burger', 'Burger'), emoji: '🍔', base: 5, unlock: 0, up: 10 },
+  { id: 'fries', name: L('Frites', 'Fries'), emoji: '🍟', base: 8, unlock: 150, up: 40 },
+  { id: 'tacos', name: L('Tacos', 'Tacos'), emoji: '🌮', base: 20, unlock: 1200, up: 300 },
+  { id: 'hotdog', name: L('Hot-dog', 'Hot dog'), emoji: '🌭', base: 55, unlock: 8000, up: 2000 },
+  { id: 'bubble', name: L('Bubble tea', 'Bubble tea'), emoji: '🧋', base: 150, unlock: 45000, up: 12000 },
 ];
 
 export const UPGRADES = {
-  speed: { name: 'Grill turbo', emoji: '🔥', base: 25, growth: 1.17, max: 40 },
-  marketing: { name: 'Publicité', emoji: '📣', base: 50, growth: 1.2, max: 30 },
-  queue: { name: "Espace d'attente", emoji: '🪴', base: 120, growth: 1.65, max: 8 },
+  speed: { name: L('Grill turbo', 'Turbo grill'), emoji: '🔥', base: 25, growth: 1.17, max: 40 },
+  marketing: { name: L('Publicité', 'Advertising'), emoji: '📣', base: 50, growth: 1.2, max: 30 },
+  queue: { name: L("Espace d'attente", 'Waiting area'), emoji: '🪴', base: 120, growth: 1.65, max: 8 },
 };
 
 /* Niveau 2 : le marché couvert (s'ouvre après les 4 camions, sans rien perdre) */
 export const MARKET_RECIPES = [
-  { id: 'croissant', name: 'Croissant', emoji: '🥐', base: 400, unlock: 0, up: 4000 },
-  { id: 'cheese', name: 'Planche de fromages', emoji: '🧀', base: 900, unlock: 80000, up: 12000 },
-  { id: 'juice', name: 'Jus de fruits frais', emoji: '🍓', base: 2000, unlock: 6e5, up: 40000 },
-  { id: 'salad', name: 'Salade fermière', emoji: '🥗', base: 5000, unlock: 4e6, up: 1.5e5 },
-  { id: 'oysters', name: "Plateau d'huîtres", emoji: '🦪', base: 12000, unlock: 2.5e7, up: 6e5 },
-  { id: 'tart', name: 'Tarte aux fraises', emoji: '🍰', base: 30000, unlock: 1.5e8, up: 1.5e6 },
-  { id: 'charcuterie', name: 'Planche de charcuterie', emoji: '🥓', base: 75000, unlock: 1e9, up: 4e6 },
+  { id: 'croissant', name: L('Croissant', 'Croissant'), emoji: '🥐', base: 400, unlock: 0, up: 4000 },
+  { id: 'cheese', name: L('Planche de fromages', 'Cheese board'), emoji: '🧀', base: 900, unlock: 80000, up: 12000 },
+  { id: 'juice', name: L('Jus de fruits frais', 'Fresh juice'), emoji: '🍓', base: 2000, unlock: 6e5, up: 40000 },
+  { id: 'salad', name: L('Salade fermière', 'Farm salad'), emoji: '🥗', base: 5000, unlock: 4e6, up: 1.5e5 },
+  { id: 'oysters', name: L("Plateau d'huîtres", 'Oyster platter'), emoji: '🦪', base: 12000, unlock: 2.5e7, up: 6e5 },
+  { id: 'tart', name: L('Tarte aux fraises', 'Strawberry tart'), emoji: '🍰', base: 30000, unlock: 1.5e8, up: 1.5e6 },
+  { id: 'charcuterie', name: L('Planche de charcuterie', 'Charcuterie board'), emoji: '🥓', base: 75000, unlock: 1e9, up: 4e6 },
 ];
 /* Niveau 3 : le port (s'ouvre après les 6 étals du marché, sans rien perdre) */
 export const PORT_RECIPES = [
-  { id: 'fishchips', name: 'Fish & chips', emoji: '🐟', base: 2e5, unlock: 0, up: 6e5 },
-  { id: 'calamari', name: 'Calamars frits', emoji: '🦑', base: 5e5, unlock: 2e10, up: 1.5e6 },
-  { id: 'gambas', name: 'Brochette de gambas', emoji: '🦐', base: 1.2e6, unlock: 1.5e11, up: 6e6 },
-  { id: 'sushi', name: 'Plateau de sushis', emoji: '🍣', base: 3e6, unlock: 1.2e12, up: 2e7 },
-  { id: 'oysters12', name: "Douzaine d'huîtres", emoji: '🦪', base: 8e6, unlock: 8e12, up: 8e7 },
-  { id: 'paella', name: 'Paella royale', emoji: '🥘', base: 2e7, unlock: 6e13, up: 3e8 },
-  { id: 'lobster', name: 'Homard grillé', emoji: '🦞', base: 5e7, unlock: 4e14, up: 1.2e9 },
-  { id: 'salmon', name: 'Saumon fumé maison', emoji: '🐠', base: 1.2e8, unlock: 3e15, up: 3e9 },
-  { id: 'cocktail', name: 'Cocktail de fruits', emoji: '🍹', base: 3e8, unlock: 1.5e16, up: 6e9 },
+  { id: 'fishchips', name: L('Fish & chips', 'Fish & chips'), emoji: '🐟', base: 2e5, unlock: 0, up: 6e5 },
+  { id: 'calamari', name: L('Calamars frits', 'Fried calamari'), emoji: '🦑', base: 5e5, unlock: 2e10, up: 1.5e6 },
+  { id: 'gambas', name: L('Brochette de gambas', 'Prawn skewer'), emoji: '🦐', base: 1.2e6, unlock: 1.5e11, up: 6e6 },
+  { id: 'sushi', name: L('Plateau de sushis', 'Sushi platter'), emoji: '🍣', base: 3e6, unlock: 1.2e12, up: 2e7 },
+  { id: 'oysters12', name: L("Douzaine d'huîtres", 'Dozen oysters'), emoji: '🦪', base: 8e6, unlock: 8e12, up: 8e7 },
+  { id: 'paella', name: L('Paella royale', 'Royal paella'), emoji: '🥘', base: 2e7, unlock: 6e13, up: 3e8 },
+  { id: 'lobster', name: L('Homard grillé', 'Grilled lobster'), emoji: '🦞', base: 5e7, unlock: 4e14, up: 1.2e9 },
+  { id: 'salmon', name: L('Saumon fumé maison', 'House smoked salmon'), emoji: '🐠', base: 1.2e8, unlock: 3e15, up: 3e9 },
+  { id: 'cocktail', name: L('Cocktail de fruits', 'Fruit cocktail'), emoji: '🍹', base: 3e8, unlock: 1.5e16, up: 6e9 },
 ];
 /* Niveau 4 : la plage (à gauche de la fête, s'ouvre après les 8 boutiques du port) */
 export const BEACH_RECIPES = [
-  { id: 'icecream', name: 'Glace italienne', emoji: '🍦', base: 8e8, unlock: 0, up: 1.5e8 },
-  { id: 'granita', name: 'Granité', emoji: '🍧', base: 2e9, unlock: 1.2e16, up: 5e8 },
-  { id: 'watermelon', name: 'Pastèque fraîche', emoji: '🍉', base: 5e9, unlock: 8e16, up: 1.5e9 },
-  { id: 'crepe', name: 'Crêpe au sucre', emoji: '🥞', base: 1.2e10, unlock: 6e17, up: 6e9 },
-  { id: 'shrimp', name: 'Beignets de crevettes', emoji: '🍤', base: 3e10, unlock: 4e18, up: 2e10 },
-  { id: 'panini', name: 'Panini', emoji: '🥪', base: 8e10, unlock: 3e19, up: 8e10 },
-  { id: 'coconut', name: 'Noix de coco', emoji: '🥥', base: 2e11, unlock: 2e20, up: 3e11 },
-  { id: 'smoothie', name: 'Smoothie tropical', emoji: '🥤', base: 5e11, unlock: 1.2e21, up: 1.2e12 },
+  { id: 'icecream', name: L('Glace italienne', 'Soft-serve ice cream'), emoji: '🍦', base: 8e8, unlock: 0, up: 1.5e8 },
+  { id: 'granita', name: L('Granité', 'Slushie'), emoji: '🍧', base: 2e9, unlock: 1.2e16, up: 5e8 },
+  { id: 'watermelon', name: L('Pastèque fraîche', 'Fresh watermelon'), emoji: '🍉', base: 5e9, unlock: 8e16, up: 1.5e9 },
+  { id: 'crepe', name: L('Crêpe au sucre', 'Sugar crepe'), emoji: '🥞', base: 1.2e10, unlock: 6e17, up: 6e9 },
+  { id: 'shrimp', name: L('Beignets de crevettes', 'Shrimp fritters'), emoji: '🍤', base: 3e10, unlock: 4e18, up: 2e10 },
+  { id: 'panini', name: L('Panini', 'Panini'), emoji: '🥪', base: 8e10, unlock: 3e19, up: 8e10 },
+  { id: 'coconut', name: L('Noix de coco', 'Coconut'), emoji: '🥥', base: 2e11, unlock: 2e20, up: 3e11 },
+  { id: 'smoothie', name: L('Smoothie tropical', 'Tropical smoothie'), emoji: '🥤', base: 5e11, unlock: 1.2e21, up: 1.2e12 },
 ];
 /* Niveau 5 : la fête foraine (devant le marché, s'ouvre après les 8 paillotes de la plage) */
 export const FAIR_RECIPES = [
-  { id: 'cottoncandy', name: 'Barbe à papa', emoji: '🍭', base: 8e11, unlock: 0, up: 4e9 },
-  { id: 'candyapple', name: "Pomme d'amour", emoji: '🍎', base: 2e12, unlock: 2e21, up: 1.2e10 },
-  { id: 'churros', name: 'Churros', emoji: '🥖', base: 5e12, unlock: 1.5e22, up: 4e10 },
-  { id: 'fairwaffle', name: 'Gaufre chantilly', emoji: '🧇', base: 1.2e13, unlock: 1e23, up: 1.5e11 },
-  { id: 'popcorn', name: 'Popcorn caramel', emoji: '🍿', base: 3e13, unlock: 6e23, up: 5e11 },
-  { id: 'bighotdog', name: 'Hot-dog géant', emoji: '🌭', base: 8e13, unlock: 5e24, up: 2e12 },
-  { id: 'donut', name: 'Beignet au sucre', emoji: '🍩', base: 2e14, unlock: 3e25, up: 7.5e12 },
-  { id: 'lemonade', name: 'Limonade maison', emoji: '🍋', base: 5e14, unlock: 2e26, up: 3e13 },
+  { id: 'cottoncandy', name: L('Barbe à papa', 'Cotton candy'), emoji: '🍭', base: 8e11, unlock: 0, up: 4e9 },
+  { id: 'candyapple', name: L("Pomme d'amour", 'Candy apple'), emoji: '🍎', base: 2e12, unlock: 2e21, up: 1.2e10 },
+  { id: 'churros', name: L('Churros', 'Churros'), emoji: '🥖', base: 5e12, unlock: 1.5e22, up: 4e10 },
+  { id: 'fairwaffle', name: L('Gaufre chantilly', 'Whipped cream waffle'), emoji: '🧇', base: 1.2e13, unlock: 1e23, up: 1.5e11 },
+  { id: 'popcorn', name: L('Popcorn caramel', 'Caramel popcorn'), emoji: '🍿', base: 3e13, unlock: 6e23, up: 5e11 },
+  { id: 'bighotdog', name: L('Hot-dog géant', 'Giant hot dog'), emoji: '🌭', base: 8e13, unlock: 5e24, up: 2e12 },
+  { id: 'donut', name: L('Beignet au sucre', 'Sugar donut'), emoji: '🍩', base: 2e14, unlock: 3e25, up: 7.5e12 },
+  { id: 'lemonade', name: L('Limonade maison', 'Homemade lemonade'), emoji: '🍋', base: 5e14, unlock: 2e26, up: 3e13 },
 ];
 export const allRecipes = () => [...RECIPES, ...MARKET_RECIPES, ...PORT_RECIPES, ...BEACH_RECIPES, ...FAIR_RECIPES];
 

@@ -7,6 +7,7 @@ import { fairPath, FAIR_GATE } from './fairnav.js';
 import { beachPath, nearestGate } from './beach.js';
 import { Customer, PEOPLE } from './people.js';
 import * as E from './economy.js';
+import { L } from './i18n.js';
 import { loadSave, writeSave, clearSave } from './save.js';
 
 const MAX_CUSTOMERS = { high: 70, low: 45 };
@@ -169,7 +170,7 @@ export class Game {
     this.arrival = E.ARRIVAL_SECONDS;
     this.arrivalIn = E.ARRIVAL_EVERY;
     this.crowd = E.ARRIVAL_CROWD; this.crowdT = 1.5; // le temps que le bateau accoste
-    this.hooks.toast && this.hooks.toast('⛵ Arrivage du pêcheur ! Poisson frais : les ventes du port valent ×3 pendant 30 s, les clients accourent de la ville');
+    this.hooks.toast && this.hooks.toast(L('⛵ Arrivage du pêcheur ! Poisson frais : les ventes du port valent ×3 pendant 30 s, les clients accourent de la ville', '⛵ The fishing boat is in! Fresh fish: harbor sales ×3 for 30 s, customers rush in from town'));
   }
   /** Pub récompensée : faire venir un bateau tout de suite. */
   callBoat() { if (this.arrival > 0) return; this.startArrival(); this.adCooldown.boat = 90; }
@@ -181,7 +182,7 @@ export class Game {
     this.nightLeft = E.NIGHT_SECONDS;
     this.nightIn = E.DAY_SECONDS;
     this.nightCrowd = E.NIGHT_CROWD; this.nightCrowdT = 2;
-    this.hooks.toast && this.hooks.toast('🌙 La nuit tombe : la fête foraine s\'illumine ! Ventes de la fête ×3, les visiteurs arrivent de la ville');
+    this.hooks.toast && this.hooks.toast(L('🌙 La nuit tombe : la fête foraine s\'illumine ! Ventes de la fête ×3, les visiteurs arrivent de la ville', '🌙 Night falls and the fair lights up! Fair sales ×3, visitors pour in from town'));
   }
   /** Pub récompensée : faire tomber la nuit tout de suite. */
   callNight() { if (this.nightLeft > 0) return; this.startNight(); this.adCooldown.night = 90; }
@@ -193,7 +194,7 @@ export class Game {
     this.heatLeft = E.HEAT_SECONDS;
     this.heatIn = E.HEAT_EVERY;
     this.heatCrowd = E.HEAT_CROWD; this.heatCrowdT = 1;
-    this.hooks.toast && this.hooks.toast('☀️ Canicule ! Tout le monde file à la plage : ventes de la plage ×3, les baigneurs affluent');
+    this.hooks.toast && this.hooks.toast(L('☀️ Canicule ! Tout le monde file à la plage : ventes de la plage ×3, les baigneurs affluent', '☀️ Heatwave! Everyone heads to the beach: beach sales ×3, swimmers flock in'));
   }
   /** Pub récompensée : déclencher la canicule tout de suite. */
   callHeat() { if (this.heatLeft > 0) return; this.startHeat(); this.adCooldown.heat = 90; }

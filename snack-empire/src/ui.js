@@ -1,6 +1,8 @@
 import { fmt, fmtDuration } from './util.js';
 import * as E from './economy.js';
 import { ads } from './ads.js';
+import { L, LANG, setLang } from './i18n.js';
+import { money, dec } from './util.js';
 import { happytime } from './platform.js';
 import { audio } from './audio.js';
 import { THREE } from './util.js';
@@ -57,11 +59,11 @@ export class UI {
     if (!this.zoneOpen(zone)) {
       const prev = E.ZONES[E.ZONES.indexOf(Z) - 1];
       const prevDone = this.zoneStands(prev.id).every((i) => g.state.stands[i].unlocked);
-      const label = { market: 'le marché', port: 'le port', fair: 'la fête foraine', beach: 'la plage' }[zone];
-      const need = { market: 'les 4 camions', port: 'les 6 étals du marché', beach: 'les 8 boutiques du port', fair: 'les 8 paillotes de la plage' }[zone];
+      const label = { market: L('le marché', 'the market'), port: L('le port', 'the harbor'), fair: L('la fête foraine', 'the fair'), beach: L('la plage', 'the beach') }[zone];
+      const need = { market: L('les 4 camions', 'the 4 trucks'), port: L('les 6 étals du marché', 'the 6 market stalls'), beach: L('les 8 boutiques du port', 'the 8 harbor shops'), fair: L('les 8 paillotes de la plage', 'the 8 beach huts') }[zone];
       this.toast(prevDone
-        ? `🔒 ${label[0].toUpperCase() + label.slice(1)} s'achète sur son emplacement : ${fmt(E.STAND_COST[Z.first])} $`
-        : `🔒 Ouvre d'abord ${need} pour débloquer ${label}`);
+        ? L(`🔒 ${label[0].toUpperCase() + label.slice(1)} s'achète sur son emplacement : ${money(E.STAND_COST[Z.first])}`, `🔒 Buy ${label} on its plot: ${money(E.STAND_COST[Z.first])}`)
+        : L(`🔒 Ouvre d'abord ${need} pour débloquer ${label}`, `🔒 Open ${need} first to unlock ${label}`));
       if (!prevDone) return;
       // montrer l'emplacement à acheter
       const s = g.stands[Z.first];
@@ -97,8 +99,8 @@ export class UI {
       this.world.frameStands(this.zoneStands('parking').filter((i) => g.stands[i].unlocked).map((i) => g.stands[i].x), animate);
     }
     document.querySelectorAll('#zones button').forEach((b) => b.classList.toggle('on', b.dataset.zone === zone));
-    $('[data-tab=recipes]').innerHTML = { parking: '🍔 Recettes', market: '🥐 Recettes', port: '🐟 Recettes', fair: '🍭 Recettes', beach: '🍦 Recettes' }[zone];
-    $('[data-tab=stands]').innerHTML = { parking: '🚚 Stands', market: '🧺 Étals', port: '⚓ Boutiques', fair: '🎪 Stands', beach: '🛖 Paillotes' }[zone];
+    $('[data-tab=recipes]').innerHTML = { parking: '🍔 ', market: '🥐 ', port: '🐟 ', fair: '🍭 ', beach: '🍦 ' }[zone] + L('Recettes', 'Recipes');
+    $('[data-tab=stands]').innerHTML = { parking: L('🚚 Stands', '🚚 Trucks'), market: L('🧺 Étals', '🧺 Stalls'), port: L('⚓ Boutiques', '⚓ Shops'), fair: L('🎪 Stands', '🎪 Stands'), beach: L('🛖 Paillotes', '🛖 Huts') }[zone];
     this.rebuildShop();
   }
 
@@ -173,6 +175,11 @@ export class UI {
       if (await this.watchAd()) { game.callBoat(); this.setZone('port'); }
     });
 
+    // Langue (anglais / français) : le choix est retenu et le jeu se recharge
+    document.querySelectorAll('#lang-seg button').forEach((b) => {
+      b.classList.toggle('on', b.dataset.lang === LANG);
+      b.addEventListener('click', () => { if (b.dataset.lang !== LANG) setLang(b.dataset.lang); });
+    });
     // Son : effets / musique (réglages) et bouton « couper le son »
     const refreshSound = () => {
       document.querySelectorAll('#sound-seg button').forEach((b) => b.classList.toggle('on', b.dataset.s === 'sfx' ? audio.sfxOn : audio.musicOn));
@@ -193,7 +200,7 @@ export class UI {
     // Pas de confirm() natif : il est bloqué dans les iframes des portails de jeux.
     $('#reset-btn').addEventListener('click', async () => {
       $('#settings').classList.remove('show');
-      const ok = await this.ask('Recommencer à zéro ?', 'Toute ta progression (argent, recettes, stands) sera effacée. Impossible de revenir en arrière.', 'Tout effacer', 'Annuler');
+      const ok = await this.ask(L('Recommencer à zéro ?', 'Start over?'), L('Toute ta progression (argent, recettes, stands) sera effacée. Impossible de revenir en arrière.', 'All your progress (money, recipes, stands) will be erased. This cannot be undone.'), L('Tout effacer', 'Erase everything'), L('Annuler', 'Cancel'));
       if (ok) game.reset();
     });
 
@@ -207,25 +214,25 @@ export class UI {
   refreshQuality() {
     const q = this.quality;
     document.querySelectorAll('#quality-seg button').forEach((b) => b.classList.toggle('on', b.dataset.q === q.pref));
-    const cur = this.world.quality === 'low' ? 'basse' : 'haute';
+    const cur = this.world.quality === 'low' ? L('basse', 'low') : L('haute', 'high');
     $('#quality-note').textContent = q.pref === 'auto'
-      ? (q.measured === null ? `Mesure en cours… (actuellement : ${cur})` : `${Math.round(q.measured)} i/s mesurées → qualité ${cur}`)
-      : `Qualité ${cur}`;
+      ? (q.measured === null ? L(`Mesure en cours… (actuellement : ${cur})`, `Measuring… (currently: ${cur})`) : L(`${Math.round(q.measured)} i/s mesurées → qualité ${cur}`, `${Math.round(q.measured)} fps measured → ${cur} quality`))
+      : L(`Qualité ${cur}`, `${cur[0].toUpperCase() + cur.slice(1)} quality`);
   }
 
   async buyStand(i) {
     if (this.game.buyStand(i)) {
       const zone = E.zoneOf(i).id;
       this.toast(
-        i === E.MARKET_FIRST ? '🏛️ Niveau 2 : le marché couvert ouvre ses portes ! (onglet « Marché » à gauche)'
-          : i === E.PORT_FIRST ? '⚓ Niveau 3 : bienvenue au port ! Guette l\'arrivage du pêcheur ⛵'
-            : i === E.BEACH_FIRST ? '🏖️ Niveau 4 : la plage ouvre ! Guette la canicule ☀️'
-            : i === E.FAIR_FIRST ? '🎡 Niveau 5 : la fête foraine ouvre ! Attends la nuit 🌙'
-              : zone === 'market' ? '🧺 Nouvel étal ouvert !'
-                : zone === 'port' ? '⚓ Nouvelle boutique ouverte !'
-                  : zone === 'fair' ? '🎪 Nouveau stand forain !'
-                  : zone === 'beach' ? '🛖 Nouvelle paillote sur la plage !'
-                    : '🎉 Nouveau stand ouvert !');
+        i === E.MARKET_FIRST ? L('🏛️ Niveau 2 : le marché couvert ouvre ses portes ! (onglet « Marché » à gauche)', '🏛️ Level 2: the covered market opens! (Market tab on the left)')
+          : i === E.PORT_FIRST ? L('⚓ Niveau 3 : bienvenue au port ! Guette l\'arrivage du pêcheur ⛵', '⚓ Level 3: welcome to the harbor! Watch for the fishing boat ⛵')
+            : i === E.BEACH_FIRST ? L('🏖️ Niveau 4 : la plage ouvre ! Guette la canicule ☀️', '🏖️ Level 4: the beach opens! Watch for the heatwave ☀️')
+            : i === E.FAIR_FIRST ? L('🎡 Niveau 5 : la fête foraine ouvre ! Attends la nuit 🌙', '🎡 Level 5: the fair opens! Wait for nightfall 🌙')
+              : zone === 'market' ? L('🧺 Nouvel étal ouvert !', '🧺 New stall open!')
+                : zone === 'port' ? L('⚓ Nouvelle boutique ouverte !', '⚓ New shop open!')
+                  : zone === 'fair' ? L('🎪 Nouveau stand forain !', '🎪 New fair stand!')
+                  : zone === 'beach' ? L('🛖 Nouvelle paillote sur la plage !', '🛖 New beach hut!')
+                    : L('🎉 Nouveau stand ouvert !', '🎉 New truck open!'));
       this.setZone(zone);
       // nouveau niveau : petite fête sur le site, puis (après avoir admiré la nouvelle zone) une pub de mi-partie.
       // (règles CrazyGames : pubs de mi-partie seulement aux moments charnières, jamais pendant le jeu)
@@ -239,7 +246,7 @@ export class UI {
 
   /* ---------- Boutique ---------- */
   shopModel() {
-    const g = this.game, S = g.state, money = S.money, out = [];
+    const g = this.game, S = g.state, cash = S.money, out = [];
     if (this.tab === 'recipes') {
       let lockedShown = false;
       for (const r of E.zoneById(this.zone).recipes) {
@@ -247,22 +254,22 @@ export class UI {
         if (lvl === 0) {
           if (lockedShown) continue; // une seule recette verrouillée visible à la fois
           lockedShown = true;
-          out.push({ id: 'r-' + r.id, emoji: r.emoji, title: `${r.name}`, sub: `Nouvelle recette · ${fmt(E.recipePrice(r, 1))} $ la vente`, label: `Débloquer<br>${fmt(r.unlock)} $`, cost: r.unlock, act: 'recipe:' + r.id, locked: true });
+          out.push({ id: 'r-' + r.id, emoji: r.emoji, title: `${r.name}`, sub: L(`Nouvelle recette · ${money(E.recipePrice(r, 1))} la vente`, `New recipe · ${money(E.recipePrice(r, 1))} per sale`), label: `${L('Débloquer', 'Unlock')}<br>${money(r.unlock)}`, cost: r.unlock, act: 'recipe:' + r.id, locked: true });
         } else {
           const cost = E.recipeUpCost(r, lvl);
-          const next = (lvl + 1) % 10 === 0 ? ' · prochain niv. ×2 !' : '';
-          out.push({ id: 'r-' + r.id, emoji: r.emoji, title: `${r.name} <b>niv. ${lvl}</b>`, sub: `${fmt(E.recipePrice(r, lvl))} $ → ${fmt(E.recipePrice(r, lvl + 1))} $${next}`, label: `${fmt(cost)} $`, cost, act: 'recipe:' + r.id });
+          const next = (lvl + 1) % 10 === 0 ? L(' · prochain niv. ×2 !', ' · next level ×2!') : '';
+          out.push({ id: 'r-' + r.id, emoji: r.emoji, title: `${r.name} <b>${L('niv.', 'lv.')} ${lvl}</b>`, sub: `${money(E.recipePrice(r, lvl))} → ${money(E.recipePrice(r, lvl + 1))}${next}`, label: `${money(cost)}`, cost, act: 'recipe:' + r.id });
         }
       }
     } else if (this.tab === 'upgrades') {
       const subs = {
-        speed: (l) => `Préparation : ${E.prepTime(l).toFixed(2).replace('.', ',')} s`,
-        marketing: (l) => `Un client toutes les ${E.spawnInterval(l, 1).toFixed(2).replace('.', ',')} s`,
-        queue: (l) => `File d'attente : ${E.queueCap(l)} places`,
+        speed: (l) => L(`Préparation : ${dec(E.prepTime(l))} s`, `Cooking time: ${dec(E.prepTime(l))} s`),
+        marketing: (l) => L(`Un client toutes les ${dec(E.spawnInterval(l, 1))} s`, `One customer every ${dec(E.spawnInterval(l, 1))} s`),
+        queue: (l) => L(`File d'attente : ${E.queueCap(l)} places`, `Queue: ${E.queueCap(l)} spots`),
       };
       for (const [k, u] of Object.entries(E.UPGRADES)) {
         const lvl = S.up[k], max = lvl >= u.max, cost = E.upgradeCost(u, lvl);
-        out.push({ id: 'u-' + k, emoji: u.emoji, title: `${u.name} <b>niv. ${lvl}</b>`, sub: subs[k](lvl), label: max ? 'MAX' : `${fmt(cost)} $`, cost: max ? Infinity : cost, act: 'up:' + k });
+        out.push({ id: 'u-' + k, emoji: u.emoji, title: `${u.name} <b>${L('niv.', 'lv.')} ${lvl}</b>`, sub: subs[k](lvl), label: max ? 'MAX' : `${money(cost)}`, cost: max ? Infinity : cost, act: 'up:' + k });
       }
     } else {
       const inZone = (i) => E.zoneOf(i).id === this.zone;
@@ -271,15 +278,15 @@ export class UI {
         if (z === 'market') return STALL_TYPES[i - E.MARKET_FIRST].name.toLowerCase().replace(/^./, (c) => c.toUpperCase());
         if (z === 'port') return SHOP_TYPES[i - E.PORT_FIRST].name.toLowerCase().replace(/^./, (c) => c.toUpperCase());
         if (z === 'fair') return FAIR_TYPES[i - E.FAIR_FIRST].name.toLowerCase().replace(/^./, (c) => c.toUpperCase());
-        if (z === 'beach') return 'Paillote ' + BEACH_TYPES[i - E.BEACH_FIRST].name.toLowerCase();
-        return `Stand n°${i + 1}`;
+        if (z === 'beach') return L('Paillote ', 'Hut: ') + BEACH_TYPES[i - E.BEACH_FIRST].name.toLowerCase();
+        return L(`Stand n°${i + 1}`, `Truck #${i + 1}`);
       };
       S.stands.forEach((st, i) => {
         if (st.unlocked && inZone(i)) {
           const z = E.zoneOf(i).id;
           const max = st.cooks >= E.MAX_COOKS, cost = max ? Infinity : E.COOK_COST[i][st.cooks];
-          const who = z === 'parking' ? 'cuisiniers' : 'vendeurs';
-          out.push({ id: 's-' + i, emoji: { parking: '👨‍🍳', market: '🧑‍🌾', port: '🧑‍✈️', fair: '🤹', beach: '🏄' }[z], title: `${nameOf(i)} <b>${st.cooks}/${E.MAX_COOKS} ${who}</b>`, sub: max ? 'Équipe complète' : `Service ×${E.COOK_FACTOR[st.cooks]} plus rapide`, label: max ? 'MAX' : `Embaucher<br>${fmt(cost)} $`, cost, act: 'cook:' + i });
+          const who = z === 'parking' ? L('cuisiniers', 'cooks') : L('vendeurs', 'staff');
+          out.push({ id: 's-' + i, emoji: { parking: '👨‍🍳', market: '🧑‍🌾', port: '🧑‍✈️', fair: '🤹', beach: '🏄' }[z], title: `${nameOf(i)} <b>${st.cooks}/${E.MAX_COOKS} ${who}</b>`, sub: max ? L('Équipe complète', 'Full team') : L(`Service ×${E.COOK_FACTOR[st.cooks]} plus rapide`, `Service ×${E.COOK_FACTOR[st.cooks]} faster`), label: max ? 'MAX' : `${L('Embaucher', 'Hire')}<br>${money(cost)}`, cost, act: 'cook:' + i });
         }
       });
       const n = g.nextLockedStand();
@@ -289,19 +296,19 @@ export class UI {
       const opensNext = nz && n === nz.first && E.ZONES[E.ZONES.indexOf(nz) - 1]?.id === this.zone;
       if (n >= 0 && (inZone(n) || opensNext)) {
         const cost = E.STAND_COST[n];
-        const card = n === E.MARKET_FIRST ? { emoji: '🏛️', title: 'Marché couvert <b>niveau 2</b>', sub: 'Nouvelle zone : 6 étals + 7 nouvelles recettes' }
-          : n === E.PORT_FIRST ? { emoji: '⚓', title: 'Le port <b>niveau 3</b>', sub: 'Nouvelle zone : 8 boutiques, 9 recettes, arrivages ×3' }
-            : n === E.BEACH_FIRST ? { emoji: '🏖️', title: 'La plage <b>niveau 4</b>', sub: 'Nouvelle zone : 8 paillotes, 8 recettes, canicules ×3' }
-            : n === E.FAIR_FIRST ? { emoji: '🎡', title: 'Fête foraine <b>niveau 5</b>', sub: 'Nouvelle zone : 8 stands, 8 recettes, nuits ×3' }
-              : nz.id === 'market' ? { emoji: '🧺', title: nameOf(n), sub: 'Un nouvel étal dans le marché' }
-                : nz.id === 'port' ? { emoji: '⚓', title: nameOf(n), sub: 'Une nouvelle boutique sur le quai' }
-                  : nz.id === 'fair' ? { emoji: '🎪', title: nameOf(n), sub: 'Un nouveau stand à la fête' }
-                  : nz.id === 'beach' ? { emoji: '🛖', title: nameOf(n), sub: 'Une nouvelle paillote sur la plage' }
-                    : { emoji: '🚚', title: nameOf(n), sub: 'Une nouvelle file de clients' };
-        out.push({ id: 'n-' + n, ...card, label: `Ouvrir<br>${fmt(cost)} $`, cost, act: 'stand:' + n, locked: true });
+        const card = n === E.MARKET_FIRST ? { emoji: '🏛️', title: L('Marché couvert <b>niveau 2</b>', 'Covered market <b>level 2</b>'), sub: L('Nouvelle zone : 6 étals + 7 nouvelles recettes', 'New area: 6 stalls + 7 new recipes') }
+          : n === E.PORT_FIRST ? { emoji: '⚓', title: L('Le port <b>niveau 3</b>', 'The harbor <b>level 3</b>'), sub: L('Nouvelle zone : 8 boutiques, 9 recettes, arrivages ×3', 'New area: 8 shops, 9 recipes, fishing boat ×3') }
+            : n === E.BEACH_FIRST ? { emoji: '🏖️', title: L('La plage <b>niveau 4</b>', 'The beach <b>level 4</b>'), sub: L('Nouvelle zone : 8 paillotes, 8 recettes, canicules ×3', 'New area: 8 huts, 8 recipes, heatwaves ×3') }
+            : n === E.FAIR_FIRST ? { emoji: '🎡', title: L('Fête foraine <b>niveau 5</b>', 'The fair <b>level 5</b>'), sub: L('Nouvelle zone : 8 stands, 8 recettes, nuits ×3', 'New area: 8 stands, 8 recipes, nights ×3') }
+              : nz.id === 'market' ? { emoji: '🧺', title: nameOf(n), sub: L('Un nouvel étal dans le marché', 'A new stall in the market') }
+                : nz.id === 'port' ? { emoji: '⚓', title: nameOf(n), sub: L('Une nouvelle boutique sur le quai', 'A new shop on the quay') }
+                  : nz.id === 'fair' ? { emoji: '🎪', title: nameOf(n), sub: L('Un nouveau stand à la fête', 'A new stand at the fair') }
+                  : nz.id === 'beach' ? { emoji: '🛖', title: nameOf(n), sub: L('Une nouvelle paillote sur la plage', 'A new hut on the beach') }
+                    : { emoji: '🚚', title: nameOf(n), sub: L('Une nouvelle file de clients', 'A new line of customers') };
+        out.push({ id: 'n-' + n, ...card, label: `${L('Ouvrir', 'Open')}<br>${money(cost)}`, cost, act: 'stand:' + n, locked: true });
       }
     }
-    for (const c of out) c.disabled = c.cost > money;
+    for (const c of out) c.disabled = c.cost > cash;
     return out;
   }
 
@@ -363,8 +370,8 @@ export class UI {
   /* ---------- HUD (10 fois par seconde) ---------- */
   refresh() {
     const g = this.game, S = g.state;
-    $('#money').textContent = fmt(S.money);
-    $('#rate').textContent = `+${fmt(S.rate)} $/s`;
+    $('#money').textContent = money(S.money);
+    $('#rate').textContent = `+${money(S.rate)}/s`;
     // la barre des niveaux se place juste sous les pastilles du haut (1 ou 2 lignes selon la largeur de l'écran)
     const hudBottom = Math.round($('#hud').getBoundingClientRect().bottom);
     if (hudBottom !== this.hudBottom) { this.hudBottom = hudBottom; document.documentElement.style.setProperty('--hud-bottom', `${hudBottom}px`); }
@@ -372,11 +379,11 @@ export class UI {
     document.body.classList.toggle('no-ads', !ads.available);
     document.body.classList.toggle('adblocked', ads.blocked);
     const rush = $('#ad-rush');
-    if (g.boost > 0) { rush.disabled = true; rush.innerHTML = `🔥 Coup de feu ×2 · ${fmtDuration(g.boost)}`; rush.classList.add('active'); }
-    else { rush.classList.remove('active'); rush.disabled = g.adCooldown.rush > 0; rush.innerHTML = g.adCooldown.rush > 0 ? `📺 Coup de feu · ${Math.ceil(g.adCooldown.rush)} s` : '📺 Coup de feu ×2 (3 min)'; }
+    if (g.boost > 0) { rush.disabled = true; rush.innerHTML = L(`🔥 Coup de feu ×2 · ${fmtDuration(g.boost)}`, `🔥 Rush ×2 · ${fmtDuration(g.boost)}`); rush.classList.add('active'); }
+    else { rush.classList.remove('active'); rush.disabled = g.adCooldown.rush > 0; rush.innerHTML = g.adCooldown.rush > 0 ? L(`📺 Coup de feu · ${Math.ceil(g.adCooldown.rush)} s`, `📺 Rush · ${Math.ceil(g.adCooldown.rush)} s`) : L('📺 Coup de feu ×2 (3 min)', '📺 Rush ×2 (3 min)'); }
     const vip = $('#ad-vip');
     vip.disabled = g.adCooldown.vip > 0;
-    vip.innerHTML = g.adCooldown.vip > 0 ? `📺 Livraison VIP · ${Math.ceil(g.adCooldown.vip)} s` : `📺 Livraison VIP +${fmt(g.vipGain())} $`;
+    vip.innerHTML = g.adCooldown.vip > 0 ? L(`📺 Livraison VIP · ${Math.ceil(g.adCooldown.vip)} s`, `📺 VIP order · ${Math.ceil(g.adCooldown.vip)} s`) : L(`📺 Livraison VIP +${money(g.vipGain())}`, `📺 VIP order +${money(g.vipGain())}`);
     $('#boost-badge').classList.toggle('show', g.boost > 0);
     // pastille sur « 📺 Bonus » quand une pub est disponible
     $('#ad-toggle').classList.toggle('dot', [...document.querySelectorAll('#ad-bar button:not(#ad-toggle)')].some((b) => b.style.display !== 'none' && !b.disabled));
@@ -389,7 +396,7 @@ export class UI {
     if (portOpen) {
       const s = Math.ceil(g.arrival > 0 ? g.arrival : g.arrivalIn);
       const mmss = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-      setPill(pp, g.arrival > 0 ? `⛵ Arrivage ! Port ×${E.ARRIVAL_MULT} · ${s} s` : `⛵ Prochain bateau ${mmss}`, g.arrival > 0 ? `⛵ ×${E.ARRIVAL_MULT} ${s}s` : `⛵ ${mmss}`);
+      setPill(pp, g.arrival > 0 ? L(`⛵ Arrivage ! Port ×${E.ARRIVAL_MULT} · ${s} s`, `⛵ Fresh catch! Harbor ×${E.ARRIVAL_MULT} · ${s} s`) : L(`⛵ Prochain bateau ${mmss}`, `⛵ Next boat ${mmss}`), g.arrival > 0 ? `⛵ ×${E.ARRIVAL_MULT} ${s}s` : `⛵ ${mmss}`);
     }
     // Fête foraine : nuit en cours / prochaine nuit, et pub « faire tomber la nuit »
     const fairOpen = g.fairOpen();
@@ -399,12 +406,12 @@ export class UI {
     if (fairOpen) {
       const s = Math.ceil(g.nightLeft > 0 ? g.nightLeft : g.nightIn);
       const mmss = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-      setPill(np, g.nightLeft > 0 ? `🌙 Nuit à la fête ! ×${E.NIGHT_MULT} · ${s} s` : `🌙 Nuit dans ${mmss}`, g.nightLeft > 0 ? `🌙 ×${E.NIGHT_MULT} ${s}s` : `🌙 ${mmss}`);
+      setPill(np, g.nightLeft > 0 ? L(`🌙 Nuit à la fête ! ×${E.NIGHT_MULT} · ${s} s`, `🌙 Fair night! ×${E.NIGHT_MULT} · ${s} s`) : L(`🌙 Nuit dans ${mmss}`, `🌙 Night in ${mmss}`), g.nightLeft > 0 ? `🌙 ×${E.NIGHT_MULT} ${s}s` : `🌙 ${mmss}`);
     }
     const nb = $('#ad-night');
     nb.style.display = fairOpen ? '' : 'none';
     nb.disabled = g.adCooldown.night > 0 || g.nightLeft > 0;
-    nb.innerHTML = g.nightLeft > 0 ? '🌙 C\'est la nuit' : g.adCooldown.night > 0 ? `📺 Nuit · ${Math.ceil(g.adCooldown.night)} s` : '📺 Faire tomber la nuit';
+    nb.innerHTML = g.nightLeft > 0 ? L('🌙 C\'est la nuit', '🌙 It\'s night') : g.adCooldown.night > 0 ? L(`📺 Nuit · ${Math.ceil(g.adCooldown.night)} s`, `📺 Night · ${Math.ceil(g.adCooldown.night)} s`) : L('📺 Faire tomber la nuit', '📺 Make it night');
 
     // Plage : canicule en cours / prochaine canicule, et pub « déclencher la canicule »
     const beachOpen = g.beachOpen();
@@ -414,17 +421,17 @@ export class UI {
     if (beachOpen) {
       const s = Math.ceil(g.heatLeft > 0 ? g.heatLeft : g.heatIn);
       const mmss = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-      setPill(hp, g.heatLeft > 0 ? `☀️ Canicule ! Plage ×${E.HEAT_MULT} · ${s} s` : `☀️ Canicule dans ${mmss}`, g.heatLeft > 0 ? `☀️ ×${E.HEAT_MULT} ${s}s` : `☀️ ${mmss}`);
+      setPill(hp, g.heatLeft > 0 ? L(`☀️ Canicule ! Plage ×${E.HEAT_MULT} · ${s} s`, `☀️ Heatwave! Beach ×${E.HEAT_MULT} · ${s} s`) : L(`☀️ Canicule dans ${mmss}`, `☀️ Heatwave in ${mmss}`), g.heatLeft > 0 ? `☀️ ×${E.HEAT_MULT} ${s}s` : `☀️ ${mmss}`);
     }
     const hb = $('#ad-heat');
     hb.style.display = beachOpen ? '' : 'none';
     hb.disabled = g.adCooldown.heat > 0 || g.heatLeft > 0;
-    hb.innerHTML = g.heatLeft > 0 ? '☀️ Canicule en cours' : g.adCooldown.heat > 0 ? `📺 Canicule · ${Math.ceil(g.adCooldown.heat)} s` : '📺 Déclencher la canicule';
+    hb.innerHTML = g.heatLeft > 0 ? L('☀️ Canicule en cours', '☀️ Heatwave on') : g.adCooldown.heat > 0 ? L(`📺 Canicule · ${Math.ceil(g.adCooldown.heat)} s`, `📺 Heatwave · ${Math.ceil(g.adCooldown.heat)} s`) : L('📺 Déclencher la canicule', '📺 Start a heatwave');
 
     const boat = $('#ad-boat');
     boat.style.display = portOpen ? '' : 'none';
     boat.disabled = g.adCooldown.boat > 0 || g.arrival > 0;
-    boat.innerHTML = g.arrival > 0 ? '⛵ Bateau à quai' : g.adCooldown.boat > 0 ? `📺 Bateau · ${Math.ceil(g.adCooldown.boat)} s` : '📺 Faire venir un bateau';
+    boat.innerHTML = g.arrival > 0 ? L('⛵ Bateau à quai', '⛵ Boat docked') : g.adCooldown.boat > 0 ? L(`📺 Bateau · ${Math.ceil(g.adCooldown.boat)} s`, `📺 Boat · ${Math.ceil(g.adCooldown.boat)} s`) : L('📺 Faire venir un bateau', '📺 Call a fishing boat');
     this.updateShop(false);
   }
 
@@ -468,9 +475,9 @@ export class UI {
         const p = w.toScreen(s.plotPos());
         const cost = E.STAND_COST[i];
         const zid = E.zoneOf(i).id;
-        const what = i === E.MARKET_FIRST ? '🏛️ Marché couvert' : i === E.PORT_FIRST ? '⚓ Le port' : i === E.FAIR_FIRST ? '🎡 Fête foraine' : i === E.BEACH_FIRST ? '🏖️ La plage'
-          : zid === 'market' ? '🔒 Nouvel étal' : zid === 'port' ? '🔒 Nouvelle boutique' : zid === 'beach' ? '🔒 Nouvelle paillote' : '🔒 Nouveau stand';
-        const html = `<span class="pb">${what}<br><b>${fmt(cost)} $</b></span>`;
+        const what = i === E.MARKET_FIRST ? L('🏛️ Marché couvert', '🏛️ Covered market') : i === E.PORT_FIRST ? L('⚓ Le port', '⚓ The harbor') : i === E.FAIR_FIRST ? L('🎡 Fête foraine', '🎡 The fair') : i === E.BEACH_FIRST ? L('🏖️ La plage', '🏖️ The beach')
+          : zid === 'market' ? L('🔒 Nouvel étal', '🔒 New stall') : zid === 'port' ? L('🔒 Nouvelle boutique', '🔒 New shop') : zid === 'beach' ? L('🔒 Nouvelle paillote', '🔒 New hut') : zid === 'fair' ? L('🔒 Nouveau stand', '🔒 New stand') : L('🔒 Nouveau stand', '🔒 New truck');
+        const html = `<span class="pb">${what}<br><b>${money(cost)}</b></span>`;
         if (pb.innerHTML !== html) pb.innerHTML = html;
         pb.classList.toggle('can', g.state.money >= cost);
         pb.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, -50%)`;
@@ -492,7 +499,7 @@ export class UI {
 
   earn(pos, amount, emoji) {
     if (this.floats.length > 40) return;
-    const f = el('div', 'float', `${emoji ? emoji + ' ' : ''}+${fmt(amount)} $`);
+    const f = el('div', 'float', `${emoji ? emoji + ' ' : ''}+${money(amount)}`);
     if (this.game.boost > 0) f.classList.add('boost');
     this.layer.appendChild(f);
     this.floats.push({ el: f, pos: pos.clone(), t: 0 });
@@ -506,10 +513,10 @@ export class UI {
 
   offline(gain, onClaim) {
     const m = el('div', 'modal', `<div class="modal-box">
-      <h2>Bon retour, patron ! 👋</h2>
-      <p>Pendant ton absence (${fmtDuration(gain.seconds)}), tes stands ont gagné :</p>
-      <div class="big">${fmt(gain.amount)} $</div>
-      <div class="row"><button class="gold" data-x="1">Récupérer</button>${ads.available ? '<button class="gold" data-x="2">📺 Récupérer ×2</button>' : ''}</div>
+      <h2>${L('Bon retour, patron ! 👋', 'Welcome back, boss! 👋')}</h2>
+      <p>${L(`Pendant ton absence (${fmtDuration(gain.seconds)}), tes stands ont gagné :`, `While you were away (${fmtDuration(gain.seconds)}), your stands earned:`)}</p>
+      <div class="big">${money(gain.amount)}</div>
+      <div class="row"><button class="gold" data-x="1">${L('Récupérer', 'Collect')}</button>${ads.available ? `<button class="gold" data-x="2">📺 ${L('Récupérer ×2', 'Collect ×2')}</button>` : ''}</div>
     </div>`);
     document.body.appendChild(m);
     m.addEventListener('click', async (e) => {
@@ -549,7 +556,7 @@ export class UI {
    */
   async watchAd() {
     const ok = await ads.rewarded();
-    if (!ok && ads.lastError && ads.lastError !== 'adblock') this.toast('📺 Pas de publicité disponible pour le moment : réessaie un peu plus tard');
+    if (!ok && ads.lastError && ads.lastError !== 'adblock') this.toast(L('📺 Pas de publicité disponible pour le moment : réessaie un peu plus tard', '📺 No ad available right now: please try again a bit later'));
     return ok;
   }
 
@@ -562,6 +569,6 @@ export class UI {
   }
 
   welcome() {
-    this.toast('🍔 Sers tes premiers clients et achète des améliorations !');
+    this.toast(L('🍔 Sers tes premiers clients et achète des améliorations !', '🍔 Serve your first customers and buy upgrades!'));
   }
 }

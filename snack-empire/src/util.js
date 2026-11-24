@@ -3,6 +3,7 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 
 export { THREE };
+import { LANG } from './i18n.js';
 
 /**
  * Fusionne tous les objets immobiles d'un groupe en un seul maillage par matériau
@@ -98,13 +99,21 @@ export function shadows(obj, cast = true, receive = true) {
 }
 
 /** Formatage des montants : 950 · 12 480 · 1,25 M · 3,4 Md … */
-const SUFFIX = ['', '', ' M', ' Md', ' B', ' Bd', ' T', ' Td', ' Qa', ' Qd', ' Qi', ' Qid', ' Sx', ' Sxd'];
+// (anglais : échelle courte des jeux idle — M, B, T, Qa, Qi…)
+const SUFFIX = LANG === 'fr'
+  ? ['', '', ' M', ' Md', ' B', ' Bd', ' T', ' Td', ' Qa', ' Qd', ' Qi', ' Qid', ' Sx', ' Sxd']
+  : ['', '', ' M', ' B', ' T', ' Qa', ' Qi', ' Sx', ' Sp', ' Oc', ' No', ' Dc', ' Ud', ' Dd'];
+const LOCALE = LANG === 'fr' ? 'fr-FR' : 'en-US';
+/** Une somme d'argent : « 12 M $ » en français, « $12 M » en anglais. */
+export const money = (n) => (LANG === 'fr' ? `${fmt(n)} $` : `$${fmt(n)}`);
+/** Un nombre à virgule : « 2,58 » / « 2.58 ». */
+export const dec = (x, d = 2) => (LANG === 'fr' ? x.toFixed(d).replace('.', ',') : x.toFixed(d));
 export function fmt(n) {
   n = Math.floor(n);
-  if (n < 1e6) return n.toLocaleString('fr-FR').replace(/ | /g, ' ');
+  if (n < 1e6) return n.toLocaleString(LOCALE).replace(/ | /g, ' ');
   const e = Math.min(SUFFIX.length - 1, Math.floor(Math.log10(n) / 3));
   const v = n / 10 ** (e * 3);
-  return v.toLocaleString('fr-FR', { maximumFractionDigits: v < 10 ? 2 : v < 100 ? 1 : 0 }) + SUFFIX[e];
+  return v.toLocaleString(LOCALE, { maximumFractionDigits: v < 10 ? 2 : v < 100 ? 1 : 0 }) + SUFFIX[e];
 }
 
 export function fmtDuration(s) {
