@@ -155,13 +155,17 @@ export const MAT = {
 export function buildRoomDecor(g) {
   // (intérieur symétrique autour du milieu de la fenêtre, x = -0,9 : deux moitiés identiques)
   const X0 = -3.2, X1 = 1.4, Z0 = -1.15, Z1 = 1.17, F = 0.75, C = 3.0;
-  const W0 = -2.45, W1 = 0.65, S0 = 1.525, S1 = 2.575; // ouverture de la fenêtre de service
+  const W0 = -2.45, W1 = 0.65, S0 = 1.525, S1 = 2.9; // ouverture de la fenêtre de service (grande : jusque sous le toit)
   const tile = (w, h) => MAT.tiles(w / 0.6, h / 0.6);
   add(box(X1 - X0, 0.05, Z1 - Z0, MAT.floor()), (X0 + X1) / 2, F, 0, g);
   add(box(X1 - X0, 0.05, Z1 - Z0, MAT.ceiling()), (X0 + X1) / 2, C, 0, g);
   add(box(0.05, C - F, Z1 - Z0, tile(Z1 - Z0, C - F)), X0, (F + C) / 2, 0, g);
   add(box(0.05, C - F, Z1 - Z0, tile(Z1 - Z0, C - F)), X1, (F + C) / 2, 0, g);
-  // (pas de mur du fond : la caméra se tient au fond du camion, juste derrière)
+  // mur du fond : une seule face, tournée vers la fenêtre. Vu de dehors, on le voit derrière les cuisiniers ;
+  // de l'intérieur, la caméra est derrière lui et il est invisible (elle voit sa face arrière, qui n'est pas dessinée)
+  const back = new THREE.Mesh(new THREE.PlaneGeometry(X1 - X0, C - F), tile(X1 - X0, C - F));
+  back.position.set((X0 + X1) / 2, (F + C) / 2, Z0 + 0.01);
+  g.add(back);
   // mur de la fenêtre : carrelé autour de l'ouverture, inox en dessous (derrière le plan de travail)
   add(box(X1 - X0, S0 - F, 0.06, MAT.steel(5, 1)), (X0 + X1) / 2, (F + S0) / 2, Z1, g);
   add(box(X1 - X0, C - S1, 0.06, tile(X1 - X0, C - S1)), (X0 + X1) / 2, (S1 + C) / 2, Z1, g);
@@ -357,10 +361,10 @@ export function buildBin(g, x, z) {
 export function buildProps(g) {
   const steel = MAT.steel(1, 1);
   // rail à tickets au-dessus de la fenêtre (côté cuisine) avec deux bons de commande
-  add(box(1.6, 0.03, 0.04, steel), -0.9, 2.66, 1.1, g);
+  add(box(1.6, 0.03, 0.04, steel), -0.9, 2.86, 1.1, g);
   for (const [x, r] of [[-1.35, 0.06], [-0.55, -0.04]]) {
     const t = new THREE.Mesh(new THREE.PlaneGeometry(0.09, 0.16), std({ map: ticketTex(), roughness: 0.9, side: THREE.DoubleSide }));
-    t.position.set(x, 2.57, 1.085); t.rotation.set(0, Math.PI, r);
+    t.position.set(x, 2.77, 1.085); t.rotation.set(0, Math.PI, r);
     g.add(t);
   }
   // de chaque côté de la fenêtre (en miroir) : dérouleur d'essuie-tout, étagère à épices, extincteur au mur du bout

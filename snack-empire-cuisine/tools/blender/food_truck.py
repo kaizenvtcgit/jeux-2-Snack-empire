@@ -10,6 +10,8 @@ Les noms des matériaux sont utilisés par le jeu :
 import bpy, bmesh, math, os
 
 OUT = globals().get('OUT_PATH', '')
+# OPEN = True : caisse creuse et fenêtre ouverte sur l'intérieur (camion n°1, dont la cuisine est construite par le jeu)
+OPEN = globals().get('OPEN', False)
 
 # ---------- Remise à zéro ----------
 for o in list(bpy.data.objects):
@@ -139,7 +141,13 @@ def P(o):
 
 # ---------- Carrosserie ----------
 body = P(cube('Body', (5.4, 2.4, 2.5), (-0.6, 0, 1.85), 'Body', bevel=0.14, seg=4))
-cut(body, cutter_cube((3.1, 1.0, 1.05), (-0.9, -1.2, 2.05)))   # fenêtre de service (renfoncement)
+# fenêtre de service (renfoncement) ; version ouverte : grande fenêtre jusque sous le toit, pour voir les cuisiniers de dehors
+WIN_H, WIN_Z = (1.375, 2.2125) if OPEN else (1.05, 2.05)
+AWN_UP = 0.2 if OPEN else 0.0   # l'auvent remonte avec le haut de la fenêtre
+cut(body, cutter_cube((3.1, 1.0, WIN_H), (-0.9, -1.2, WIN_Z)))
+if OPEN:
+    # intérieur vide (même volume que la cuisine du jeu : x -3,2 → 1,4 ; plancher 0,75 ; plafond 3,0)
+    cut(body, cutter_cube((4.6, 2.3, 2.25), (-0.9, 0, 1.875)))
 wheel_wells(body)
 
 cab = P(cube('Cab', (1.9, 2.3, 1.95), (2.95, 0, 1.55), 'Body', bevel=0.3, seg=5))
@@ -194,20 +202,21 @@ P(cube('PropaneRack', (0.9, 0.05, 0.05), (-2.78, 1.24, 1.35), 'DarkMetal'))
 P(cube('PropaneRack2', (0.9, 0.05, 0.05), (-2.78, 1.24, 1.75), 'DarkMetal'))
 
 # ---------- Fenêtre de service ----------
-frame = cube('WinFrame', (3.3, 0.08, 1.25), (-0.9, -1.22, 2.05), 'Chrome', bevel=0.02)
-cut(frame, cutter_cube((3.1, 0.4, 1.05), (-0.9, -1.22, 2.05)))
+frame = cube('WinFrame', (3.3, 0.08, WIN_H + 0.2), (-0.9, -1.22, WIN_Z), 'Chrome', bevel=0.02)
+cut(frame, cutter_cube((3.1, 0.4, WIN_H), (-0.9, -1.22, WIN_Z)))
 P(frame)
-# intérieur du camion (visible par la fenêtre)
-P(cube('InteriorBack', (3.1, 0.02, 1.05), (-0.9, -0.71, 2.05), 'InteriorWall'))
-P(cube('Splash', (3.1, 0.015, 0.5), (-0.9, -0.725, 1.83), 'Steel'))
-P(cube('Grill', (1.0, 0.3, 0.1), (-1.85, -0.86, 1.6), 'DarkMetal', bevel=0.01))
-for k in range(3):
-    P(cyl(f'Patty{k}', 0.09, 0.03, (-2.15 + k * 0.28, -0.86, 1.67), 'Food', verts=16))
-P(cube('Hood', (1.2, 0.36, 0.18), (-1.85, -0.88, 2.47), 'Steel', bevel=0.02))
-P(cube('Shelf', (1.3, 0.16, 0.03), (0.0, -0.79, 2.25), 'Steel'))
-for k, (mtl, h) in enumerate((('Red', 0.2), ('Yellow', 0.2), ('Red', 0.16), ('Plastic', 0.24), ('Yellow', 0.16))):
-    P(cyl(f'Bottle{k}', 0.045, h, (-0.5 + k * 0.24, -0.79, 2.265 + h / 2), mtl, verts=12))
-P(cube('LightStrip', (2.9, 0.06, 0.03), (-0.9, -1.0, 2.555), 'InteriorLight'))
+# intérieur du camion (visible par la fenêtre) — absent de la version ouverte : la cuisine du jeu le remplace
+if not OPEN:
+  P(cube('InteriorBack', (3.1, 0.02, 1.05), (-0.9, -0.71, 2.05), 'InteriorWall'))
+  P(cube('Splash', (3.1, 0.015, 0.5), (-0.9, -0.725, 1.83), 'Steel'))
+  P(cube('Grill', (1.0, 0.3, 0.1), (-1.85, -0.86, 1.6), 'DarkMetal', bevel=0.01))
+  for k in range(3):
+      P(cyl(f'Patty{k}', 0.09, 0.03, (-2.15 + k * 0.28, -0.86, 1.67), 'Food', verts=16))
+  P(cube('Hood', (1.2, 0.36, 0.18), (-1.85, -0.88, 2.47), 'Steel', bevel=0.02))
+  P(cube('Shelf', (1.3, 0.16, 0.03), (0.0, -0.79, 2.25), 'Steel'))
+  for k, (mtl, h) in enumerate((('Red', 0.2), ('Yellow', 0.2), ('Red', 0.16), ('Plastic', 0.24), ('Yellow', 0.16))):
+      P(cyl(f'Bottle{k}', 0.045, h, (-0.5 + k * 0.24, -0.79, 2.265 + h / 2), mtl, verts=12))
+  P(cube('LightStrip', (2.9, 0.06, 0.03), (-0.9, -1.0, 2.555), 'InteriorLight'))
 # comptoir extérieur + équerres
 P(cube('Counter', (3.6, 0.55, 0.07), (-0.9, -1.45, 1.49), 'Steel', bevel=0.02))
 for x in (-2.4, 0.6):
@@ -237,7 +246,7 @@ for v in me.vertices:
     t = v.co.y + 0.5          # 0 = charnière, 1 = bord libre
     x = -0.9 + (u - 0.5) * 3.8
     y = -1.22 - t * 1.25
-    z = 2.78 - t * 0.42 - math.sin(math.pi * t) * 0.05 - math.sin(math.pi * u) * 0.04 * t
+    z = 2.78 + AWN_UP - t * 0.42 - math.sin(math.pi * t) * 0.05 - math.sin(math.pi * u) * 0.04 * t
     v.co = (x, y, z)
 finish(awn, 'Awning')
 sol = awn.modifiers.new('Solid', 'SOLIDIFY')
@@ -246,7 +255,7 @@ apply_mods(awn)
 P(awn)
 for x in (-2.75, 0.95):
     # bras de soutien : du flanc (y=-1.22, z=1.75) jusqu'au bord de l'auvent (y=-2.45, z=2.34)
-    rod = cyl(f'AwnRod{x}', 0.018, 1.364, (x, -1.835, 2.045), 'Chrome', verts=10)
+    rod = cyl(f'AwnRod{x}', 0.018, 1.364, (x, -1.835, 2.045 + AWN_UP), 'Chrome', verts=10)
     rod.rotation_euler = (math.radians(64.4), 0, 0)
     P(rod)
 

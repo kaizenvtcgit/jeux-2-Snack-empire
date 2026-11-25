@@ -87,7 +87,8 @@ export class Kitchen {
     this.lastDrag = 0;
 
     this.group = new THREE.Group();
-    this.group.visible = false;
+    this.group.visible = false; // (visible dès que le camion est ouvert : on voit l'intérieur par la fenêtre)
+    this.crew = []; // cuisiniers embauchés : { c: personnage, d: moitié (1 = gauche, -1 = droite), job }
     stand.root.add(this.group);
     this.clickables = [];
     this.buildRoom();
@@ -113,9 +114,15 @@ export class Kitchen {
     spot.shadow.bias = -0.0004; spot.shadow.normalBias = 0.015; spot.shadow.radius = 4;
     spot.shadow.camera.near = 0.3; spot.shadow.camera.far = 4;
     g.add(spot, spot.target);
+    this.lights = [spot]; // (lumières de l'intérieur : allumées quand on est dans le camion)
     const fill = new THREE.PointLight('#e8eeff', 1.1, 5, 1.8);
     fill.position.set(C, 2.3, -0.7);
     g.add(fill);
+    this.lights.push(fill);
+    // vu de dehors : une seule lampe, sans ombres (plus léger), pour voir les cuisiniers par la fenêtre
+    this.outLight = new THREE.PointLight('#fff1dc', 3.5, 7, 1.5);
+    this.outLight.position.set(C, 2.75, 0.4);
+    g.add(this.outLight);
   }
 
   /** Une zone cliquable (boîte invisible un peu plus grande que l'objet, plus facile à viser). */
@@ -134,9 +141,8 @@ export class Kitchen {
     this.sausageGeo = sausageGeometry();
 
     // Deux installations identiques, en miroir : celle du joueur (à droite) et celle du cuisinier (à gauche)
-    const mine = this.buildHalf(-1), cooks = this.buildHalf(1);
-    this.ketchup = mine.ketchup; this.mustard = mine.mustard;
-    this.cookKetchup = cooks.ketchup; this.cookMustard = cooks.mustard;
+    this.halves = { [-1]: this.buildHalf(-1), [1]: this.buildHalf(1) };
+    this.ketchup = this.halves[-1].ketchup; this.mustard = this.halves[-1].mustard;
 
     // zones cliquables (moitié du joueur)
     this.hit(0.66, 0.16, 0.56, GRILL_X, 1.6, Z.grill, 'grill', L('Plaque de cuisson', 'Griddle'));
@@ -151,8 +157,7 @@ export class Kitchen {
     // ce que prépare le cuisinier (saucisse, hot-dog en cours) : visible seulement s'il y a un cuisinier
     this.cookStation = new THREE.Group();
     g.add(this.cookStation);
-    this.cookJob = null;
-    this.cookStation.visible = false;
+
 
     // Fumée au-dessus de la plaque (réserve de petits nuages réutilisés)
     this.smoke = [];
@@ -179,6 +184,7 @@ export class Kitchen {
     const lamp = new THREE.SpotLight('#ffd9a8', 3, 2.2, 0.9, 0.8, 1.5);
     lamp.position.set(X('grill'), 2.48, 0.7); lamp.target.position.set(X('grill'), 1.5, 0.85);
     g.add(lamp, lamp.target);
+    this.lights.push(lamp);
     buildPack(g, new THREE.Vector3(X('pack'), 1.47, Z.pack), this.sausageGeo);
     buildBoard(g, new THREE.Vector3(X('board'), 0, Z.board));
     const basket = new THREE.Group();
@@ -291,16 +297,9 @@ export class Kitchen {
       if (o.isMesh && o.userData.part && o.userData.part !== 'Awning') { o.userData.wasVisible = o.visible; o.visible = false; }
     });
     this.stand.truck.chefs.forEach((c) => { c.userData.wasVisible = c.visible; c.visible = false; });
-    this.group.visible = true;
     this.stand.manual = true;
-    if (this.stand.serving && this.stand.cooks === 0) this.stand.serving = null;
-    // cuisinier embauché : on le voit travailler à son poste, au bout du plan de travail
-    const hasCook = this.stand.cooks > 0;
-    if (hasCook && !this.cook) this.cook = makeCook(this.world.scene, this.group);
-    if (this.cook) this.cook.floor.visible = hasCook;
-    this.cookStation.visible = hasCook;
     document.body.classList.add('in-kitchen');
-    this.camX = CAM_X0;
+    this.camX = this.full() ? C : CAM_X0; // (équipe au complet : vue centrée sur les deux cuisiniers)
     this.anim = 0; // petite entrée en douceur
     this.from = { pos: w.camera.position.clone(), target: w.controls.target.clone() };
     w.fixed = { pos: new THREE.Vector3(), target: new THREE.Vector3(), fov: w.camera.fov };
@@ -320,12 +319,10 @@ export class Kitchen {
     w.controls.update();
     this.stand.truck.group.traverse((o) => { if (o.isMesh && o.userData.part && o.userData.wasVisible !== undefined) o.visible = o.userData.wasVisible; });
     this.stand.truck.chefs.forEach((c) => { c.visible = c.userData.wasVisible; });
-    this.group.visible = false;
     this.stand.manual = false;
-    for (const q of this.stand.queue) q.order = null;
+    this.stand.reserved = null; this.target = null;
     document.body.classList.remove('in-kitchen');
     setSizzle(0);
-    if (this.cookJob) { this.dropJob(this.cookJob, true); this.cookJob = null; }
     this.setHover(null);
     this.gauges.innerHTML = '';
     sfx.click();
@@ -333,7 +330,11 @@ export class Kitchen {
   }
 
   /* ---------------- Actions ---------------- */
+  /** Les 2 cuisiniers occupent les deux moitiés du camion : plus de place pour le joueur. */
+  full() { return this.stand.cooks >= 2; }
+
   act(action, ref) {
+    if (this.full()) { this.say(L('👨‍🍳👨‍🍳 Équipe au complet : tes 2 cuisiniers occupent tout le camion !', '👨‍🍳👨‍🍳 Full team: your 2 cooks are using the whole truck!')); sfx.nope(); return; }
     switch (action) {
       case 'pack': return this.addSausage();
       case 'grill': return this.addSausage();
@@ -445,8 +446,13 @@ export class Kitchen {
 
   /** Le client au comptoir (s'il est arrivé et a passé commande). */
   customer() {
-    // (s'il y a un cuisinier, il sert le client au comptoir : le joueur s'occupe du suivant)
-    return this.stand.queue.find((c) => c !== this.stand.serving && c.state === 'queue' && c.arrived && c.order) || null;
+    // le joueur garde « son » client jusqu'à ce qu'il le serve ; les cuisiniers prennent les autres
+    const st = this.stand, jobs = st.jobs || [];
+    const ok = (c) => c && st.queue.includes(c) && c.state === 'queue' && c.arrived && c.order && !jobs.some((j) => j.c === c);
+    if (!this.active || this.full()) { st.reserved = null; return null; }
+    if (!ok(this.target)) this.target = st.queue.find(ok) || null;
+    st.reserved = this.target;
+    return this.target;
   }
 
   /* ---------------- Le cuisinier embauché ---------------- */
@@ -455,41 +461,55 @@ export class Kitchen {
    * pain sur la planche, saucisse dans le pain, garnitures demandées, puis il tend le hot-dog par la fenêtre.
    * Les étapes suivent l'avancement du service (le jeu encaisse la vente quand le minuteur arrive au bout).
    */
-  updateCook(dt) {
-    const st = this.stand, c = this.cook, t = performance.now() / 1000;
-    const sv = st.serving;
-    // nouveau client pris en charge
-    if (sv && (!this.cookJob || this.cookJob.c !== sv)) {
-      if (this.cookJob) this.dropJob(this.cookJob, true);
-      this.cookJob = { c: sv, order: sv.order || ['ketchup'], stage: 0 };
+  /** Tous les cuisiniers embauchés : ils travaillent, qu'on soit dans le camion ou dehors. */
+  updateCrew(dt) {
+    const st = this.stand;
+    // un personnage par cuisinier : le 1er à gauche, le 2e prend la moitié droite
+    while (this.crew.length < st.cooks) {
+      const d = this.crew.length === 0 ? 1 : -1;
+      this.crew.push({ c: makeCook(this.world.scene, this.group, C + d * (U.grill + 0.1)), d, job: null });
     }
-    // vente encaissée : le hot-dog part vers le client
-    if (this.cookJob && this.cookJob.c !== sv) { this.dropJob(this.cookJob, false); this.cookJob = null; }
+    this.crew.forEach((m, k) => {
+      m.c.floor.visible = k < st.cooks;
+      if (k < st.cooks) this.updateMember(m, (st.jobs || []).find((j) => j.k === k), dt);
+    });
+  }
 
-    const job = this.cookJob;
+  updateMember(m, sj, dt) {
+    const c = m.c, d = m.d, t = performance.now() / 1000;
+    const GX = C + d * U.grill, BX = C + d * U.board, half = this.halves[d];
+    // nouveau client pris en charge
+    if (sj && (!m.job || m.job.c !== sj.c)) {
+      if (m.job) this.dropJob(m.job, m.job.c.state === 'queue');
+      m.job = { c: sj.c, order: sj.c.order || ['ketchup'] };
+    }
+    // vente encaissée (le client est parti avec) : le hot-dog s'envole vers lui
+    if (m.job && (!sj || sj.c !== m.job.c)) { this.dropJob(m.job, m.job.c.state === 'queue'); m.job = null; }
+
+    const job = m.job;
     // Il se déplace le long du plan de travail entre sa plaque, sa planche et la fenêtre (x où il se tient)
-    const AT_G = COOK_GX + 0.1, AT_B = COOK_BX + 0.05, AT_W = C + 0.3, STAND_Z = 0.15;
-    let goal = AT_G, lookX = COOK_GX, lookZ = Z.grill, work = 'idle';
+    const AT_G = GX + d * 0.1, AT_B = BX + d * 0.05, AT_W = C + d * 0.3, STAND_Z = 0.15;
+    let goal = AT_G, lookX = GX, lookZ = Z.grill, work = 'idle';
     const pos = c.root.position;
     const hand = () => new THREE.Vector3(pos.x + Math.sin(c.yaw) * 0.36, 1.56, pos.z + Math.cos(c.yaw) * 0.36);
     if (job) {
-      const p = st.duration > 0 ? 1 - st.timer / st.duration : 0;
+      const p = sj && sj.duration > 0 ? 1 - sj.timer / sj.duration : 1;
       const ord = job.order;
       const near = (x) => Math.abs(pos.x - x) < 0.06;
       // étapes : saucisse sur la plaque → retournement → pain sur la planche → retour à la plaque →
       // saucisse portée jusqu'au pain → garnitures → il apporte le hot-dog à la fenêtre
       if (p < 0.47) { goal = AT_G; work = p < 0.08 ? 'fridge' : p > 0.42 ? 'flip' : 'grill'; }
-      else if (p < 0.6) { goal = AT_B; lookX = COOK_BX; lookZ = Z.board; work = 'bun'; }
+      else if (p < 0.6) { goal = AT_B; lookX = BX; lookZ = Z.board; work = 'bun'; }
       else if (p < 0.7) { goal = AT_G; work = 'grill'; }
-      else if (p < 0.8) { goal = AT_B; lookX = COOK_BX; lookZ = Z.board; work = 'carry'; }
-      else if (p < 0.9) { goal = AT_B; lookX = COOK_BX; lookZ = Z.board; work = 'sauce'; }
-      else { goal = AT_W; lookX = C + 0.25; lookZ = 1.45; work = 'hand'; }
+      else if (p < 0.8) { goal = AT_B; lookX = BX; lookZ = Z.board; work = 'carry'; }
+      else if (p < 0.9) { goal = AT_B; lookX = BX; lookZ = Z.board; work = 'sauce'; }
+      else { goal = AT_W; lookX = C + d * 0.25; lookZ = 1.45; work = 'hand'; }
       // 1. la saucisse sort du frigo (sous le plan) et va sur la plaque
       if (p >= 0.08 && !job.saus && near(AT_G)) {
         const m = new THREE.Mesh(this.sausageGeo, new THREE.MeshPhysicalMaterial({ color: RAW.clone(), roughness: 0.42, clearcoat: 0.55, envMapIntensity: 0.9 }));
         const marks = new THREE.Mesh(this.sausageGeo, new THREE.MeshStandardMaterial({ map: grillMarksTex(), transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 }));
         marks.scale.setScalar(1.015); m.add(marks);
-        m.position.set(COOK_GX, SAUS_Y, 0.8);
+        m.position.set(GX, SAUS_Y, 0.8);
         m.castShadow = true;
         this.cookStation.add(m);
         job.saus = m; job.marks = marks; job.t0 = p;
@@ -504,14 +524,14 @@ export class Kitchen {
         cookColor(flipK < 0.5 ? 0 : sideA, job.saus.material.color);
         job.marks.material.opacity = flipK < 0.5 ? 0 : markOpacity(sideA);
         this.cookPuffT = (this.cookPuffT || 0) - dt;
-        if (this.cookPuffT <= 0) { this.cookPuffT = 0.3; this.puff(COOK_GX, 0.8, false); }
+        if (this.cookPuffT <= 0) { this.cookPuffT = 0.3; this.puff(GX, 0.8, false); }
       }
       // 3. pain posé sur la planche (une fois devant la planche)
       if (p >= 0.5 && !job.dog && near(AT_B)) {
         const dog = new THREE.Group();
         dog.add(makeTray());
         const bun = makeBun(); bun.position.y = 0.004; dog.add(bun);
-        dog.position.set(COOK_BX, 1.502, Z.board);
+        dog.position.set(BX, 1.502, Z.board);
         dog.rotation.y = 0;
         dog.traverse((o) => { if (o.isMesh) o.castShadow = true; });
         this.cookStation.add(dog);
@@ -538,7 +558,7 @@ export class Kitchen {
           if (!job.done.has(tp)) {
             job.done.add(tp);
             job.dog.add(toppingObj(tp));
-            if (tp !== 'onions') (tp === 'ketchup' ? this.cookKetchup : this.cookMustard).userData.squeeze = 1;
+            if (tp !== 'onions') (tp === 'ketchup' ? half.ketchup : half.mustard).userData.squeeze = 1;
           }
         }
       }
@@ -581,11 +601,6 @@ export class Kitchen {
     } else if (job && (job.carried || work === 'hand')) {
       // en marchant avec quelque chose dans les mains : bras devant
       c.arms[0].rotation.x = -1.0; c.forearms[0].rotation.x = -0.6;
-    }
-    for (const b of [this.cookKetchup, this.cookMustard]) {
-      const q = b.userData.squeeze || 0;
-      b.scale.set(1 + q * 0.12, 1 - q * 0.1, 1 + q * 0.12);
-      b.userData.squeeze = Math.max(0, q - dt * 3);
     }
   }
 
@@ -640,8 +655,19 @@ export class Kitchen {
   /* ---------------- Chaque image ---------------- */
   update(dt) {
     this.syncButton();
+    const st = this.stand, w = this.world;
+    this.group.visible = st.unlocked;
+    if (!st.unlocked) return;
+    for (const l of this.lights) l.visible = this.active;
+    this.outLight.visible = !this.active;
+    this.fadeAwning(dt);
+    // les cuisiniers, la fumée et les hot-dogs servis s'animent dès que le camion est près de la caméra
+    const near = this.active || w.controls.target.distanceTo(st.root.position) < 40;
+    if (near) {
+      this.updateCrew(dt);
+      this.updateEffects(dt);
+    }
     if (!this.active) return;
-    const w = this.world;
     // caméra : debout derrière le plan de travail, on regarde le comptoir et la rue
     const narrow = innerWidth / innerHeight < 1.1;
     // (debout au fond du camion : on voit tout le plan de travail, le cuisinier et la rue)
@@ -677,8 +703,33 @@ export class Kitchen {
       s.gauge.classList.toggle('ok', v >= GOOD[0] && v <= GOOD[1]);
       s.gauge.classList.toggle('burn', v > GOOD[1]);
     }
-    if (this.cook && this.cook.floor.visible) this.updateCook(dt);
+    setSizzle(Math.min(1, (this.sausages.length + this.stand.cooks) / 2));
 
+    // commande du client et conseil du moment
+    this.updateTicket(dt, narrow);
+  }
+
+  /**
+   * Vue d'en haut, l'auvent cacherait les cuisiniers : quand la caméra est proche du camion n°1,
+   * il devient à moitié transparent (on voit dessous). Il redevient normal de loin et depuis l'intérieur.
+   */
+  fadeAwning(dt) {
+    if (!this.awning) {
+      this.awning = [];
+      this.stand.truck.group.traverse((o) => {
+        if (o.isMesh && (o.userData.part === 'Awning' || o.userData.part === 'Valance')) { o.material.transparent = true; this.awning.push(o); }
+      });
+      this.awningK = 1;
+    }
+    const cam = this.world.camera.position, tgt = this.world.controls.target;
+    const close = !this.active && tgt.distanceTo(this.stand.root.position) < 22 && cam.distanceTo(tgt) < 30;
+    const want = close ? 0.1 : 1;
+    this.awningK += (want - this.awningK) * Math.min(1, dt * 4);
+    for (const o of this.awning) { o.material.opacity = this.awningK; o.material.depthWrite = this.awningK > 0.95; }
+  }
+
+  /** Fumée, flacons pressés, hot-dogs qui volent vers les clients (dedans comme dehors). */
+  updateEffects(dt) {
     // nuages de fumée : montent vers la hotte, grossissent et s'effacent
     for (const p of this.smoke) {
       if (p.life <= 0) continue;
@@ -690,8 +741,7 @@ export class Kitchen {
       p.sp.material.opacity = p.peak * Math.min(1, k * 5) * (1 - k);
       if (p.life <= 0) p.sp.visible = false;
     }
-    setSizzle(Math.min(1, (this.sausages.length + (this.cookStation.visible ? 1 : 0)) / 2));
-    for (const b of [this.ketchup, this.mustard]) {
+    for (const b of [this.halves[-1].ketchup, this.halves[-1].mustard, this.halves[1].ketchup, this.halves[1].mustard]) {
       const q = b.userData.squeeze || 0;
       b.scale.set(1 + q * 0.12, 1 - q * 0.1, 1 + q * 0.12);
       b.userData.squeeze = Math.max(0, q - dt * 4);
@@ -705,8 +755,16 @@ export class Kitchen {
       f.group.scale.setScalar(1 - f.t * 0.5);
       if (f.t >= 1) { this.group.remove(f.group); this.flying.splice(i, 1); }
     }
+  }
 
-    // commande du client et conseil du moment
+  updateTicket(dt, narrow) {
+    if (this.full()) {
+      this.ticket.innerHTML = `<b>${L('Équipe au complet', 'Full team')}</b><span class="wait">${L('Tes 2 cuisiniers occupent tout le camion', 'Your 2 cooks are using the whole truck')}</span>`;
+      if (this.hintT > 0) { this.hintT -= dt; this.hint.textContent = this.hintMsg; this.hint.classList.add('warn'); return; }
+      this.hint.classList.remove('warn');
+      this.hint.textContent = L('👀 Regarde-les travailler… plus de place pour toi derrière le comptoir !', '👀 Watch them work… no room left for you behind the counter!');
+      return;
+    }
     const c = this.customer();
     this.ticket.innerHTML = c
       ? `<b>${L('Commande', 'Order')}</b><span>🌭 ${L('Hot-dog', 'Hot dog')} + ${c.order.map((t) => `${TOPPING_EMOJI[t]} ${TOPPING_NAMES[t]()}`).join(' + ')}</span><em>${money(this.game.orderPrice(c.order))}</em>`
@@ -744,7 +802,7 @@ export class Kitchen {
  * Le cuisinier embauché : un personnage du jeu en tenue (veste et tablier blancs, toque),
  * debout devant son poste au bout du plan de travail.
  */
-function makeCook(scene, parent) {
+function makeCook(scene, parent, x) {
   const c = new Customer(scene, new THREE.Vector3());
   scene.remove(c.root);
   // (le personnage s'anime comme un client, au niveau du sol : on le pose sur le plancher du camion)
@@ -757,7 +815,7 @@ function makeCook(scene, parent) {
   const paint = (slot, hex) => { const i = PALETTE_SLOTS.indexOf(slot) * 4, v = parseInt(hex.slice(1), 16); data[i] = (v >> 16) & 255; data[i + 1] = (v >> 8) & 255; data[i + 2] = v & 255; };
   paint('Shirt', '#f4f3ee'); paint('Accent', '#d8d8d2'); paint('Pants', '#2b2d33'); paint('Shoes', '#1f1f22'); paint('CapColor', '#f4f3ee');
   c.texture.needsUpdate = true;
-  c.root.position.set(COOK_GX + 0.1, 0, 0.15);
+  c.root.position.set(x, 0, 0.15);
   // toque de chef + tablier, placés d'après la forme du corps (repère du buste, avant = +z)
   const g = c.body.geometry;
   g.computeBoundingBox();

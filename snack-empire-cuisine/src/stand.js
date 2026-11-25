@@ -120,7 +120,8 @@ export class Stand {
 
   setCooks(n) {
     this.cooks = n;
-    this.truck.chefs.forEach((c, i) => { c.visible = i < n; });
+    // (camion n°1 : ce sont les vrais cuisiniers de la cuisine qu'on voit par la fenêtre)
+    this.truck.chefs.forEach((c, i) => { c.visible = i < n && this.index !== 0; });
   }
 
   setMenu(levels) { this.truck.drawMenu(levels); }
@@ -271,7 +272,7 @@ function buildTruck(index) {
   });
 
   // Copie du modèle Blender, avec des matériaux propres à ce stand
-  const model = MODELS.truck.clone(true);
+  const model = (index === 0 && MODELS.truckOpen ? MODELS.truckOpen : MODELS.truck).clone(true);
   model.traverse((o) => {
     if (!o.isMesh) return;
     o.castShadow = true; o.receiveShadow = true;
@@ -319,7 +320,8 @@ function buildTruck(index) {
   });
   const val = new THREE.Mesh(new THREE.PlaneGeometry(3.8, 0.3), M('#ffffff', { map: valance, transparent: true, r: 0.85 }));
   val.material.side = THREE.DoubleSide; val.material.alphaTest = 0.5;
-  add(val, -0.9, 2.21, 2.46, group);
+  val.userData.part = 'Valance';
+  add(val, -0.9, index === 0 ? 2.41 : 2.21, 2.46, group); // (camion n°1 : grande fenêtre, auvent plus haut)
 
   // Cuisiniers (1 à 3 visibles dans la fenêtre)
   const chefM = M('#ffffff', { r: 0.8, cached: true });

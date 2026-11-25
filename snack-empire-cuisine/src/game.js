@@ -102,6 +102,53 @@ export class Game {
     this.time = 0;
   }
 
+  /**
+   * Camion n°1 (camion à hot-dogs) : chaque cuisinier prépare vraiment sa commande, à son poste, en même temps
+   * que l'autre (on le voit faire, de l'intérieur comme de l'extérieur). Une préparation prend quelques secondes ;
+   * le prix est ajusté pour que le camion rapporte autant qu'avec le service rapide des autres stands.
+   * stand.jobs = [{ k: n° du cuisinier, c: client, timer, duration, recipe }]
+   * stand.reserved = le client dont s'occupe le joueur dans la cuisine (les cuisiniers ne le prennent pas).
+   */
+  updateHotdogTruck(stand, dt) {
+    const S = this.state;
+    stand.jobs = (stand.jobs || []).filter((j) => stand.queue.includes(j.c));
+    // chaque client arrivé dans la file passe sa commande (garnitures du hot-dog)
+    for (const q of stand.queue) if (q.state === 'queue' && q.arrived && !q.order) q.order = randomOrder();
+    const D = E.hotdogPrepTime(S.up.speed);
+    for (let k = 0; k < stand.cooks; k++) {
+      if (stand.jobs.some((j) => j.k === k)) continue;
+      const c = stand.queue.find((q) => q.state === 'queue' && q.arrived && q !== stand.reserved && !stand.jobs.some((j) => j.c === q));
+      if (!c) break;
+      const menu = stand.recipes.filter((r) => (S.recipes[r.id] || 0) > 0);
+      stand.jobs.push({ k, c, timer: D, duration: D, recipe: menu[Math.floor(Math.random() * menu.length)] });
+    }
+    for (const j of [...stand.jobs]) {
+      j.timer -= dt;
+      if (j.timer <= 0) this.finishCookJob(stand, j);
+    }
+    // (compatibilité : bulle de progression, machine du toit…)
+    const j0 = stand.jobs[0];
+    stand.serving = j0 ? j0.c : null;
+    stand.timer = j0 ? j0.timer : 0; stand.duration = j0 ? j0.duration : 1;
+    stand.recipe = j0 ? j0.recipe : stand.recipe;
+  }
+
+  /** Un cuisinier du camion n°1 a fini sa commande : vente encaissée, le client s'en va, la file avance. */
+  finishCookJob(stand, j) {
+    const S = this.state, n = Math.max(1, stand.cooks);
+    stand.jobs.splice(stand.jobs.indexOf(j), 1);
+    // même revenu qu'un stand classique : (prix / temps de service) × nombre de cuisiniers travaillant en parallèle
+    const adjust = j.duration / (n * E.serviceTime(S.up.speed, n));
+    const amount = E.recipePrice(j.recipe, S.recipes[j.recipe.id] || 1) * adjust * this.affluence * (this.boost > 0 ? 2 : 1);
+    this.salesAcc += 1;
+    j.c.order = null;
+    this.addMoney(amount);
+    this.earnAcc += amount;
+    this.hooks.earn(j.c.headPos(), amount, '🌭');
+    this.hooks.cookServed && this.hooks.cookServed(j);
+    this.afterOrder(stand, j.c);
+  }
+
   /* ---------- Gains hors-ligne ---------- */
   offlineGain() {
     if (this.isNewPlayer) return null;
@@ -161,6 +208,9 @@ export class Game {
     if (!st.unlocked || st.cooks >= E.maxCooks(i) || !this.spend(E.COOK_COST[i][st.cooks])) return;
     st.cooks += 1;
     this.stands[i].setCooks(st.cooks);
+    if (i < E.MARKET_FIRST && st.cooks >= E.maxCooks(i)) {
+      this.hooks.toast && this.hooks.toast(L('👨‍🍳👨‍🍳 Équipe au complet : plus de place dans le camion !', '👨‍🍳👨‍🍳 Full team: no more room in the truck!'));
+    }
     this.save(); this.hooks.changed();
   }
 
@@ -285,20 +335,14 @@ export class Game {
       stand.near = Math.hypot(stand.x - cam.x, stand.z - cam.z) < near;
       stand.update(dt, this.time);
       const front = stand.queue[0];
-      // cuisine : chaque client arrivé dans la file passe sa commande (garnitures du hot-dog)
-      if (stand.manual) for (const q of stand.queue) if (q.state === 'queue' && q.arrived && !q.order) q.order = randomOrder();
-      if (!stand.serving && stand.cooks > 0 && front && front.state === 'queue' && front.arrived) {
+      if (stand.index === 0) this.updateHotdogTruck(stand, dt);
+      else if (!stand.serving && stand.cooks > 0 && front && front.state === 'queue' && front.arrived) {
         const menu = stand.recipes.filter((r) => (S.recipes[r.id] || 0) > 0); // camion ou étal du marché
         stand.recipe = menu[Math.floor(Math.random() * menu.length)];
         stand.serving = front;
         stand.duration = stand.timer = E.serviceTime(S.up.speed, stand.cooks);
-        // joueur dans le camion : le cuisinier prépare vraiment le hot-dog commandé, sous ses yeux (il lui faut quelques secondes)
-        if (stand.manual) {
-          stand.recipe = E.RECIPES.find((r) => r.id === 'hotdog');
-          stand.duration = stand.timer = Math.max(stand.duration, E.COOK_SHOW_SECONDS);
-        }
       }
-      if (stand.serving && stand.cooks > 0) {
+      if (stand.index !== 0 && stand.serving && stand.cooks > 0) {
         stand.timer -= dt;
         if (stand.timer <= 0) this.finishOrder(stand);
       }

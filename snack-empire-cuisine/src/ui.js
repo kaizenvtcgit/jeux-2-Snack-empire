@@ -290,7 +290,7 @@ export class UI {
           const z = E.zoneOf(i).id;
           const max = st.cooks >= E.maxCooks(i), cost = max ? Infinity : E.COOK_COST[i][st.cooks];
           const who = z === 'parking' ? L('cuisiniers', 'cooks') : L('vendeurs', 'staff');
-          out.push({ id: 's-' + i, emoji: { parking: '👨‍🍳', market: '🧑‍🌾', port: '🧑‍✈️', fair: '🤹', beach: '🏄' }[z], title: `${nameOf(i)} <b>${st.cooks}/${E.maxCooks(i)} ${who}</b>`, sub: max ? L('Équipe complète', 'Full team') : st.cooks === 0 ? L('Personne ne sert : embauche ton 1er cuisinier !', 'Nobody is serving: hire your first cook!') : L(`Service ×${E.COOK_FACTOR[st.cooks]} plus rapide`, `Service ×${E.COOK_FACTOR[st.cooks]} faster`), label: max ? 'MAX' : `${L('Embaucher', 'Hire')}<br>${money(cost)}`, cost, act: 'cook:' + i });
+          out.push({ id: 's-' + i, emoji: { parking: '👨‍🍳', market: '🧑‍🌾', port: '🧑‍✈️', fair: '🤹', beach: '🏄' }[z], title: `${nameOf(i)} <b>${st.cooks}/${E.maxCooks(i)} ${who}</b>`, sub: max ? (z === 'parking' ? L('Équipe au complet : plus de place dans le camion', 'Full team: no more room in the truck') : L('Équipe complète', 'Full team')) : st.cooks === 0 ? L('Personne ne sert : embauche ton 1er cuisinier !', 'Nobody is serving: hire your first cook!') : L(`Service ×${E.COOK_FACTOR[st.cooks]} plus rapide`, `Service ×${E.COOK_FACTOR[st.cooks]} faster`), label: max ? 'MAX' : `${L('Embaucher', 'Hire')}<br>${money(cost)}`, cost, act: 'cook:' + i });
         }
       });
       const n = g.nextLockedStand();

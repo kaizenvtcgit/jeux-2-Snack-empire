@@ -118,6 +118,8 @@ export const TOPPING_PRICE = { ketchup: 0.2, mustard: 0.2, onions: 0.4 };
 export const COOK_FACTOR = [1, 1.8, 2.5];
 /** Cuisine : quand le joueur est dans le camion, le cuisinier prend au moins ce temps pour préparer un hot-dog (on le voit faire). */
 export const COOK_SHOW_SECONDS = 7;
+/** Camion n°1 : temps qu'il faut à un cuisinier pour préparer un hot-dog (le « Grill turbo » l'accélère). */
+export const hotdogPrepTime = (speedLvl) => Math.max(3.5, COOK_SHOW_SECONDS * prepTime(speedLvl) / prepTime(0));
 export const MAX_COOKS = 3;
 /** Nombre maximum de cuisiniers / vendeurs d'un emplacement : 2 dans les camions, 3 ailleurs. */
 export const maxCooks = (i) => (i < MARKET_FIRST ? 2 : MAX_COOKS);

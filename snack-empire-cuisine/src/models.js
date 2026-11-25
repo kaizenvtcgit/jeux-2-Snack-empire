@@ -4,7 +4,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { buildCharacter } from './character.js';
 
 /** Modèles 3D faits dans Blender (scripts dans tools/blender/). */
-export const MODELS = { truck: null, customer: null };
+export const MODELS = { truck: null, truckOpen: null, customer: null };
 
 /** Emplacements de la palette des clients (1 texel par matériau Blender). */
 export const PALETTE_SLOTS = ['Skin', 'Shirt', 'Pants', 'Shoes', 'Hair', 'CapColor', 'EyeWhite', 'Pupil', 'Mouth', 'Sole', 'Accent', 'Belt'];
@@ -18,9 +18,11 @@ export async function loadModels(onProgress = () => {}) {
   const done = [0, 0], size = [0, 0];
   const track = (k) => (e) => { if (e.total) { done[k] = e.loaded; size[k] = e.total; } const t = size[0] + size[1]; if (t) onProgress(Math.min(1, (done[0] + done[1]) / t)); };
   // personnages : modèle Blender (tools/blender/people.py) ; en secours, le modèle construit dans le jeu (character.js)
-  const [truck, people] = await Promise.all([loader.loadAsync(url('food_truck.glb'), track(0)), loader.loadAsync(url('people.glb'), track(1)).catch(() => null)]);
+  // (camion n°1 : version creuse, fenêtre ouverte sur la cuisine où l'on voit travailler les cuisiniers)
+  const [truck, people, open] = await Promise.all([loader.loadAsync(url('food_truck.glb'), track(0)), loader.loadAsync(url('people.glb'), track(1)).catch(() => null), loader.loadAsync(url('food_truck_open.glb')).catch(() => null)]);
   onProgress(1);
   MODELS.truck = truck.scene;
+  MODELS.truckOpen = open ? open.scene : null;
   MODELS.customer = bakeCustomer(people ? people.scene : buildCharacter());
 }
 
