@@ -153,7 +153,8 @@ export const MAT = {
 
 /** Murs, plafond, fenêtre, plan de travail et meubles bas. */
 export function buildRoomDecor(g) {
-  const X0 = -3.2, X1 = 1.95, Z0 = -1.15, Z1 = 1.17, F = 0.75, C = 3.0;
+  // (intérieur symétrique autour du milieu de la fenêtre, x = -0,9 : deux moitiés identiques)
+  const X0 = -3.2, X1 = 1.4, Z0 = -1.15, Z1 = 1.17, F = 0.75, C = 3.0;
   const W0 = -2.45, W1 = 0.65, S0 = 1.525, S1 = 2.575; // ouverture de la fenêtre de service
   const tile = (w, h) => MAT.tiles(w / 0.6, h / 0.6);
   add(box(X1 - X0, 0.05, Z1 - Z0, MAT.floor()), (X0 + X1) / 2, F, 0, g);
@@ -173,12 +174,15 @@ export function buildRoomDecor(g) {
   }
   add(box(W1 - W0, 0.015, 0.05, alu), (W0 + W1) / 2, S1 - 0.03, Z1 - 0.03, g); // rail de la vitre
   const glass = phys({ color: '#d8eef5', metalness: 0, roughness: 0.04, transparent: true, opacity: 0.16, envMapIntensity: 1.4 });
-  const pane = new THREE.Group();
-  add(box(0.62, S1 - S0 - 0.08, 0.008, glass), 0, 0, 0, pane);
-  for (const [w, h, x, y] of [[0.64, 0.025, 0, (S1 - S0) / 2 - 0.05], [0.64, 0.025, 0, -(S1 - S0) / 2 + 0.05], [0.025, S1 - S0 - 0.08, -0.31, 0], [0.025, S1 - S0 - 0.08, 0.31, 0]]) add(box(w, h, 0.02, alu), x, y, 0, pane);
-  pane.position.set(W0 + 0.36, (S0 + S1) / 2, Z1 - 0.045);
-  pane.traverse((o) => { if (o.isMesh && o.material === glass) o.userData.noShadow = true; });
-  g.add(pane);
+  // deux vitres coulissantes, rangées chacune à un bout (ouvertes)
+  for (const px of [W0 + 0.36, W1 - 0.36]) {
+    const pane = new THREE.Group();
+    add(box(0.62, S1 - S0 - 0.08, 0.008, glass), 0, 0, 0, pane);
+    for (const [w, h, x, y] of [[0.64, 0.025, 0, (S1 - S0) / 2 - 0.05], [0.64, 0.025, 0, -(S1 - S0) / 2 + 0.05], [0.025, S1 - S0 - 0.08, -0.31, 0], [0.025, S1 - S0 - 0.08, 0.31, 0]]) add(box(w, h, 0.02, alu), x, y, 0, pane);
+    pane.position.set(px, (S0 + S1) / 2, Z1 - 0.045);
+    pane.traverse((o) => { if (o.isMesh && o.material === glass) o.userData.noShadow = true; });
+    g.add(pane);
+  }
 
   // plan de travail (inox brossé, rebord arrondi) + crédence + meubles bas avec portes et poignées
   add(rbox(X1 - X0 - 0.1, 0.05, 0.74, 0.015, MAT.steel(6, 1)), (X0 + X1) / 2, 1.445, 0.79, g);
@@ -359,9 +363,19 @@ export function buildProps(g) {
     t.position.set(x, 2.57, 1.085); t.rotation.set(0, Math.PI, r);
     g.add(t);
   }
-  // dérouleur d'essuie-tout (mur à gauche de la fenêtre)
-  add(box(0.3, 0.02, 0.1, steel), 1.05, 2.05, 1.08, g);
-  const roll = add(cyl(0.055, 0.055, 0.24, std({ color: '#f7f5ef', roughness: 0.95 }), 28), 1.05, 1.98, 1.06, g); roll.rotation.z = Math.PI / 2;
+  // de chaque côté de la fenêtre (en miroir) : dérouleur d'essuie-tout, étagère à épices, extincteur au mur du bout
+  for (const d of [-1, 1]) {
+    const x = -0.9 + d * 1.92;
+    add(box(0.3, 0.02, 0.1, steel), x, 2.0, 1.08, g);
+    const roll = add(cyl(0.055, 0.055, 0.24, std({ color: '#f7f5ef', roughness: 0.95 }), 28), x, 1.93, 1.06, g); roll.rotation.z = Math.PI / 2;
+    add(box(0.6, 0.02, 0.12, steel), x, 2.3, 1.08, g);
+    ['#b23a1e', '#d4a017', '#5b7d2a', '#7a4b2a', '#ece3cf'].forEach((c, k) => {
+      const sx = x - 0.22 + k * 0.11;
+      add(cyl(0.025, 0.025, 0.1, phys({ color: '#ffffff', transparent: true, opacity: 0.35, roughness: 0.05 }), 16), sx, 2.36, 1.08, g);
+      add(cyl(0.022, 0.022, 0.07, std({ color: c, roughness: 0.9 }), 16), sx, 2.35, 1.08, g);
+      add(cyl(0.026, 0.026, 0.02, std({ color: '#2b2b2b', roughness: 0.5 }), 16), sx, 2.42, 1.08, g);
+    });
+  }
   // extincteur rouge sur son support
   const ext = new THREE.Group();
   add(cyl(0.055, 0.055, 0.34, std({ color: '#c3161c', roughness: 0.35, metalness: 0.2 }), 24), 0, 0.17, 0, ext);
@@ -369,17 +383,9 @@ export function buildProps(g) {
   add(cyl(0.015, 0.02, 0.05, std({ color: '#222', roughness: 0.5 }), 12), 0, 0.39, 0, ext);
   add(box(0.08, 0.015, 0.02, std({ color: '#222', roughness: 0.5 })), 0.03, 0.41, 0, ext);
   add(box(0.06, 0.08, 0.003, std({ color: '#ffffff', roughness: 0.8 })), 0, 0.2, 0.055, ext);
-  ext.position.set(1.86, 1.2, -0.3); // (au mur, au bout du camion)
+  ext.position.set(1.32, 1.2, -0.3); // (au mur, au bout du camion)
   g.add(ext);
-  // étagère à épices (mur à droite de la fenêtre)
-  add(box(0.6, 0.02, 0.12, steel), -2.8, 2.15, 1.08, g);
-  const spiceCols = ['#b23a1e', '#d4a017', '#5b7d2a', '#7a4b2a', '#ece3cf'];
-  spiceCols.forEach((c, k) => {
-    const x = -3.02 + k * 0.11;
-    add(cyl(0.025, 0.025, 0.1, phys({ color: '#ffffff', transparent: true, opacity: 0.35, roughness: 0.05 }), 16), x, 2.21, 1.08, g);
-    add(cyl(0.022, 0.022, 0.07, std({ color: c, roughness: 0.9 }), 16), x, 2.2, 1.08, g);
-    add(cyl(0.026, 0.026, 0.02, std({ color: '#2b2b2b', roughness: 0.5 }), 16), x, 2.27, 1.08, g);
-  });
+  const ext2 = ext.clone(); ext2.position.set(-3.12, 1.2, -0.3); g.add(ext2);
   // tablette extérieure : distributeur de serviettes, pile de gobelets et sonnette
   const napkin = new THREE.Group();
   add(rbox(0.14, 0.12, 0.1, 0.01, std({ color: '#d9dde2', metalness: 0.85, roughness: 0.25 })), 0, 0.06, 0, napkin);
@@ -388,11 +394,6 @@ export function buildProps(g) {
   for (let k = 0; k < 6; k++) add(cyl(0.04, 0.03, 0.1, std({ color: '#f6f1e7', roughness: 0.7 }), 20), -1.75, 1.565 + k * 0.012, 1.5, g);
   add(cyl(0.05, 0.06, 0.02, steel, 20), -2.1, 1.525, 1.4, g);
   add(new THREE.Mesh(new THREE.SphereGeometry(0.045, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), std({ color: '#d9b26f', roughness: 0.25, metalness: 0.9 })), -2.1, 1.535, 1.4, g);
-  // pile de barquettes à hot-dog en carton à damier (à côté de la planche)
-  for (let k = 0; k < 5; k++) {
-    const t = makeTray(); t.position.set(-0.3, 1.47 + k * 0.012, 0.64); t.rotation.y = rnd(-0.05, 0.05); t.scale.setScalar(0.85);
-    g.add(t);
-  }
 }
 
 /** Barquette à hot-dog en carton à damier. */
