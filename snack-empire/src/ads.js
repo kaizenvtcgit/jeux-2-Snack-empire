@@ -21,7 +21,7 @@ export const ads = {
   /** Les pubs sont-elles possibles ? (sinon on masque les boutons de bonus) */
   get available() { return !!platform.sdk && !platform.adblock; },
   /** Un bloqueur de pubs empêche les bonus. */
-  get blocked() { return !!platform.sdk && platform.adblock; },
+  get blocked() { return platform.adblock; },
 
   /** Pub récompensée : résout true seulement si le joueur l'a regardée jusqu'au bout. */
   rewarded() { return request('rewarded'); },

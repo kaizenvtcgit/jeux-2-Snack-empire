@@ -25,7 +25,11 @@ export function sdkCall(fn) {
 /** À attendre pendant l'écran de chargement, avant de créer la partie (la sauvegarde en dépend). */
 export async function initPlatform() {
   const SDK = window.CrazyGames && window.CrazyGames.SDK;
-  if (!SDK) return platform;
+  if (!SDK) {
+    // sur CrazyGames mais sans SDK : un bloqueur de pubs a empêché son chargement (on l'explique au joueur)
+    if (/crazygames/i.test(location.hostname)) platform.adblock = true;
+    return platform;
+  }
   try {
     await SDK.init();
   } catch (e) {
