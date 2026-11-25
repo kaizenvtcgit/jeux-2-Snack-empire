@@ -10,6 +10,7 @@ import * as E from './economy.js';
 import { L } from './i18n.js';
 import { randomOrder } from './kitchen.js';
 import { randomPizzaOrder } from './pizza.js';
+import { randomTacoOrder } from './tacos.js';
 import { loadSave, writeSave, clearSave } from './save.js';
 
 const MAX_CUSTOMERS = { high: 70, low: 45 };
@@ -184,7 +185,7 @@ export class Game {
 
   /* ---------- Achats du camion à hot-dogs ---------- */
   /** Commande d'un client selon le camion (hot-dog ou pizza). */
-  orderFor(stand) { return stand.index === 1 ? randomPizzaOrder(this.state) : randomOrder(this.state); }
+  orderFor(stand) { return stand.index === 1 ? randomPizzaOrder(this.state) : stand.index === 2 ? randomTacoOrder(this.state) : randomOrder(this.state); }
 
   buyEquip(key, i = 0) {
     const eq = E.EQUIPMENT[key], hd = E.truckState(this.state, i), lvl = hd.eq[key];
@@ -242,7 +243,8 @@ export class Game {
     // ouverture d'une zone (marché, port) : sa première recette est offerte
     const zone = E.zoneOf(i);
     if (i === 1 && !this.state.recipes.margherita) { this.state.recipes.margherita = 1; this.refreshMenus(); } // la pizzeria ouvre avec la Margherita
-    if (i >= 2 && i <= 3 && !E.TRUCK_RECIPES.some((r) => this.state.recipes[r.id])) { this.state.recipes.fries = 1; this.refreshMenus(); }
+    if (i === 2 && !this.state.recipes.tacochicken) { this.state.recipes.tacochicken = 1; this.refreshMenus(); } // la taqueria ouvre avec le taco poulet
+    if (i === 3 && !E.TRUCK_RECIPES.some((r) => this.state.recipes[r.id])) { this.state.recipes.fries = 1; this.refreshMenus(); }
     if (i === zone.first && !this.state.recipes[zone.recipes[0].id]) {
       this.state.recipes[zone.recipes[0].id] = 1;
       this.refreshMenus();
@@ -372,7 +374,7 @@ export class Game {
     // Arrivée de clients
     this.spawnT -= dt;
     if (this.spawnT <= 0) {
-      this.spawnT = E.spawnInterval(S.up.marketing, open.length) * (0.7 + Math.random() * 0.6) / (1 + 0.2 * (S.hd.eq.sign + S.pz.eq.sign) / open.length); // (enseignes lumineuses : plus de clients)
+      this.spawnT = E.spawnInterval(S.up.marketing, open.length) * (0.7 + Math.random() * 0.6) / (1 + 0.2 * (S.hd.eq.sign + S.pz.eq.sign + S.tc.eq.sign) / open.length); // (enseignes lumineuses : plus de clients)
       if (this.customers.length < MAX_CUSTOMERS[this.world.quality]) this.spawn(open);
     }
 

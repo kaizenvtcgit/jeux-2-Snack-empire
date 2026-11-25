@@ -268,3 +268,7 @@ body.in-kitchen #hud { top: 16px; max-width: calc(50vw - 150px); }
 #kitchen-btn-2 { position: fixed; left: 16px; display: none; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 16px; border: 0; border-radius: var(--radius);
   font-weight: 900; font-size: 17px; color: #3a1a00; background: linear-gradient(180deg, #ffd0a0, #ff8a3a); box-shadow: 0 4px 0 #b0500a, var(--shadow); z-index: 8; }
 #kitchen-btn-2 small { font-size: 11px; font-weight: 700; color: #6a3000; }
+#kitchen-btn-3 { position: fixed; left: 16px; bottom: 224px; display: none; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 16px; border: 0; border-radius: var(--radius);
+  font-weight: 900; font-size: 17px; color: #1f3a00; background: linear-gradient(180deg, #d9f29a, #8fcf3a); box-shadow: 0 4px 0 #4f8a1a, var(--shadow); z-index: 8; }
+#kitchen-btn-3.show { display: flex; }
+#kitchen-btn-3 small { font-size: 11px; font-weight: 700; color: #2f5a00; }

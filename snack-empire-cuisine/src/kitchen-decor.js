@@ -446,6 +446,15 @@ export function makeBun() {
 /* ---------------- Équipement du camion à hot-dogs (s'affiche quand on l'achète) ---------------- */
 
 const PAN_CONTENT = {
+  chicken: { color: '#e2c08a', shape: 'dice' },
+  beef: { color: '#6a3a22', shape: 'dice' },
+  salad: { color: '#7fbf4a', shape: 'leaf' },
+  tomato: { color: '#d8402e', shape: 'dice' },
+  cheddar: { color: '#f2a516', shape: 'dice' },
+  salsa: { color: '#c23a24', shape: 'stew' },
+  guac: { color: '#8fbf3a', shape: 'stew' },
+  piment: { color: '#b0201a', shape: 'dice' },
+  lime: { color: '#9ccf3a', shape: 'disc' },
   sauce: { color: '#b3231a', shape: 'stew' },
   mozza: { color: '#f4f1e6', shape: 'dice' },
   basil: { color: '#3f7f2a', shape: 'leaf' },
@@ -678,4 +687,65 @@ export function buildFlour(g, x, z) {
   const s = add(rbox(0.2, 0.28, 0.14, 0.04, std({ color: '#efe8d6', roughness: 0.95 })), x, 1.61, z, g);
   add(box(0.12, 0.06, 0.002, std({ color: '#2a6f97', roughness: 0.8 })), x, 1.63, z - 0.071, g);
   return s;
+}
+
+
+/* ---------------- La taqueria (camion n°3) ---------------- */
+
+/**
+ * Un taco qui se prépare : tortilla qu'on chauffe (couleur), garnitures posées au milieu, puis pliage en demi-lune.
+ * Renvoie { group, setWarm(v), add(item), fold(), folded }.
+ */
+export function createTaco(r = 0.11) {
+  const group = new THREE.Group();
+  const tortM = phys({ color: '#f0deb0', roughness: 0.85, sheen: 0.3 });
+  const flat = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.006, 36), tortM);
+  flat.position.y = 0.003; group.add(flat);
+  // taco plié : demi-tube ouvert vers le haut (la garniture se voit entre les deux bords)
+  const shell = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.55, r * 0.55, r * 1.9, 28, 1, true, Math.PI / 2, Math.PI), tortM);
+  shell.material.side = THREE.DoubleSide;
+  shell.rotation.z = Math.PI / 2; shell.position.y = r * 0.55; shell.visible = false;
+  group.add(shell);
+  const fill = new THREE.Group(); fill.position.y = 0.008; group.add(fill);
+  const strip = () => [(Math.random() - 0.5) * r * 1.6, (Math.random() - 0.5) * r * 0.5];
+  const scatter = (n, make, y = 0) => { for (let i = 0; i < n; i++) { const m = make(); const [x, z] = strip(); m.position.set(x, y + Math.random() * 0.004, z); m.rotation.y = Math.random() * 3; fill.add(m); } };
+  const api = {
+    group, folded: false,
+    setWarm(v) {
+      const k = Math.max(0, Math.min(1, v)), b = Math.max(0, v - 1.3);
+      tortM.color.copy(new THREE.Color('#f0deb0').lerp(new THREE.Color('#d9a55a'), k).lerp(new THREE.Color('#3a2414'), Math.min(1, b * 1.5)));
+    },
+    add(t) {
+      const col = { chicken: '#e2c08a', beef: '#6a3a22', salad: '#7fbf4a', tomato: '#d8402e', onions: '#efe7cf', cheddar: '#f2a516', piment: '#b0201a', lime: '#9ccf3a' }[t];
+      if (t === 'salsa' || t === 'guac') {
+        const m = new THREE.Mesh(new THREE.CapsuleGeometry(0.012, r * 1.3, 4, 8), phys({ color: t === 'salsa' ? '#c23a24' : '#8fbf3a', roughness: 0.3, clearcoat: 0.5 }));
+        m.rotation.z = Math.PI / 2; m.scale.set(1, 0.5, 1); m.position.set(0, 0.012, (Math.random() - 0.5) * 0.02); fill.add(m); return;
+      }
+      if (t === 'salad') { scatter(8, () => { const l = new THREE.Mesh(new THREE.SphereGeometry(0.016, 8, 6), std({ color: col, roughness: 0.6 })); l.scale.set(1, 0.3, 0.7); return l; }, 0.004); return; }
+      if (t === 'lime') { const w = new THREE.Mesh(new THREE.SphereGeometry(0.018, 10, 8, 0, Math.PI), std({ color: col, roughness: 0.5 })); w.position.set(r * 0.7, 0.01, 0); fill.add(w); return; }
+      scatter(t === 'piment' ? 10 : 12, () => box(t === 'piment' ? 0.005 : 0.014, 0.008, t === 'piment' ? 0.005 : 0.014, std({ color: col, roughness: 0.55 })), 0.006);
+    },
+    fold() {
+      // la tortilla se plie : la garniture se resserre au fond du taco
+      api.folded = true; flat.visible = false; shell.visible = true;
+      fill.scale.set(1, 1, 0.5); fill.position.y = 0.012;
+    },
+  };
+  return api;
+}
+
+/** Pile de tortillas (dans un panier en tissu). */
+export function buildTortillaStack(g, x, z) {
+  const t = new THREE.Group();
+  add(cyl(0.15, 0.14, 0.05, std({ color: '#c8282d', roughness: 0.9 }), 28), 0, 0.025, 0, t);
+  const m = phys({ color: '#f0deb0', roughness: 0.85, sheen: 0.3 });
+  for (let k = 0; k < 8; k++) add(cyl(0.11, 0.11, 0.005, m, 32), (Math.random() - 0.5) * 0.01, 0.05 + k * 0.006, (Math.random() - 0.5) * 0.01, t);
+  t.position.set(x, 1.47, z);
+  g.add(t);
+  return t;
+}
+
+/** Pile de papiers d'emballage à damier (pour servir les tacos). */
+export function buildWraps(g, x, z) {
+  for (let k = 0; k < 6; k++) { const p = add(box(0.18, 0.003, 0.18, std({ map: checkTex(), roughness: 0.9 })), x, 1.472 + k * 0.004, z, g); p.rotation.y = (Math.random() - 0.5) * 0.3; }
 }
