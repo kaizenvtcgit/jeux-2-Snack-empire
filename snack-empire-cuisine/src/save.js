@@ -2,7 +2,8 @@ import { platform } from './platform.js';
 
 // Copie « Cuisine » du jeu : sa propre clé, pour ne jamais toucher à la partie du jeu d'origine
 // (le jeu publié garde 'street-food-empire-save-v1' : ne pas la changer là-bas)
-const KEY = 'snack-empire-cuisine-save-v1';
+// (v2 : nouvelle mécanique tycoon + cuisine, on repart d'une partie neuve)
+const KEY = 'snack-empire-cuisine-save-v2';
 
 /*
  * Sur CrazyGames, la partie est enregistrée dans le compte du joueur (module « data » du SDK :

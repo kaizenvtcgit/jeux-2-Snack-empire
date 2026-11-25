@@ -69,7 +69,6 @@ export class Game {
       s.setCooks(st.cooks);
     });
     this.refreshMenus();
-    this.stands[0].setTerrace(this.state.hd.eq.terrace);
 
     this.customers = [];
     PEOPLE.shadows = world.quality !== 'low';
@@ -120,7 +119,7 @@ export class Game {
     stand.jobs = (stand.jobs || []).filter((j) => stand.queue.includes(j.c));
     // chaque client arrivé dans la file passe sa commande (garnitures du hot-dog)
     for (const q of stand.queue) if (q.state === 'queue' && q.arrived && !q.order) q.order = randomOrder(S);
-    const D = E.hotdogPrepTime(S.up.speed, S.hd);
+    const D = E.hotdogPrepTime(S.hd);
     for (let k = 0; k < stand.cooks; k++) {
       if (stand.jobs.some((j) => j.k === k)) continue;
       // chacun sert d'abord le client devant sa moitié de fenêtre (1er cuisinier : place 0 à gauche ; 2e : place 1 à droite)
@@ -144,62 +143,53 @@ export class Game {
 
   /** Un cuisinier du camion n°1 a fini sa commande : vente encaissée, le client s'en va, la file avance. */
   finishCookJob(stand, j) {
-    const S = this.state, n = Math.max(1, stand.cooks);
     stand.jobs.splice(stand.jobs.indexOf(j), 1);
-    // même revenu de base qu'un stand classique : (prix / temps de service) × nombre de cuisiniers travaillant en parallèle ;
-    // en plus : garnitures commandées, pourboires de la terrasse, rush
-    const adjust = j.duration / (n * E.serviceTime(S.up.speed, n));
     const order = j.c.order || { model: 'hotdog', tops: [] };
-    const extra = order.tops.reduce((sum, t) => sum + (E.TOPPING_PRICE[t] || 0), 0);
-    const amount = E.recipePrice(j.recipe, S.recipes[j.recipe.id] || 1) * adjust * (1 + extra * 0.5) * this.hotdogBonus();
+    // le cuisinier vend au prix de la carte (garnitures comprises) ; toi, tu vends 3× plus cher (voir orderPrice)
+    const amount = this.basePrice(order) * this.affluence * (this.boost > 0 ? 2 : 1);
     this.salesAcc += 1;
     j.c.order = null;
     this.addMoney(amount);
     this.earnAcc += amount;
     this.hooks.earn(j.c.headPos(), amount, j.recipe.emoji);
-    // une partie des commandes est parfaite (plus souvent avec la formation) : la réputation monte
-    if (Math.random() < 0.45 + 0.15 * S.hd.train) this.addReputation(4);
+    // un cuisinier fait en général du bon travail (2 étoiles), parfois très bien ou un peu moins bien
+    const r = Math.random();
+    this.giveStars(j.c, r < 0.2 ? 1 : r < 0.85 ? 2 : 3);
     this.afterOrder(stand, j.c);
   }
 
-  /** Multiplicateur des ventes du camion à hot-dogs : affluence, bonus Rush ×2, pourboires de la terrasse, rush de réputation. */
-  hotdogBonus() {
-    return this.affluence * (this.boost > 0 ? 2 : 1) * (1 + 0.1 * this.state.hd.eq.terrace) * (this.rushT > 0 ? E.RUSH_MULT : 1);
+  /** Prix d'une commande à la carte : prix du modèle (selon son niveau) + chaque garniture. */
+  basePrice(order) {
+    const m = E.hotdogModel(order.model);
+    const extra = order.tops.reduce((sum, t) => sum + (E.TOPPING_PRICE[t] || 0), 0);
+    return E.recipePrice(m, Math.max(1, this.state.recipes[m.id] || 1)) * (1 + extra);
   }
 
-  /** Réputation du camion à hot-dogs : pleine → rush (une foule arrive, ventes ×1,5 pendant 30 s). */
-  addReputation(n) {
-    const hd = this.state.hd;
-    if (this.rushT > 0) return;
-    hd.rep = Math.min(E.REP_MAX, hd.rep + n);
-    if (hd.rep >= E.REP_MAX) {
-      hd.rep = 0;
-      this.rushT = E.RUSH_SECONDS;
-      this.rushCrowd = 8; this.rushCrowdT = 0.5;
-      this.hooks.toast && this.hooks.toast(L('🌭🔥 Ta réputation explose : rush au camion à hot-dogs ! Ventes ×1,5 pendant 30 s', '🌭🔥 Your reputation is booming: hot dog rush! Sales ×1.5 for 30 s'));
+  /**
+   * Étoiles : chaque client servi en donne 1 à 3 (−1 s'il a attendu longtemps dans la file).
+   * 100 étoiles ouvrent le niveau suivant (le marché, dans une prochaine étape).
+   */
+  giveStars(c, n) {
+    const waited = c.queueT !== undefined ? this.time - c.queueT : 0;
+    const stars = Math.max(1, n - (waited > 30 ? 1 : 0));
+    const before = this.state.stars;
+    this.state.stars += stars;
+    this.hooks.stars && this.hooks.stars(c.headPos(), stars);
+    if (before < E.STARS_GOAL && this.state.stars >= E.STARS_GOAL) {
+      this.hooks.toast && this.hooks.toast(L(`⭐ ${E.STARS_GOAL} étoiles ! Le marché ouvrira dans une prochaine mise à jour`, `⭐ ${E.STARS_GOAL} stars! The market will open in a future update`));
     }
   }
 
   /* ---------- Achats du camion à hot-dogs ---------- */
-  buyTopping(id) {
-    const t = E.TOPPINGS.find((x) => x.id === id), hd = this.state.hd;
-    if (!t || hd.tops[id] || !this.spend(t.unlock)) return;
-    hd.tops[id] = 1;
-    this.save(); this.hooks.changed();
-  }
   buyEquip(key) {
     const eq = E.EQUIPMENT[key], hd = this.state.hd, lvl = hd.eq[key];
     if (!eq || lvl >= eq.costs.length || !this.spend(eq.costs[lvl])) return;
     hd.eq[key] = lvl + 1;
-    if (key === 'terrace') this.stands[0].setTerrace(hd.eq.terrace);
     this.save(); this.hooks.changed();
   }
-  trainCooks() {
-    const hd = this.state.hd;
-    if (hd.train >= E.TRAINING_COSTS.length || !this.spend(E.TRAINING_COSTS[hd.train])) return;
-    hd.train += 1;
-    this.save(); this.hooks.changed();
-  }
+
+  /** File d'attente d'un stand : espace d'attente (pour tous) + comptoir agrandi (camion n°1). */
+  queueCapOf(stand) { return E.queueCap(this.state.up.queue) + (stand.index === 0 ? this.state.hd.eq.counter : 0); }
 
   /* ---------- Gains hors-ligne ---------- */
   offlineGain() {
@@ -241,6 +231,7 @@ export class Game {
   }
 
   buyStand(i) {
+    if (i >= E.OPEN_STANDS) return false; // (étape 1 : les autres camions arrivent bientôt)
     if (this.state.stands[i].unlocked || !this.spend(E.STAND_COST[i])) return false;
     this.state.stands[i].unlocked = true;
     // ouverture d'une zone (marché, port) : sa première recette est offerte
@@ -372,25 +363,15 @@ export class Game {
       }
     }
 
-    // Rush du camion à hot-dogs : une foule arrive au camion n°1
-    if (this.rushT > 0) this.rushT = Math.max(0, this.rushT - dt);
-    if (this.rushCrowd > 0) {
-      this.rushCrowdT -= dt;
-      if (this.rushCrowdT <= 0) {
-        this.rushCrowdT = 0.6; this.rushCrowd -= 1;
-        if (this.customers.length < MAX_CUSTOMERS[this.world.quality] + 10) this.spawn(open, { stand: this.stands[0] });
-      }
-    }
-
     // Arrivée de clients
     this.spawnT -= dt;
     if (this.spawnT <= 0) {
-      this.spawnT = E.spawnInterval(S.up.marketing, open.length) * (0.7 + Math.random() * 0.6) / (1 + 0.2 * S.hd.eq.neon / open.length);
+      this.spawnT = E.spawnInterval(S.up.marketing, open.length) * (0.7 + Math.random() * 0.6) / (1 + 0.2 * S.hd.eq.sign / open.length); // (enseigne lumineuse : plus de clients)
       if (this.customers.length < MAX_CUSTOMERS[this.world.quality]) this.spawn(open);
     }
 
     // Service à chaque stand
-    const cap = E.queueCap(S.up.queue);
+    const capOf = (s) => this.queueCapOf(s);
     // animations des vendeurs : seulement pour les stands proches de ce que regarde la caméra
     const cam = this.world.controls.target, camD = this.world.camera.position.distanceTo(cam);
     const near = (this.world.quality === 'low' ? 1.1 : 1.8) * camD + 12;
@@ -410,7 +391,7 @@ export class Game {
         if (stand.timer <= 0) this.finishOrder(stand);
       }
       // si la file a rétréci (amélioration), rien à faire ; si elle déborde, les derniers partent
-      while (stand.queue.length > cap + 1) this.leave(stand.queue.pop(), stand);
+      while (stand.queue.length > capOf(stand) + 1) this.leave(stand.queue.pop(), stand);
       stand.queue.forEach((q, i) => {
         // chaque client arrivé à sa place regarde vers le camion / la personne devant lui
         if (q.arrived && q.faceYaw === null) q.face(stand.queueYaw(i));
@@ -467,14 +448,13 @@ export class Game {
     const c = new Customer(this.world.scene, start);
     this.customers.push(c);
 
-    const cap = E.queueCap(this.state.up.queue);
     // le client choisit le stand le moins chargé (avec une préférence pour le plus proche de son entrée)
     let best = null;
     for (const s of open) {
       if (opts.zone && s.zone !== opts.zone) continue;
       if (opts.stand && s !== opts.stand) continue;
       const load = s.queue.length + s.incoming; // les clients en route comptent déjà
-      if (load >= cap) continue;
+      if (load >= this.queueCapOf(s)) continue;
       const score = load + Math.abs(s.x - start.x) * 0.02;
       if (!best || score < best.score) best = { s, score };
     }
@@ -490,6 +470,7 @@ export class Game {
     stand.incoming += 1;
     c.state = 'approach';
     c.stand = stand;
+    const cap = this.queueCapOf(stand);
     c.entryIdx = cap;
     const entrance = stand.queuePos(cap);
     const approach = entrance.clone().addScaledVector(stand.queueBack(cap), 2.5).add(stand.dirWorld(0, 1.0));
@@ -570,6 +551,7 @@ export class Game {
     const stand = c.stand;
     stand.incoming -= 1;
     c.state = 'queue';
+    c.queueT = this.time; // (pour les étoiles : un client qui attend trop longtemps est moins content)
     stand.queue.push(c);
     c.lastIdx = c.entryIdx; // il est au bout du chemin (tel qu'il était quand il est parti)
     c.go(...this.queueRoute(c, stand, stand.queue.length - 1));
@@ -583,7 +565,7 @@ export class Game {
     const pts = [];
     const tag = (j) => { const v = stand.queuePos(j); v.qi = j; return v; };
     if (c.lastIdx <= target) pts.push(tag(target));
-    else for (let j = Math.min(c.lastIdx - 1, E.queueCap(this.state.up.queue)); j >= target; j--) pts.push(tag(j));
+    else for (let j = Math.min(c.lastIdx - 1, this.queueCapOf(stand)); j >= target; j--) pts.push(tag(j));
     return pts;
   }
 
@@ -596,7 +578,7 @@ export class Game {
     const S = this.state;
     const demand = 1 / (3.2 * 0.9 ** S.up.marketing);
     let theo = 0;
-    for (const s of open) if (s.cooks > 0) theo += Math.min(demand * (s.index === 0 ? 1 + 0.2 * S.hd.eq.neon : 1), 1 / E.serviceTime(S.up.speed, s.cooks));
+    for (const s of open) if (s.cooks > 0) theo += Math.min(demand * (s.index === 0 ? 1 + 0.2 * S.hd.eq.sign : 1), 1 / E.serviceTime(S.up.speed, s.cooks));
     const target = Math.max(1, theo / Math.max(0.3, this.salesRate));
     return this.affluence + (Math.min(target, 400) - this.affluence) * 0.15; // évolue en douceur
   }
@@ -605,12 +587,8 @@ export class Game {
    * Cuisine : prix affiché d'une commande (avant la note du client).
    * Hot-dog fait main = 3 × le prix du hot-dog du camion (il monte avec ses améliorations), + chaque garniture.
    */
-  orderPrice(order) {
-    const m = E.hotdogModel(order.model);
-    const unit = E.recipePrice(m, Math.max(1, this.state.recipes[m.id] || 1)) * 3;
-    const extra = order.tops.reduce((sum, t) => sum + (E.TOPPING_PRICE[t] || 0), 0);
-    return unit * (1 + extra) * this.hotdogBonus();
-  }
+  /** Ce que vaut une commande préparée par toi : 3× le prix de la carte. */
+  orderPrice(order) { return this.basePrice(order) * 3 * this.affluence * (this.boost > 0 ? 2 : 1); }
   /** Ce que le client paie vraiment : le prix de la commande selon la note (q = 0 → 1). */
   manualPrice(q, order) { return this.orderPrice(order) * (0.25 + 0.75 * q); }
 
@@ -619,7 +597,7 @@ export class Game {
     if (!c || !stand.queue.includes(c)) return 0;
     const amount = this.manualPrice(q, c.order || { model: 'hotdog', tops: [] });
     this.state.handServed = (this.state.handServed || 0) + 1;
-    if (q > 0.85) this.addReputation(10); // commande parfaite faite à la main
+    this.giveStars(c, q > 0.85 ? 3 : q > 0.55 ? 2 : 1); // ta note : bien cuit et bien garni = 3 étoiles
     this.finishOrder(stand, amount, c);
     return amount;
   }

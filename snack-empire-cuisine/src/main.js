@@ -25,6 +25,7 @@ const game = new Game(world, {
   earn: (pos, amount, emoji) => { ui.earn(pos, amount, emoji); sfx.coin(game && game.boost > 0); },
   changed: () => {},
   toast: (text) => ui.toast(text),
+  stars: (pos, n) => ui.floatText(pos, '⭐'.repeat(n)),
 });
 const visuals = new UpgradeVisuals(world, game);
 

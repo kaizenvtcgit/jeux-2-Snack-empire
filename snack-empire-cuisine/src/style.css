@@ -261,3 +261,4 @@ body.in-kitchen #hud { top: 16px; max-width: calc(50vw - 150px); }
 .pill.rep .bar { width: 70px; height: 8px; border-radius: 4px; background: rgba(255, 255, 255, .18); overflow: hidden; }
 .pill.rep .bar i { display: block; height: 100%; background: linear-gradient(90deg, #ffb703, #ff5fb0); }
 .pill.rep.rush { background: linear-gradient(135deg, #ff7a00, #ff2d8a); animation: pulse .8s infinite alternate; }
+.float.stars { font-size: 15px; letter-spacing: -2px; }

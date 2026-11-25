@@ -1,6 +1,6 @@
 import { THREE, M, add, rbox, box, cyl, sph, money } from './util.js';
 import * as E from './economy.js';
-import { buildRoomDecor, buildHood, buildProps, buildGriddle, buildPack, buildBoard, buildBasket, buildBottle, buildBin, buildPan, buildWarmer, buildDispenser, buildNeon, sausageGeometry, giantSausageGeometry, makeBun, makeTray, grillMarksTex, smokeTex } from './kitchen-decor.js';
+import { buildRoomDecor, buildHood, buildProps, buildGriddle, buildPack, buildBoard, buildBasket, buildBottle, buildBin, buildPan, buildNeon, sausageGeometry, giantSausageGeometry, makeBun, makeTray, grillMarksTex, smokeTex } from './kitchen-decor.js';
 import { L } from './i18n.js';
 import { sfx, setSizzle } from './audio.js';
 import { Customer } from './people.js';
@@ -27,7 +27,7 @@ const BURNT = 1.7; // au-delà : brûlée
 /** Tout ce qu'on peut mettre sur un hot-dog : garnitures + ingrédients des modèles (fromage, chili, bacon). */
 const ITEM = Object.fromEntries([...E.TOPPINGS.map((t) => [t.id, { name: t.name, emoji: t.emoji }]), ...Object.entries(E.EXTRAS).map(([k, x]) => [k, { name: x.name, emoji: x.emoji }])]);
 export const TOPPING_NAMES = Object.fromEntries(Object.entries(ITEM).map(([k, v]) => [k, () => v.name.toLowerCase()]));
-const BOTTLES = ['ketchup', 'mustard', 'sauce'];
+const BOTTLES = ['ketchup', 'mustard'];
 const ALL_ITEMS = Object.keys(ITEM);
 /** Ce que demande une commande : l'ingrédient du modèle (s'il y en a un) + les garnitures choisies. */
 export const orderItems = (o) => { const x = E.hotdogModel(o.model).extra; return [...(x && x !== 'giant' ? [x] : []), ...o.tops]; };
@@ -41,11 +41,10 @@ const grillSlots = (n) => Array.from({ length: n }, (_, i) => 0.82 + (i - (n - 1
  */
 const C = -0.9;
 // devant : barquettes, planche, flacons, plaque, saucisses, poubelle ; au fond : rail de bacs de garnitures, saucisses XXL, pains
-const U = { trays: 0.1, board: 0.45, ketchup: 0.77, mustard: 0.87, sauce: 0.82, grill: 1.25, pack: 1.82, xxl: 1.82, basket: 2.12, bin: 2.12,
-  onions: 0.08, friedonions: 0.21, pickles: 0.34, jalapenos: 0.47, cheese: 0.6, chili: 0.73, bacon: 0.86, dispenser: 1.92 };
-const Z = { trays: 0.62, board: 0.7, ketchup: 0.6, mustard: 0.6, sauce: 0.76, grill: 0.82, pack: 0.74, xxl: 1.02, basket: 1.02, bin: 0.7,
-  onions: 1.0, friedonions: 1.0, pickles: 1.0, jalapenos: 1.0, cheese: 1.0, chili: 1.0, bacon: 1.0, dispenser: 1.08 };
-const PANS = ['onions', 'friedonions', 'pickles', 'jalapenos', 'cheese', 'chili', 'bacon'];
+const U = { trays: 0.1, board: 0.45, ketchup: 0.77, mustard: 0.87, grill: 1.25, pack: 1.82, basket: 2.12, bin: 2.12, onions: 0.3, cheese: 0.5, chili: 0.7 };
+const Z = { trays: 0.62, board: 0.7, ketchup: 0.62, mustard: 0.62, grill: 0.82, pack: 0.74, basket: 1.02, bin: 0.7, onions: 1.0, cheese: 1.0, chili: 1.0 };
+// rail de garnitures : oignons + ingrédients des modèles (cheddar du cheese-dog, chili du chili-dog)
+const PANS = ['onions', 'cheese', 'chili'];
 const PX = (k) => C - U[k]; // moitié du joueur
 const KX = (k) => C + U[k]; // moitié du cuisinier
 const GRILL_X = PX('grill');
@@ -160,7 +159,6 @@ export class Kitchen {
     // zones cliquables (moitié du joueur) ; « need » = ce qu'il faut avoir débloqué pour s'en servir
     this.hit(0.66, 0.16, 0.56, GRILL_X, 1.6, Z.grill, 'grill', L('Plaque de cuisson', 'Griddle'));
     this.hit(0.4, 0.2, 0.28, PX('pack'), 1.55, Z.pack, 'pack', L('Saucisses', 'Sausages'));
-    this.hit(0.36, 0.2, 0.24, PX('xxl'), 1.55, Z.xxl, 'xxl', L('Saucisses XXL (hot-dog géant)', 'XXL sausages (giant hot dog)')).userData.need = 'giantdog';
     this.hit(0.56, 0.2, 0.36, BOARD.x, 1.56, BOARD.z, 'board', L('Planche', 'Board'));
     this.hit(0.32, 0.26, 0.3, PX('basket'), 1.57, Z.basket, 'bun', L('Pains', 'Buns'));
     for (const b of BOTTLES) this.hit(0.1, 0.34, 0.12, PX(b), 1.62, Z[b], b, `${ITEM[b].emoji} ${ITEM[b].name}`).userData.need = b;
@@ -199,24 +197,15 @@ export class Kitchen {
     g.add(lamp, lamp.target);
     this.lights.push(lamp);
     buildPack(g, new THREE.Vector3(X('pack'), 1.47, Z.pack), this.sausageGeo);
-    // saucisses XXL (hot-dog géant), barquette plus petite au fond
-    const xxl = new THREE.Group();
-    buildPack(xxl, new THREE.Vector3(0, 0, 0), this.giantGeo);
-    xxl.position.set(X('xxl'), 1.47, Z.xxl); xxl.scale.set(0.78, 1, 0.78);
-    g.add(xxl); h.items.giantdog = xxl;
     buildBoard(g, new THREE.Vector3(X('board'), 0, Z.board));
     const basket = new THREE.Group();
     buildBasket(basket, new THREE.Vector3(0, 0, 0), makeBun);
     basket.position.set(X('basket'), 1.49, Z.basket); basket.scale.setScalar(0.66);
     g.add(basket); h.basket = basket;
-    h.warmer = buildWarmer(g, X('basket'), Z.basket, makeBun);
     h.ketchup = buildBottle(g, X('ketchup'), Z.ketchup, '#c1121f', 'KETCHUP');
     h.mustard = buildBottle(g, X('mustard'), Z.mustard, '#e8b400', L('MOUTARDE', 'MUSTARD'));
-    h.sauce = buildBottle(g, X('sauce'), Z.sauce, '#e9d7a8', L('MAISON', 'HOUSE'));
-    h.items.sauce = h.sauce;
     for (const p of PANS) h.items[p] = buildPan(g, X(p), Z[p], p);
     buildBin(g, X('bin'), Z.bin);
-    h.dispenser = buildDispenser(g, X('dispenser'), 1.72, Z.dispenser);
     for (let k = 0; k < 5; k++) {
       const t = makeTray(); t.position.set(X('trays'), 1.47 + k * 0.012, Z.trays); t.rotation.y = Math.PI / 2 + (Math.random() - 0.5) * 0.1; t.scale.setScalar(0.8);
       g.add(t);
@@ -245,15 +234,15 @@ export class Kitchen {
     for (const d of [-1, 1]) {
       const h = this.halves[d];
       for (const [k, o] of Object.entries(h.items)) o.visible = this.has(k);
-      h.griddle.scale.z = 1 + 0.14 * eq.grill;          // plancha plus profonde : plus de saucisses
-      h.warmer.visible = eq.warmer > 0; h.basket.visible = eq.warmer === 0;
-      h.dispenser.visible = eq.dispenser > 0;
-      h.hood.scale.set(1 + 0.12 * eq.hood, 1 + 0.2 * eq.hood, 1 + 0.08 * eq.hood);
+      // cuisson rapide : hotte plus puissante (plus grande) sur les deux plans de travail
+      h.hood.scale.set(1 + 0.12 * eq.speed, 1 + 0.2 * eq.speed, 1 + 0.08 * eq.speed);
     }
-    this.slots = grillSlots(3 + eq.grill);
-    this.neon.visible = eq.neon > 0;
-    this.neon.userData.mat.emissiveIntensity = 0.9 + 0.7 * eq.neon;
+    this.slots = grillSlots(3);
+    // enseigne lumineuse « HOT-DOGS » dehors, de plus en plus brillante
+    this.neon.visible = eq.sign > 0;
+    this.neon.userData.mat.emissiveIntensity = 0.9 + 0.7 * eq.sign;
   }
+
 
 
   /** Lance un petit nuage de fumée au-dessus d'une saucisse (plus sombre si elle brûle). */
@@ -761,7 +750,7 @@ export class Kitchen {
     // cuisson
     const tmp = new THREE.Color();
     for (const s of this.sausages) {
-      s.sides[s.down] += COOK_RATE * (1 + 0.15 * this.game.state.hd.eq.hood) * (s.giant ? 0.8 : 1) * dt; // (hotte puissante : cuit plus vite)
+      s.sides[s.down] += COOK_RATE * (1 + 0.15 * this.game.state.hd.eq.speed) * dt; // (cuisson rapide : cuit plus vite)
       s.flipT = Math.min(1, s.flipT + dt / 0.25);
       // retournement : demi-tour autour de l'axe de la saucisse, avec un petit saut
       s.mesh.position.y = SAUS_Y + Math.sin(s.flipT * Math.PI) * 0.06;
@@ -806,17 +795,18 @@ export class Kitchen {
     for (const o of this.awning) { o.material.opacity = this.awningK; o.material.depthWrite = this.awningK > 0.95; }
   }
 
-  /** Jauge de réputation : visible sur le parking et dans le camion ; pendant le rush, compte à rebours. */
+  /** Compteur d'étoiles : visible sur le parking et dans le camion. */
   updateRep() {
-    const g = this.game, show = this.active || this.ui.zone === 'parking';
+    // étoiles gagnées (objectif : ouvrir le marché)
+    const show = this.active || this.ui.zone === 'parking';
     this.repPill.classList.toggle('show', show);
     if (!show) return;
-    const rush = g.rushT > 0;
-    this.repPill.classList.toggle('rush', rush);
-    const html = rush ? `🌭🔥 ${L('Rush ! Ventes ×1,5', 'Rush! Sales ×1.5')} · ${Math.ceil(g.rushT)} s`
-      : `🌭 ${L('Réputation', 'Reputation')} <span class="bar"><i style="width:${Math.round(g.state.hd.rep / E.REP_MAX * 100)}%"></i></span>`;
+    const n = this.game.state.stars, goal = E.STARS_GOAL;
+    const html = n >= goal ? `⭐ ${n} · ${L('Marché bientôt !', 'Market soon!')}`
+      : `⭐ ${n} / ${goal} <span class="bar"><i style="width:${Math.round(n / goal * 100)}%"></i></span>`;
     if (this.repPill.innerHTML !== html) this.repPill.innerHTML = html;
   }
+
 
   /** Fumée, flacons pressés, hot-dogs qui volent vers les clients (dedans comme dehors). */
   updateEffects(dt) {

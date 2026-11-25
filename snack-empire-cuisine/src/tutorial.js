@@ -56,26 +56,19 @@ export function initTutorial(ui, game) {
       done: () => (S.recipes.cheesedog || 0) >= 1,
     },
     {
-      text: L('<b>Ouvre un deuxième camion</b> 🚚 : touche l\'emplacement indiqué. Deux files de clients, deux fois plus de ventes !', '<b>Open a second truck</b> 🚚: tap the highlighted plot. Two lines of customers, twice the sales!'),
-      // la caméra recule pour montrer le camion et l'emplacement du suivant
-      prep: () => { if (ui.zone !== 'parking') ui.setZone('parking'); ui.world.frameStands([game.stands[0].x, game.stands[1].x]); },
-      target: () => { const p = ui.plotBtns[1]; return p && p.style.display !== 'none' ? p : null; },
-      done: () => S.stands[1].unlocked,
-    },
-    {
-      text: L('<b>Embauche un cuisinier</b> 👨‍🍳 : ton camion servira plus vite.', '<b>Hire a cook</b> 👨‍🍳: your truck will serve faster.'),
+      text: L('<b>Embauche un 2e cuisinier</b> 👨‍🍳👨‍🍳 : il prend l\'autre moitié du camion, deux commandes se préparent à la fois.', '<b>Hire a 2nd cook</b> 👨‍🍳👨‍🍳: they take the other half of the truck, two orders get made at once.'),
       prep: () => shopOn('stands'),
-      target: () => card('s-0') || card('s-1'),
-      done: () => S.stands.some((s) => s.cooks >= 2),
+      target: () => card('s-0'),
+      done: () => S.stands[0].cooks >= 2,
     },
     {
-      text: L('<b>Les améliorations</b> ⚡ aident tous tes stands : cuisson plus rapide, publicité (plus de clients), file d\'attente plus longue. Achètes-en une !', '<b>Upgrades</b> ⚡ boost all your stands: faster cooking, advertising (more customers), longer queues. Buy one!'),
+      text: L('<b>Équipe ton camion</b> ⚡ : la cuisson rapide accélère tout le monde, l\'enseigne attire plus de clients.', '<b>Equip your truck</b> ⚡: fast cooking speeds everyone up, the neon sign brings more customers.'),
       prep: () => shopOn('upgrades'),
-      target: () => card('u-speed'),
-      done: () => S.up.speed + S.up.marketing + S.up.queue >= 1,
+      target: () => card('e-speed'),
+      done: () => S.hd.eq.speed + S.hd.eq.counter + S.hd.eq.sign >= 1,
     },
     {
-      text: L('<b>Bravo, ton empire est lancé !</b> 🎉<br>Ouvre les 4 camions pour débloquer le <b>marché couvert</b> (niveau 2). Et pense aux bonus 📺 !', '<b>Well done, your empire is off!</b> 🎉<br>Open all 4 trucks to unlock the <b>covered market</b> (level 2). And don\'t forget the 📺 bonuses!'),
+      text: L('<b>Bravo, ton camion tourne tout seul !</b> 🎉<br>Chaque client servi te donne des ⭐. Cuisine toi-même pour gagner 3× plus et viser 3 étoiles. 100 ⭐ ouvriront la suite !', '<b>Well done, your truck runs on its own!</b> 🎉<br>Every customer served gives you ⭐. Cook yourself to earn 3× more and aim for 3 stars. 100 ⭐ will unlock what comes next!'),
       ok: L('Super !', 'Great!'),
       target: () => null,
     },

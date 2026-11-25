@@ -144,9 +144,7 @@ export class UI {
       if (!btn || btn.disabled) return;
       const [act, arg] = btn.dataset.act.split(':');
       if (act === 'recipe') game.buyRecipe(arg);
-      if (act === 'top') game.buyTopping(arg);
       if (act === 'eq') game.buyEquip(arg);
-      if (act === 'train') game.trainCooks();
       if (act === 'up') game.buyUpgrade(arg);
       if (act === 'cook') game.hireCook(+arg);
       if (act === 'stand') this.buyStand(+arg);
@@ -255,17 +253,9 @@ export class UI {
   shopModel() {
     const g = this.game, S = g.state, cash = S.money, out = [];
     if (this.tab === 'recipes' && this.zone === 'parking') {
-      // camion n°1 : uniquement des hot-dogs (sa carte et ses garnitures) ; les camions 2 à 4 ont leur propre carte
-      out.push({ head: true, id: 'h-hd', title: L('🌭 Camion n°1 · la carte des hot-dogs', '🌭 Truck #1 · hot dog menu') });
+      // camion n°1 : la carte des hot-dogs (ketchup, moutarde et oignons sont toujours disponibles)
+      out.push({ head: true, id: 'h-hd', title: L('🌭 Camion n°1 · la carte', '🌭 Truck #1 · menu') });
       this.recipeCards(E.HOTDOG_MODELS, out);
-      const hd = S.hd, nextTop = E.TOPPINGS.find((t) => !hd.tops[t.id]);
-      const have = E.TOPPINGS.filter((t) => hd.tops[t.id]).map((t) => t.emoji).join(' ');
-      out.push({ head: true, id: 'h-top', title: L(`🧂 Garnitures <small>${have}</small>`, `🧂 Toppings <small>${have}</small>`) });
-      if (nextTop) out.push({ id: 't-' + nextTop.id, emoji: nextTop.emoji, title: nextTop.name, sub: L(`Nouvelle garniture : un bac de plus en cuisine, les clients la commandent (+${Math.round(nextTop.price * 100)} % du prix)`, `New topping: one more tray in the kitchen, customers order it (+${Math.round(nextTop.price * 100)}% price)`), label: `${L('Débloquer', 'Unlock')}<br>${money(nextTop.unlock)}`, cost: nextTop.unlock, act: 'top:' + nextTop.id, locked: true });
-      if (S.stands.slice(1, 4).some((st) => st.unlocked)) {
-        out.push({ head: true, id: 'h-trucks', title: L('🚚 Camions 2 à 4', '🚚 Trucks 2 to 4') });
-        this.recipeCards(E.TRUCK_RECIPES, out);
-      }
     } else if (this.tab === 'recipes') {
       let lockedShown = false;
       for (const r of E.zoneById(this.zone).recipes) {
@@ -286,21 +276,19 @@ export class UI {
         marketing: (l) => L(`Un client toutes les ${dec(E.spawnInterval(l, 1))} s`, `One customer every ${dec(E.spawnInterval(l, 1))} s`),
         queue: (l) => L(`File d'attente : ${E.queueCap(l)} places`, `Queue: ${E.queueCap(l)} spots`),
       };
-      if (this.zone === 'parking') out.push({ head: true, id: 'h-all', title: L('⚡ Pour tous les stands', '⚡ For every stand') });
+      if (this.zone === 'parking') out.push({ head: true, id: 'h-all', title: L('📣 Pour tous les camions', '📣 For every truck') });
       for (const [k, u] of Object.entries(E.UPGRADES)) {
+        if (this.zone === 'parking' && k === 'speed') continue; // (la vitesse se règle par camion : « Cuisson rapide »)
         const lvl = S.up[k], max = lvl >= u.max, cost = E.upgradeCost(u, lvl);
         out.push({ id: 'u-' + k, emoji: u.emoji, title: `${u.name} <b>${L('niv.', 'lv.')} ${lvl}</b>`, sub: subs[k](lvl), label: max ? 'MAX' : `${money(cost)}`, cost: max ? Infinity : cost, act: 'up:' + k });
       }
       if (this.zone === 'parking') {
         // équipement du camion à hot-dogs : chaque achat se voit dans la cuisine (sur les deux plans de travail) ou dehors
-        out.push({ head: true, id: 'h-eq', title: L('🌭 Équipement du camion n°1', '🌭 Truck #1 equipment') });
+        out.push({ head: true, id: 'h-eq', title: L('🌭 Camion n°1 · équipement', '🌭 Truck #1 · equipment') });
         const eqSub = {
-          grill: (l) => L(`${3 + l} saucisses à la fois sur la plaque`, `${3 + l} sausages at once on the griddle`),
-          warmer: (l) => L(`Pains toujours chauds · préparation −${8 * l} %`, `Buns always warm · prep −${8 * l}%`),
-          dispenser: (l) => L(`Sauces à la pompe · préparation −${10 * l} %`, `Pump sauces · prep −${10 * l}%`),
-          hood: (l) => L(`Cuisson et préparation −${10 * l} %`, `Cooking and prep −${10 * l}%`),
-          neon: (l) => L(`Enseigne lumineuse · +${20 * l} % de clients`, `Bright sign · +${20 * l}% customers`),
-          terrace: (l) => L(`${2 * l} tables en plus · pourboires +${10 * l} %`, `${2 * l} extra tables · tips +${10 * l}%`),
+          speed: (l) => L(`Cuisson et préparation −${15 * l} %`, `Cooking and prep −${15 * l}%`),
+          counter: (l) => L(`+${l} place${l > 1 ? 's' : ''} dans la file du camion`, `+${l} spot${l > 1 ? 's' : ''} in the truck's queue`),
+          sign: (l) => L(`Enseigne « HOT-DOGS » · +${20 * l} % de clients`, `“HOT DOGS” sign · +${20 * l}% customers`),
         };
         for (const [k, q] of Object.entries(E.EQUIPMENT)) {
           const lvl = S.hd.eq[k], max = lvl >= q.costs.length, cost = max ? Infinity : q.costs[lvl];
@@ -322,20 +310,19 @@ export class UI {
           const z = E.zoneOf(i).id;
           const max = st.cooks >= E.maxCooks(i), cost = max ? Infinity : E.COOK_COST[i][st.cooks];
           const who = z === 'parking' ? L('cuisiniers', 'cooks') : L('vendeurs', 'staff');
-          out.push({ id: 's-' + i, emoji: { parking: '👨‍🍳', market: '🧑‍🌾', port: '🧑‍✈️', fair: '🤹', beach: '🏄' }[z], title: `${nameOf(i)} <b>${st.cooks}/${E.maxCooks(i)} ${who}</b>`, sub: max ? (z === 'parking' ? L('Équipe au complet : plus de place dans le camion', 'Full team: no more room in the truck') : L('Équipe complète', 'Full team')) : st.cooks === 0 ? L('Personne ne sert : embauche ton 1er cuisinier !', 'Nobody is serving: hire your first cook!') : L(`Service ×${E.COOK_FACTOR[st.cooks]} plus rapide`, `Service ×${E.COOK_FACTOR[st.cooks]} faster`), label: max ? 'MAX' : `${L('Embaucher', 'Hire')}<br>${money(cost)}`, cost, act: 'cook:' + i });
+          out.push({ id: 's-' + i, emoji: { parking: '👨‍🍳', market: '🧑‍🌾', port: '🧑‍✈️', fair: '🤹', beach: '🏄' }[z], title: `${nameOf(i)} <b>${st.cooks}/${E.maxCooks(i)} ${who}</b>`, sub: max ? (z === 'parking' ? L('Équipe au complet : plus de place dans le camion', 'Full team: no more room in the truck') : L('Équipe complète', 'Full team')) : st.cooks === 0 ? L('Personne ne sert : embauche ton 1er cuisinier !', 'Nobody is serving: hire your first cook!') : i === 0 ? L('Un 2e cuisinier : 2 commandes préparées à la fois', 'A 2nd cook: 2 orders prepared at once') : L(`Service ×${E.COOK_FACTOR[st.cooks]} plus rapide`, `Service ×${E.COOK_FACTOR[st.cooks]} faster`), label: max ? 'MAX' : `${L('Embaucher', 'Hire')}<br>${money(cost)}`, cost, act: 'cook:' + i });
         }
       });
-      // camion à hot-dogs : formation des cuisiniers (dès qu'il y en a un)
-      if (this.zone === 'parking' && S.stands[0].cooks > 0) {
-        const lvl = S.hd.train, max = lvl >= E.TRAINING_COSTS.length, cost = max ? Infinity : E.TRAINING_COSTS[lvl];
-        out.push({ id: 'train', emoji: '🎓', title: `${L('Formation des cuisiniers', 'Cook training')} <b>${lvl}/${E.TRAINING_COSTS.length}</b>`, sub: max ? L('Cuisiniers experts : gestes rapides, commandes souvent parfaites', 'Expert cooks: quick hands, often perfect orders') : L(`Gestes −${10 * (lvl + 1)} %, plus de commandes parfaites (réputation)`, `Moves −${10 * (lvl + 1)}%, more perfect orders (reputation)`), label: max ? 'MAX' : money(cost), cost, act: 'train' });
-      }
       const n = g.nextLockedStand();
       // prochain emplacement à acheter : affiché dans sa zone ; l'ouverture de la zone suivante se voit aussi
       // depuis la zone précédente (le marché depuis les camions, le port depuis le marché)
       const nz = n >= 0 ? E.zoneOf(n) : null;
       const opensNext = nz && n === nz.first && E.ZONES[E.ZONES.indexOf(nz) - 1]?.id === this.zone;
-      if (n >= 0 && (inZone(n) || opensNext)) {
+      // étape 1 : les camions suivants arrivent bientôt (on les montre, sans pouvoir les acheter)
+      if (n >= 0 && n >= E.OPEN_STANDS && n < E.MARKET_FIRST && inZone(n)) {
+        const sp = E.TRUCK_SPECIALTIES[n - 1];
+        out.push({ id: 'soon-' + n, emoji: sp.emoji, title: `${L(`Camion n°${n + 1}`, `Truck #${n + 1}`)} · ${sp.name}`, sub: L('Nouvelle spécialité et sa cuisine : bientôt !', 'New specialty and its kitchen: coming soon!'), label: L('Bientôt', 'Soon'), cost: Infinity, act: 'none', locked: true });
+      } else if (n >= 0 && n < E.OPEN_STANDS && (inZone(n) || opensNext)) {
         const cost = E.STAND_COST[n];
         const card = n === E.MARKET_FIRST ? { emoji: '🏛️', title: L('Marché couvert <b>niveau 2</b>', 'Covered market <b>level 2</b>'), sub: L('Nouvelle zone : 6 étals + 7 nouvelles recettes', 'New area: 6 stalls + 7 new recipes') }
           : n === E.PORT_FIRST ? { emoji: '⚓', title: L('Le port <b>niveau 3</b>', 'The harbor <b>level 3</b>'), sub: L('Nouvelle zone : 8 boutiques, 9 recettes, arrivages ×3', 'New area: 8 shops, 9 recipes, fishing boat ×3') }
@@ -404,7 +391,7 @@ export class UI {
     // pastille « achat possible » sur les onglets
     const S = this.game.state;
     const canBuy = (list) => list.some((r) => { const l = S.recipes[r.id] || 0; return S.money >= (l ? E.recipeUpCost(r, l) : r.unlock) && (l || r === list.find((x) => !(S.recipes[x.id] > 0))); });
-    const hdCan = () => { const nt = E.TOPPINGS.find((t) => !S.hd.tops[t.id]); return canBuy(E.HOTDOG_MODELS) || (nt && S.money >= nt.unlock) || (S.stands.slice(1, 4).some((st) => st.unlocked) && canBuy(E.TRUCK_RECIPES)); };
+    const hdCan = () => canBuy(E.HOTDOG_MODELS);
     const canRecipe = this.zone === 'parking' ? hdCan() : canBuy(E.zoneById(this.zone).recipes);
     // pastilles sur les onglets de zone : « il y a quelque chose à acheter là-bas »
     const canStaff = (lo, hi) => S.stands.some((st, i) => i >= lo && i < hi && st.unlocked && st.cooks < E.maxCooks(i) && S.money >= E.COOK_COST[i][st.cooks]);
@@ -421,11 +408,11 @@ export class UI {
       b.classList.toggle('locked', !this.zoneOpen(z));
       b.classList.toggle('dot', z !== this.zone && zoneCan[z]);
     });
-    const canUp = Object.entries(E.UPGRADES).some(([k, u]) => S.up[k] < u.max && S.money >= E.upgradeCost(u, S.up[k]))
+    const canUp = Object.entries(E.UPGRADES).some(([k, u]) => (k !== 'speed' || this.zone !== 'parking') && S.up[k] < u.max && S.money >= E.upgradeCost(u, S.up[k]))
       || (this.zone === 'parking' && Object.entries(E.EQUIPMENT).some(([k, q]) => S.hd.eq[k] < q.costs.length && S.money >= q.costs[S.hd.eq[k]]));
     const Zc = E.zoneById(this.zone), kc = E.ZONES.indexOf(Zc);
     const canStand = canStaff(Zc.first, Zc.first + Zc.count)
-      || (nl >= 0 && (E.zoneOf(nl) === Zc || (E.ZONES[kc + 1] && nl === E.ZONES[kc + 1].first)) && S.money >= E.STAND_COST[nl]);
+      || (nl >= 0 && nl < E.OPEN_STANDS && (E.zoneOf(nl) === Zc || (E.ZONES[kc + 1] && nl === E.ZONES[kc + 1].first)) && S.money >= E.STAND_COST[nl]);
     document.querySelector('[data-tab=recipes]').classList.toggle('dot', canRecipe);
     document.querySelector('[data-tab=upgrades]').classList.toggle('dot', canUp);
     document.querySelector('[data-tab=stands]').classList.toggle('dot', canStand);
@@ -537,7 +524,15 @@ export class UI {
       } else b.style.display = 'none';
 
       const pb = this.plotBtns[i];
-      if (!s.unlocked && i === g.nextLockedStand()) {
+      if (!s.unlocked && i === g.nextLockedStand() && i >= E.OPEN_STANDS && i < E.MARKET_FIRST) {
+        const p = w.toScreen(s.plotPos());
+        const sp = E.TRUCK_SPECIALTIES[i - 1];
+        const html = `<span class="pb">${sp.emoji} ${sp.name}<br><b>${L('Bientôt', 'Soon')}</b></span>`;
+        if (pb.innerHTML !== html) pb.innerHTML = html;
+        pb.classList.remove('can');
+        pb.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, -50%)`;
+        pb.style.display = p.visible ? '' : 'none';
+      } else if (!s.unlocked && i === g.nextLockedStand() && i < E.OPEN_STANDS) {
         const p = w.toScreen(s.plotPos());
         const cost = E.STAND_COST[i];
         const zid = E.zoneOf(i).id;
@@ -569,6 +564,14 @@ export class UI {
     if (this.game.boost > 0) f.classList.add('boost');
     this.layer.appendChild(f);
     this.floats.push({ el: f, pos: pos.clone(), t: 0 });
+  }
+
+  /** Petit texte qui monte au-dessus d'un client (étoiles gagnées). */
+  floatText(pos, text) {
+    if (this.floats.length > 40) return;
+    const f = el('div', 'float stars', text);
+    this.layer.appendChild(f);
+    this.floats.push({ el: f, pos: pos.clone().add(new THREE.Vector3(0, 0.35, 0)), t: 0 });
   }
 
   toast(text) {

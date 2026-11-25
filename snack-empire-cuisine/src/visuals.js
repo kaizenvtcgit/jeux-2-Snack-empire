@@ -49,7 +49,7 @@ export class UpgradeVisuals {
       const root = stand.root;
 
       // Espace d'attente (camions et étals)
-      const cap = open ? E.queueCap(S.up.queue) : 0;
+      const cap = open ? this.game.queueCapOf(stand) : 0; // (camion n°1 : + comptoir agrandi)
       if (cap !== v.cap) { this.buildRails(v, root, cap, !first && v.cap > 0, i); v.cap = cap; }
 
       // Ballons
