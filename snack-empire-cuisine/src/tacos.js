@@ -224,6 +224,14 @@ export class TacoKitchen extends Kitchen {
     return [c ? L('👉 Clique sur le taco pour le servir', '👉 Click the taco to serve it') : L('👉 Le taco est prêt : attends un client', '👉 The taco is ready: wait for a customer'), PX('board')];
   }
 
+  /* ---------------- Aides (barre d'ingrédients, étiquettes) ---------------- */
+  ingredients() { return ITEMS.map((k) => ({ key: k, emoji: E.TACO_ITEMS[k].emoji, name: E.TACO_ITEMS[k].name })); }
+  prepState() {
+    const p = this.tc, c = this.customer();
+    return { added: p ? p.items : new Set(), need: c ? tacoItems(c.order) : [], ready: !!(p && p.stage === 'board') };
+  }
+  itemObj(k) { return this.halves[-1].items[k]; }
+
   /* ---------------- Les cuisiniers ---------------- */
   updateMember(m, sj, dt) {
     const d = m.d;

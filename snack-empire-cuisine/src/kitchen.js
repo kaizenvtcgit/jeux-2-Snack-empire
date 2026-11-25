@@ -268,7 +268,7 @@ export class Kitchen {
       const repPill = document.createElement('div');
       repPill.className = 'pill rep';
       document.getElementById('hud').appendChild(repPill);
-      Kitchen.shared = { exitBtn: mk('button', 'kitchen-exit', `⬅ ${L('Sortir', 'Exit')}`), ticket: mk('div', 'kitchen-ticket'), hint: mk('div', 'kitchen-hint'), label: mk('div', 'kitchen-label'), gauges: mk('div', 'kitchen-gauges'), repPill };
+      Kitchen.shared = { exitBtn: mk('button', 'kitchen-exit', `⬅ ${L('Sortir', 'Exit')}`), ticket: mk('div', 'kitchen-ticket'), hint: mk('div', 'kitchen-hint'), label: mk('div', 'kitchen-label'), gauges: mk('div', 'kitchen-gauges'), bar: mk('div', 'kitchen-bar'), tags: mk('div', 'kitchen-tags'), repPill };
     }
     Object.assign(this, Kitchen.shared);
     this.enterBtn.addEventListener('click', () => this.enter());
@@ -328,12 +328,65 @@ export class Kitchen {
 
   setHover(o, e) {
     this.hover = o;
+    this.hoverKey = o && o.userData.action; // (le bac survolé grossit un peu : voir updateHelpers)
     this.world.renderer.domElement.style.cursor = this.active ? (o ? 'pointer' : 'ew-resize') : 'grab';
     if (o && e && o.userData.label) {
       this.label.textContent = o.userData.label;
       this.label.style.transform = `translate(${e.clientX + 14}px, ${e.clientY + 10}px)`;
       this.label.classList.add('show');
     } else this.label.classList.remove('show');
+  }
+
+  /* ---------------- Aides pour choisir les ingrédients ---------------- */
+  /** Ingrédients qu'on peut ajouter : [{ key, emoji, name }] (moitié du joueur). */
+  ingredients() {
+    return ['ketchup', 'mustard', 'onions', 'cheese', 'chili'].filter((k) => this.has(k)).map((k) => ({ key: k, emoji: ITEM[k].emoji, name: ITEM[k].name }));
+  }
+  /** Ce qui est déjà sur le plat en cours, et ce que demande la commande du client. */
+  prepState() {
+    const c = this.customer();
+    return { added: this.dog ? this.dog.toppings : new Set(), need: c ? orderItems(c.order) : [], ready: !!(this.dog && this.dog.sausage) };
+  }
+  /** Le bac / flacon d'un ingrédient (moitié du joueur) et sa position. */
+  itemObj(k) { const h = this.halves[-1]; return h.items[k] || h[k]; }
+
+  /**
+   * Barre d'ingrédients en bas de l'écran (gros boutons) + étiquette au-dessus de chaque bac,
+   * les ingrédients demandés surlignés (et leurs bacs qui bougent), ceux déjà mis cochés.
+   */
+  updateHelpers() {
+    const list = this.ingredients(), st = this.prepState();
+    const key = list.map((i) => i.key).join(',');
+    if (this.barKey !== key || this.bar.dataset.owner !== String(this.stand.index)) {
+      this.barKey = key; this.bar.dataset.owner = String(this.stand.index);
+      this.bar.innerHTML = list.map((i) => `<button data-k="${i.key}"><span>${i.emoji}</span>${i.name}</button>`).join('');
+      this.bar.onclick = (e) => { const b = e.target.closest('button[data-k]'); if (b && this.active) this.act(b.dataset.k); };
+      this.tags.innerHTML = list.map((i) => `<div data-k="${i.key}">${i.emoji} <small>${i.name}</small></div>`).join('');
+    }
+    const t = performance.now() / 1000, need = new Set(st.need);
+    for (const b of this.bar.children) {
+      const k = b.dataset.k;
+      b.classList.toggle('need', need.has(k) && !st.added.has(k));
+      b.classList.toggle('done', st.added.has(k));
+      b.classList.toggle('off', !st.ready);
+    }
+    let shown = 0;
+    for (const tag of this.tags.children) {
+      const k = tag.dataset.k, o = this.itemObj(k);
+      if (!o) continue;
+      // étiquette seulement sur les bacs demandés (sinon elles se chevauchent), une sur deux un peu plus haut
+      const wantedTag = need.has(k) && !st.added.has(k);
+      const p = this.world.toScreen(this.stand.root.localToWorld(o.position.clone().add(new THREE.Vector3(0, 0.2 + (shown % 2) * 0.09, 0))));
+      if (wantedTag) shown += 1;
+      tag.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, -100%)`;
+      tag.style.display = p.visible && wantedTag ? '' : 'none';
+      tag.classList.toggle('need', need.has(k) && !st.added.has(k));
+      // bac demandé : il bouge doucement ; bac survolé : il grossit
+      const wanted = need.has(k) && !st.added.has(k) && st.ready;
+      o.userData.baseY = o.userData.baseY ?? o.position.y;
+      o.position.y = o.userData.baseY + (wanted ? Math.abs(Math.sin(t * 5)) * 0.015 : 0);
+      o.scale.setScalar(this.hoverKey === k ? 1.12 : 1);
+    }
   }
 
   /* ---------------- Entrer / sortir ---------------- */
@@ -868,6 +921,7 @@ export class Kitchen {
 
   updateTicket(dt, narrow) {
     if (this.full()) {
+      this.bar.innerHTML = ''; this.tags.innerHTML = ''; this.barKey = null; // (plus de place pour cuisiner : pas d'ingrédients)
       this.ticket.innerHTML = `<b>${L('Équipe au complet', 'Full team')}</b><span class="wait">${L('Tes 2 cuisiniers occupent tout le camion', 'Your 2 cooks are using the whole truck')}</span>`;
       if (this.hintT > 0) { this.hintT -= dt; this.hint.textContent = this.hintMsg; this.hint.classList.add('warn'); return; }
       this.hint.classList.remove('warn');
@@ -882,6 +936,7 @@ export class Kitchen {
     this.lastCustomer = c;
     if (this.hintT > 0) { this.hintT -= dt; this.hint.textContent = this.hintMsg; this.hint.classList.add('warn'); return; }
     this.hint.classList.remove('warn');
+    this.updateHelpers();
     const [text, focus] = this.nextStep();
     this.hint.textContent = text;
     // écran étroit (téléphone) : la caméra glisse toute seule vers le poste utile, sauf si le joueur vient de glisser lui-même

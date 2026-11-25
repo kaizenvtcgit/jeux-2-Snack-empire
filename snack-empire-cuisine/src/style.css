@@ -272,3 +272,23 @@ body.in-kitchen #hud { top: 16px; max-width: calc(50vw - 150px); }
   font-weight: 900; font-size: 17px; color: #1f3a00; background: linear-gradient(180deg, #d9f29a, #8fcf3a); box-shadow: 0 4px 0 #4f8a1a, var(--shadow); z-index: 8; }
 #kitchen-btn-3.show { display: flex; }
 #kitchen-btn-3 small { font-size: 11px; font-weight: 700; color: #2f5a00; }
+
+/* ---------- Aides pour choisir les ingrédients (dans les camions) ---------- */
+#kitchen-bar, #kitchen-tags { display: none; }
+body.in-kitchen #kitchen-bar { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; position: fixed; left: 50%; bottom: 72px; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 32px); z-index: 8; }
+#kitchen-bar button { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border: 2px solid transparent; border-radius: 12px; background: var(--panel); color: var(--text); font-weight: 800; font-size: 14px; box-shadow: var(--shadow); backdrop-filter: blur(6px); }
+#kitchen-bar button span { font-size: 20px; }
+#kitchen-bar button:hover { background: rgba(60, 60, 80, .9); }
+#kitchen-bar button.need { border-color: var(--gold); background: rgba(255, 210, 63, .25); animation: pulse .8s infinite alternate; }
+#kitchen-bar button.done { opacity: .6; }
+#kitchen-bar button.done::after { content: '✓'; color: var(--green); font-size: 16px; }
+#kitchen-bar button.off { opacity: .45; }
+body.in-kitchen #kitchen-tags { display: block; position: fixed; inset: 0; pointer-events: none; z-index: 6; }
+#kitchen-tags div { position: absolute; left: 0; top: 0; padding: 2px 6px; border-radius: 8px; background: rgba(20, 20, 28, .75); font-size: 15px; white-space: nowrap; }
+#kitchen-tags div small { font-size: 10px; font-weight: 700; }
+#kitchen-tags div.need { background: rgba(255, 190, 40, .95); color: #2a1a00; }
+@media (max-width: 760px) {
+  #kitchen-bar button { padding: 6px 8px; font-size: 12px; }
+  #kitchen-bar button span { font-size: 18px; }
+  #kitchen-tags div small { display: none; }
+}

@@ -261,6 +261,14 @@ export class PizzaKitchen extends Kitchen {
     return [c ? L('👉 Clique sur la pizza pour la servir', '👉 Click the pizza to serve it') : L('👉 La pizza est prête : attends un client', '👉 The pizza is ready: wait for a customer'), PX('board')];
   }
 
+  /* ---------------- Aides (barre d'ingrédients, étiquettes) ---------------- */
+  ingredients() { return ITEMS.map((k) => ({ key: k, emoji: E.PIZZA_ITEMS[k].emoji, name: E.PIZZA_ITEMS[k].name })); }
+  prepState() {
+    const p = this.pz, c = this.customer();
+    return { added: p ? p.items : new Set(), need: c ? pizzaItems(c.order) : [], ready: !!(p && p.stage === 'stretched') };
+  }
+  itemObj(k) { return this.halves[-1].items[k]; }
+
   /* ---------------- Les cuisiniers ---------------- */
   updateMember(m, sj, dt) {
     const d = m.d, half = this.halves[d];
