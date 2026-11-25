@@ -137,7 +137,9 @@ function startAmbience() {
   amb.next = { gull: 2, box: 0 };
 }
 
-let zone = 'parking', night = 0, heat = 0, camDist = 30;
+let zone = 'parking', night = 0, heat = 0, camDist = 30, sizzle = 0;
+/** Cuisine : intensité du grésillement de la plaque (0 = rien, 1 = plaque pleine). */
+export function setSizzle(v) { sizzle = v; }
 /** Appelée à chaque image : la zone regardée, la nuit (0-1), la canicule (0-1), la distance de la caméra. */
 export function setScene(z, n, h, d) { zone = z; night = n; heat = h; camDist = d; }
 
@@ -159,7 +161,9 @@ function updateAmbience(dt) {
   amb.crowd.g.gain.setTargetAtTime((T.crowd || 0) * near, t, 0.8);
   amb.waves.g.gain.setTargetAtTime((T.waves || 0) * swell * near, t, 0.4);
   amb.waves.f.frequency.setTargetAtTime(350 + swell * 500, t, 0.4);
-  amb.fry.g.gain.setTargetAtTime((T.fry || 0) * near, t, 0.8);
+  // dans la cuisine : le grésillement suit le nombre de saucisses sur la plaque
+  amb.fry.g.gain.setTargetAtTime(Math.max((T.fry || 0) * near, sizzle * 0.08), t, sizzle ? 0.15 : 0.8);
+  amb.fry.f.frequency.setTargetAtTime(sizzle ? 3200 : 4500, t, 0.3);
   // mouettes de temps en temps
   amb.next.gull -= dt;
   if (amb.next.gull <= 0) {
