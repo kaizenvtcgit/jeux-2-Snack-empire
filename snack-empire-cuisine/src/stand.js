@@ -7,7 +7,7 @@ import { buildFairStand, FAIR_SLOTS, FAIR_TYPES } from './fair.js';
 import { buildBeachHut, BEACH_SLOTS, BEACH_TYPES } from './beach.js';
 import { buildStandFx } from './standfx.js';
 import { rigChefs, STAND_ACTION } from './chefanim.js';
-import { makeBun, makeTray, sausageGeometry, createPizza, createTaco } from './kitchen-decor.js';
+import { makeBun, makeTray, sausageGeometry, createPizza, createTaco, packPizza, wrapTaco } from './kitchen-decor.js';
 
 // 4 camions sur le parking, 6 étals dans le marché couvert (à droite), 8 boutiques au port (à gauche).
 // Marché et port : une rangée du fond (z = 0) et une rangée devant (z = ROW2_Z), séparées par une allée.
@@ -238,12 +238,12 @@ function buildDining(seats, stand, tables = TABLES) {
         food.add(dog);
       } else if (stand.index === 2) {
         // taqueria : un taco plié
-        const tc = createTaco(0.09); tc.setWarm(1); for (const t of ['chicken', 'salad', 'tomato', 'salsa']) tc.add(t); tc.fold();
+        const tc = createTaco(0.09); tc.setWarm(1); for (const t of ['chicken', 'salad', 'tomato', 'salsa']) tc.add(t); tc.fold(); wrapTaco(tc);
         tc.group.position.y = 0.01; food.add(tc.group);
       } else if (stand.index === 1) {
         // pizzeria : une pizza coupée dans l'assiette
-        const pz = createPizza(0.11); pz.setStretch(1); for (const t of ['sauce', 'mozza', 'basil']) pz.add(t); pz.setBake(1); pz.cut();
-        pz.group.position.y = 0.01; food.add(pz.group);
+        const pz = createPizza(0.11); pz.setStretch(1); for (const t of ['sauce', 'mozza', 'basil']) pz.add(t); pz.setBake(1); pz.cut(); packPizza(pz, { open: true }); // dans son carton ouvert
+        pz.group.position.y = 0.014; food.add(pz.group);
       } else {
         add(cyl(0.07, 0.07, 0.03, bun, 16), 0, 0.022, 0, food);
         add(cyl(0.075, 0.075, 0.025, meat, 16), 0, 0.048, 0, food);
@@ -327,7 +327,7 @@ function buildTruck(index) {
   if (index === 2) {
     model.traverse((o) => { if (o.isMesh && (o.userData.part === 'Bun' || o.userData.part === 'Food')) o.visible = false; });
     for (const [x, items] of [[-2.05, ['chicken', 'salad', 'tomato', 'salsa']], [-1.6, ['beef', 'cheddar', 'guac', 'salsa']]]) {
-      const tc = createTaco(0.12); tc.setWarm(1); for (const t of items) tc.add(t); tc.fold();
+      const tc = createTaco(0.12); tc.setWarm(1); for (const t of items) tc.add(t); tc.fold(); wrapTaco(tc);
       tc.group.position.set(x, 1.525, 1.48); tc.group.rotation.y = 0.3;
       tc.group.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.userData.part = 'CounterDog'; } });
       group.add(tc.group);
@@ -337,8 +337,8 @@ function buildTruck(index) {
   if (index === 1) {
     model.traverse((o) => { if (o.isMesh && (o.userData.part === 'Bun' || o.userData.part === 'Food')) o.visible = false; });
     for (const [x, items] of [[-2.05, ['sauce', 'mozza', 'basil']], [-1.6, ['sauce', 'mozza', 'ham', 'mushrooms']]]) {
-      const pz = createPizza(0.14); pz.setStretch(1); for (const t of items) pz.add(t); pz.setBake(1); pz.cut();
-      pz.group.position.set(x, 1.525, 1.48);
+      const pz = createPizza(0.14); pz.setStretch(1); for (const t of items) pz.add(t); pz.setBake(1); pz.cut(); packPizza(pz, { open: true });
+      pz.group.position.set(x, 1.53, 1.48);
       pz.group.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.userData.part = 'CounterDog'; } });
       group.add(pz.group);
     }

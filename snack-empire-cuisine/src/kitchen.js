@@ -933,6 +933,7 @@ export class Kitchen {
     // hot-dogs servis : vol jusqu'au client puis disparition
     for (let i = this.flying.length - 1; i >= 0; i--) {
       const f = this.flying[i];
+      if (f.wait > 0) { f.wait -= dt; continue; } // (le temps de fermer le carton / d'emballer)
       f.t = Math.min(1, f.t + dt / 0.45);
       f.group.position.lerpVectors(f.from, f.to, f.t);
       f.group.position.y += Math.sin(f.t * Math.PI) * 0.35;

@@ -3,7 +3,7 @@ import * as E from './economy.js';
 import { L } from './i18n.js';
 import { sfx, setSizzle } from './audio.js';
 import { Kitchen, sideScore } from './kitchen.js';
-import { buildPan, buildNeon, buildGriddle, buildHood, buildBin, buildBoard, buildTortillaStack, buildWraps, createTaco, smokeTex } from './kitchen-decor.js';
+import { buildPan, buildNeon, buildGriddle, buildHood, buildBin, buildBoard, buildTortillaStack, buildWraps, createTaco, wrapTaco, smokeTex } from './kitchen-decor.js';
 
 /*
  * Camion n°3 : la taqueria. Même camion (deux moitiés en miroir), autre cuisine.
@@ -186,7 +186,8 @@ export class TacoKitchen extends Kitchen {
     this.game.serveManual(this.stand, q, c);
     this.ui.toast(`${stars === 3 ? '😍' : stars === 2 ? '🙂' : '😖'} ${'⭐'.repeat(stars)}${why}`);
     this.group.remove(t.hitbox);
-    this.flying.push({ group: t.taco.group, from: t.taco.group.position.clone(), to: this.stand.root.worldToLocal(c.headPos().add(new THREE.Vector3(0, -0.5, 0))), t: 0 });
+    wrapTaco(t.taco); // emballé dans son papier, puis il part
+    this.flying.push({ group: t.taco.group, from: t.taco.group.position.clone(), to: this.stand.root.worldToLocal(c.headPos().add(new THREE.Vector3(0, -0.5, 0))), t: 0, wait: 0.3 });
     this.tc = null; this.dog = null;
   }
 
@@ -280,7 +281,7 @@ export class TacoKitchen extends Kitchen {
           job.done = job.done || new Set();
           for (let k = 0; k < idx; k++) if (!job.done.has(ord[k])) { job.done.add(ord[k]); job.tc.add(ord[k]); }
           if (p >= 0.78 && !job.tc.folded) job.tc.fold();
-        } else { const h = hand(); job.tc.group.position.lerp(new THREE.Vector3(h.x, 1.52, Math.min(1.42, h.z + 0.25)), Math.min(1, dt * 10)); }
+        } else { if (!job.tc.paper) wrapTaco(job.tc); const h = hand(); job.tc.group.position.lerp(new THREE.Vector3(h.x, 1.52, Math.min(1.42, h.z + 0.25)), Math.min(1, dt * 10)); }
       }
     }
     this.moveCook(m, dt, goal, lookX, lookZ, work, job && (job.carried || work === 'hand'));

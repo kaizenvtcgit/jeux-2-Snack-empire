@@ -670,7 +670,7 @@ export function createPizza(r = 0.15) {
   const scatter = (n, make, y) => { const g = new THREE.Group(); for (let i = 0; i < n; i++) { const m = make(i); const [x, z] = R(); m.position.set(x, y + Math.random() * 0.002, z); m.rotation.y = Math.random() * 6; g.add(m); } layers.add(g); return g; };
   let level = 0; // chaque garniture se pose un peu au-dessus de la précédente
   const api = {
-    group,
+    group, r,
     setStretch(k) {
       ball.visible = k < 1; base.visible = k > 0;
       ball.scale.set(1 + k * 0.6, 1 - k * 0.7, 1 + k * 0.6);
@@ -905,7 +905,7 @@ export function createTaco(r = 0.11) {
     applyFold(foldK);
   };
   const api = {
-    group, folded: false,
+    group, r, folded: false,
     setWarm(v) {
       const k = Math.max(0, Math.min(1, v)), b = Math.max(0, v - 1.3);
       tortM.color.copy(new THREE.Color('#f0deb0').lerp(new THREE.Color('#e6bd7a'), k).lerp(new THREE.Color('#3a2414'), Math.min(1, b * 1.5)));
@@ -952,4 +952,81 @@ export function buildTortillaStack(g, x, z) {
 /** Pile de papiers d'emballage à damier (pour servir les tacos). */
 export function buildWraps(g, x, z) {
   for (let k = 0; k < 6; k++) { const p = add(box(0.18, 0.003, 0.18, std({ map: checkTex(), roughness: 0.9 })), x, 1.472 + k * 0.004, z, g); p.rotation.y = (Math.random() - 0.5) * 0.3; }
+}
+
+/* ---------------- Emballages ---------------- */
+
+/** Carton à pizza : kraft avec fibres ; le dessus du couvercle est imprimé. */
+const kraftTex = once(() => canvasTex(256, 256, (g, w, h) => {
+  g.fillStyle = '#c9a273'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 500; i++) { g.strokeStyle = `rgba(${Math.random() < 0.5 ? '120,85,45' : '230,200,150'},${rnd(0.08, 0.22)})`; g.lineWidth = rnd(0.4, 1.2); const x = Math.random() * w, y = Math.random() * h, a = rnd(-0.3, 0.3); g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * rnd(4, 14), y + Math.sin(a) * rnd(4, 14)); g.stroke(); }
+}));
+const lidTex = once(() => { const t = canvasTex(256, 256, (g, w, h) => {
+  g.drawImage(kraftTex().image, 0, 0, w, h);
+  g.strokeStyle = '#b3261a'; g.lineWidth = 6; g.strokeRect(14, 14, w - 28, h - 28);
+  g.fillStyle = '#b3261a'; g.beginPath(); g.arc(w / 2, h / 2, 62, 0, 7); g.fill();
+  g.fillStyle = '#fff4e0'; g.font = 'bold 30px system-ui, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillText('PIZZA', w / 2, h / 2 - 12); g.font = 'bold 15px system-ui, sans-serif'; g.fillText('SNACK EMPIRE', w / 2, h / 2 + 18);
+  g.font = '22px system-ui, sans-serif'; g.fillText('🍕', w / 2, 44);
+}); t.center.set(0.5, 0.5); t.rotation = Math.PI; return t; }); // (à l'endroit vu depuis la cuisine)
+
+/**
+ * Met la pizza dans son carton (le carton fait partie de pizza.group : il part avec elle).
+ * open = true : couvercle levé (pizza posée sur une table ou au comptoir) ; sinon il se referme en ~0,4 s.
+ */
+export function packPizza(pz, { open = false } = {}) {
+  if (pz.box) return pz.box;
+  const r = pz.r, s = r * 2.35, h = Math.max(0.034, r * 0.3), T = 0.004;
+  const kraft = std({ map: kraftTex(), roughness: 0.9 }), inside = std({ color: '#e8dcc6', roughness: 0.95 });
+  const b = new THREE.Group(); b.position.y = -0.004;
+  add(box(s, T, s, inside), 0, 0, 0, b);
+  for (const [w, d, x, z] of [[s, T, 0, s / 2], [s, T, 0, -s / 2], [T, s, s / 2, 0], [T, s, -s / 2, 0]]) add(box(w, h, d, kraft), x, h / 2, z, b);
+  // couvercle : charnière au fond (côté fenêtre), il se rabat vers l'avant
+  const hinge = new THREE.Group(); hinge.position.set(0, h, s / 2); b.add(hinge);
+  const lid = add(box(s, T, s, [kraft, kraft, std({ map: lidTex(), roughness: 0.85 }), inside, kraft, kraft]), 0, 0, -s / 2, hinge);
+  add(box(s, h * 0.7, T, kraft), 0, -h * 0.35, -s, hinge); // rabat avant
+  const OPEN = 1.95;
+  hinge.rotation.x = OPEN;
+  if (!open) {
+    let t0 = 0;
+    lid.onBeforeRender = () => {
+      const t = performance.now() / 1000; if (!t0) t0 = t;
+      const k = Math.min(1, (t - t0) / 0.4);
+      hinge.rotation.x = OPEN * (1 - k * k * (3 - 2 * k));
+    };
+  }
+  b.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  pz.group.add(b);
+  pz.box = b;
+  return b;
+}
+
+/** Papier à carreaux enroulé autour du bas du taco (il fait partie de taco.group). */
+export function wrapTaco(tc) {
+  if (tc.paper) return tc.paper;
+  const r = tc.r, RS = r * 0.2 * 1.15, sMax = r * 0.62, NX = 6, NS = 16, X = r * 0.92;
+  const pos = [], uv = [], idx = [];
+  for (let i = 0; i <= NX; i++) for (let j = 0; j <= NS; j++) {
+    const x = -X + (2 * X * i) / NX, sv = -sMax + (2 * sMax * j) / NS, [z, y] = tacoProfile(sv, RS);
+    pos.push(x, y - 0.002, z * 1.06); uv.push(i / NX * 1.5, j / NS * 1.5);
+  }
+  for (let i = 0; i < NX; i++) for (let j = 0; j < NS; j++) { const a = i * (NS + 1) + j, c = a + NS + 1; idx.push(a, c, a + 1, a + 1, c, c + 1); }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geo.setIndex(idx); geo.computeVertexNormals();
+  const tex = checkTex().clone(); tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.needsUpdate = true;
+  const paper = new THREE.Mesh(geo, std({ map: tex, roughness: 0.85, side: THREE.DoubleSide }));
+  paper.castShadow = true;
+  // le papier s'enroule (petite animation)
+  let t0 = 0;
+  paper.scale.set(1, 0.01, 1);
+  paper.onBeforeRender = () => {
+    const t = performance.now() / 1000; if (!t0) t0 = t;
+    const k = Math.min(1, (t - t0) / 0.25); paper.scale.y = Math.max(0.01, k);
+    if (k >= 1) paper.onBeforeRender = () => {};
+  };
+  tc.group.add(paper);
+  tc.paper = paper;
+  return paper;
 }

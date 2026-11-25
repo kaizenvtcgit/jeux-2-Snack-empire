@@ -3,7 +3,7 @@ import * as E from './economy.js';
 import { L } from './i18n.js';
 import { sfx, setSizzle } from './audio.js';
 import { Kitchen, makeCook, sideScore } from './kitchen.js';
-import { buildPan, buildNeon, buildPizzaOven, buildDoughTray, buildRoundBoard, buildCutter, buildPizzaBoxes, buildFlour, buildHood, buildBin, createPizza, smokeTex } from './kitchen-decor.js';
+import { buildPan, buildNeon, buildPizzaOven, buildDoughTray, buildRoundBoard, buildCutter, buildPizzaBoxes, buildFlour, buildHood, buildBin, createPizza, packPizza, smokeTex } from './kitchen-decor.js';
 
 /*
  * Camion n°2 : la pizzeria. Même camion (deux moitiés en miroir) que les hot-dogs, autre cuisine.
@@ -221,7 +221,8 @@ export class PizzaKitchen extends Kitchen {
     this.game.serveManual(this.stand, q, c);
     this.ui.toast(`${stars === 3 ? '😍' : stars === 2 ? '🙂' : '😖'} ${'⭐'.repeat(stars)}${why}`);
     this.group.remove(p.hitbox);
-    this.flying.push({ group: p.pizza.group, from: p.pizza.group.position.clone(), to: this.stand.root.worldToLocal(c.headPos().add(new THREE.Vector3(0, -0.5, 0))), t: 0 });
+    packPizza(p.pizza); // dans son carton, le couvercle se ferme puis elle part
+    this.flying.push({ group: p.pizza.group, from: p.pizza.group.position.clone(), to: this.stand.root.worldToLocal(c.headPos().add(new THREE.Vector3(0, -0.5, 0))), t: 0, wait: 0.45 });
     this.pz = null; this.dog = null;
   }
 
@@ -323,7 +324,7 @@ export class PizzaKitchen extends Kitchen {
           if (this.cookPuffT <= 0) { this.cookPuffT = 0.4; this.puff(OX, Z.oven - 0.2, false); }
         } else if (p >= 0.76 && p < 0.82) { job.carried = true; job.pz.group.position.copy(hand()); }
         else if (p >= 0.82 && p < 0.9) { job.carried = false; job.pz.group.position.set(BX, PIZZA_Y, Z.board); if (p > 0.86 && !job.cut) { job.cut = true; job.pz.cut(); } }
-        else if (p >= 0.9) { const h = hand(); job.pz.group.position.lerp(new THREE.Vector3(h.x, 1.52, Math.min(1.42, h.z + 0.25)), Math.min(1, dt * 10)); }
+        else if (p >= 0.9) { if (!job.pz.box) packPizza(job.pz); const h = hand(); job.pz.group.position.lerp(new THREE.Vector3(h.x, 1.52, Math.min(1.42, h.z + 0.25)), Math.min(1, dt * 10)); }
       }
     }
     void half;
