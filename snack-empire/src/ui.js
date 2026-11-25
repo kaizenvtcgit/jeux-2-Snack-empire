@@ -129,7 +129,11 @@ export class UI {
     // Onglets de la boutique : un clic sur l'onglet déjà ouvert replie la liste, un autre clic la rouvre
     document.querySelectorAll('#tabs button').forEach((b) => b.addEventListener('click', () => {
       const shop = $('#shop');
-      if (b.dataset.tab === this.tab) {
+      if (b.dataset.tab === this.tab && matchMedia('(max-width: 900px)').matches) {
+        // téléphone : retoucher l'onglet ouvert ferme la boutique (et réaffiche le bouton Bonus)
+        document.body.classList.remove('shop-open');
+        return;
+      } else if (b.dataset.tab === this.tab) {
         shop.classList.toggle('collapsed');
       } else this.selectTab(b.dataset.tab);
       try { localStorage.setItem(SHOP_KEY, shop.classList.contains('collapsed') ? '1' : '0'); } catch { /* rien */ }
@@ -388,7 +392,7 @@ export class UI {
     vip.innerHTML = g.adCooldown.vip > 0 ? L(`📺 Livraison VIP · ${Math.ceil(g.adCooldown.vip)} s`, `📺 VIP order · ${Math.ceil(g.adCooldown.vip)} s`) : L(`📺 Livraison VIP +${money(g.vipGain())}`, `📺 VIP order +${money(g.vipGain())}`);
     $('#boost-badge').classList.toggle('show', g.boost > 0);
     // pastille sur « 📺 Bonus » quand une pub est disponible
-    $('#ad-toggle').classList.toggle('dot', [...document.querySelectorAll('#ad-bar button:not(#ad-toggle)')].some((b) => b.style.display !== 'none' && !b.disabled));
+    $('#ad-toggle').classList.toggle('dot', [...document.querySelectorAll('#ad-bar button:not(#ad-toggle)')].some((b) => !b.classList.contains('off') && !b.disabled));
 
     // Port : arrivage en cours / prochain bateau, et pub « faire venir un bateau »
     const portOpen = g.portOpen();
@@ -411,7 +415,7 @@ export class UI {
       setPill(np, g.nightLeft > 0 ? L(`🌙 Nuit à la fête ! ×${E.NIGHT_MULT} · ${s} s`, `🌙 Fair night! ×${E.NIGHT_MULT} · ${s} s`) : L(`🌙 Nuit dans ${mmss}`, `🌙 Night in ${mmss}`), g.nightLeft > 0 ? `🌙 ×${E.NIGHT_MULT} ${s}s` : `🌙 ${mmss}`);
     }
     const nb = $('#ad-night');
-    nb.style.display = fairOpen ? '' : 'none';
+    nb.classList.toggle('off', !fairOpen); // bonus seulement si la zone est ouverte
     nb.disabled = g.adCooldown.night > 0 || g.nightLeft > 0;
     nb.innerHTML = g.nightLeft > 0 ? L('🌙 C\'est la nuit', '🌙 It\'s night') : g.adCooldown.night > 0 ? L(`📺 Nuit · ${Math.ceil(g.adCooldown.night)} s`, `📺 Night · ${Math.ceil(g.adCooldown.night)} s`) : L('📺 Faire tomber la nuit', '📺 Make it night');
 
@@ -426,12 +430,12 @@ export class UI {
       setPill(hp, g.heatLeft > 0 ? L(`☀️ Canicule ! Plage ×${E.HEAT_MULT} · ${s} s`, `☀️ Heatwave! Beach ×${E.HEAT_MULT} · ${s} s`) : L(`☀️ Canicule dans ${mmss}`, `☀️ Heatwave in ${mmss}`), g.heatLeft > 0 ? `☀️ ×${E.HEAT_MULT} ${s}s` : `☀️ ${mmss}`);
     }
     const hb = $('#ad-heat');
-    hb.style.display = beachOpen ? '' : 'none';
+    hb.classList.toggle('off', !beachOpen);
     hb.disabled = g.adCooldown.heat > 0 || g.heatLeft > 0;
     hb.innerHTML = g.heatLeft > 0 ? L('☀️ Canicule en cours', '☀️ Heatwave on') : g.adCooldown.heat > 0 ? L(`📺 Canicule · ${Math.ceil(g.adCooldown.heat)} s`, `📺 Heatwave · ${Math.ceil(g.adCooldown.heat)} s`) : L('📺 Déclencher la canicule', '📺 Start a heatwave');
 
     const boat = $('#ad-boat');
-    boat.style.display = portOpen ? '' : 'none';
+    boat.classList.toggle('off', !portOpen);
     boat.disabled = g.adCooldown.boat > 0 || g.arrival > 0;
     boat.innerHTML = g.arrival > 0 ? L('⛵ Bateau à quai', '⛵ Boat docked') : g.adCooldown.boat > 0 ? L(`📺 Bateau · ${Math.ceil(g.adCooldown.boat)} s`, `📺 Boat · ${Math.ceil(g.adCooldown.boat)} s`) : L('📺 Faire venir un bateau', '📺 Call a fishing boat');
     this.updateShop(false);

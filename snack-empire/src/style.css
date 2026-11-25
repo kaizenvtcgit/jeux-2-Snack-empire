@@ -195,7 +195,7 @@ button { font: inherit; cursor: pointer; }
   #ad-bar button { font-size: 14px; padding: 12px 14px; }
   #ad-bar button:not(#ad-toggle) { display: none !important; }
   body.ads-open #ad-bar button:not(#ad-toggle) { display: block !important; }
-  body.ads-open #ad-bar button:not(#ad-toggle)[style*="display: none"] { display: none !important; }
+  body.ads-open #ad-bar button.off:not(#ad-toggle) { display: none !important; }
   #ad-toggle { display: block; font-size: 16px !important; padding: 13px 18px !important; }
   body.shop-open #ad-bar { display: none; }
   .toast { top: 96px; width: calc(100vw - 32px); font-size: 14px; }
@@ -210,5 +210,7 @@ button { font: inherit; cursor: pointer; }
 @keyframes adSpin { to { transform: rotate(360deg); } }
 /* pas de pubs possibles : pas de boutons de bonus (jamais de bouton cliquable sans effet) */
 body.no-ads #ad-bar > button { display: none !important; }
+/* bonus d'une zone pas encore ouverte (bateau, canicule, nuit) */
+#ad-bar button.off { display: none !important; }
 #ad-note { display: none; padding: 8px 12px; border-radius: 12px; background: var(--panel); color: var(--muted); font-size: 12px; font-weight: 700; }
 body.adblocked #ad-note { display: block; }
