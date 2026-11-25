@@ -57,6 +57,8 @@ export class Game {
       if (h) r.burger = h;
     }
     this.state.hotdogTruck = true;
+    // camions-cuisines pas encore ouverts : aucun cuisinier (les anciennes parties en avaient un « par défaut »)
+    this.state.stands.forEach((st, i) => { if (!st.unlocked && E.isKitchenTruck(i)) st.cooks = 0; });
     // 2 cuisiniers au plus par camion
     this.state.stands.forEach((st, i) => { st.cooks = Math.min(st.cooks, E.maxCooks(i)); });
     this.isNewPlayer = !saved;
@@ -240,6 +242,8 @@ export class Game {
     if (i >= E.OPEN_STANDS) return false; // (étape 1 : les autres camions arrivent bientôt)
     if (this.state.stands[i].unlocked || !this.spend(E.STAND_COST[i])) return false;
     this.state.stands[i].unlocked = true;
+    // un camion-cuisine s'ouvre toujours sans personnel : on y cuisine soi-même avant d'embaucher
+    if (E.isKitchenTruck(i)) { this.state.stands[i].cooks = 0; this.stands[i].setCooks(0); }
     // ouverture d'une zone (marché, port) : sa première recette est offerte
     const zone = E.zoneOf(i);
     if (i === 1 && !this.state.recipes.margherita) { this.state.recipes.margherita = 1; this.refreshMenus(); } // la pizzeria ouvre avec la Margherita
