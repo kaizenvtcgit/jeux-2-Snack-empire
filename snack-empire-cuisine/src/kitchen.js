@@ -68,7 +68,7 @@ export function randomOrder(S) {
 }
 
 /** Note de cuisson d'une face (0 → 1). */
-function sideScore(v) {
+export function sideScore(v) {
   if (v < 0.5) return 0;
   if (v < GOOD[0]) return 0.6;
   if (v <= GOOD[1]) return 1;
@@ -151,7 +151,7 @@ export class Kitchen {
     this.giantGeo = giantSausageGeometry();
     this.slots = grillSlots(3);
     // néon « HOT-DOGS » sur la carrosserie, à droite de la fenêtre (visible de la rue)
-    this.neon = buildNeon(g, 1.1, 2.25, 1.235);
+    this.neon = buildNeon(g, 1.1, 2.25, 1.235, 'HOT-DOGS');
 
     // Deux installations identiques, en miroir : celle du joueur (à droite) et celle du cuisinier (à gauche)
     this.halves = { [-1]: this.buildHalf(-1), [1]: this.buildHalf(1) };
@@ -260,16 +260,17 @@ export class Kitchen {
   /* ---------------- Interface (HTML) ---------------- */
   buildUI() {
     const mk = (tag, id, html = '') => { const e = document.createElement(tag); e.id = id; e.innerHTML = html; document.body.appendChild(e); return e; };
-    this.enterBtn = mk('button', 'kitchen-btn', `👨‍🍳 ${L('Cuisiner', 'Cook')}<small>${L('Entrer dans le camion 1', 'Step into truck 1')}</small>`);
-    this.exitBtn = mk('button', 'kitchen-exit', `⬅ ${L('Sortir', 'Exit')}`);
-    this.ticket = mk('div', 'kitchen-ticket');
-    this.hint = mk('div', 'kitchen-hint');
-    this.label = mk('div', 'kitchen-label');
-    this.gauges = mk('div', 'kitchen-gauges');
-    // jauge de réputation du camion à hot-dogs (dans le bandeau du haut)
-    this.repPill = document.createElement('div');
-    this.repPill.className = 'pill rep';
-    document.getElementById('hud').appendChild(this.repPill);
+    // un bouton « Cuisiner » par camion ; le reste de l'interface (ticket, conseils, jauges, compteur d'étoiles) est partagé
+    const n = this.stand.index + 1;
+    this.enterBtn = mk('button', n === 1 ? 'kitchen-btn' : `kitchen-btn-${n}`, `${this.emoji} ${L('Cuisiner', 'Cook')}<small>${L(`Entrer dans le camion ${n}`, `Step into truck ${n}`)}</small>`);
+    this.enterBtn.classList.add('kitchen-btn');
+    if (!Kitchen.shared) {
+      const repPill = document.createElement('div');
+      repPill.className = 'pill rep';
+      document.getElementById('hud').appendChild(repPill);
+      Kitchen.shared = { exitBtn: mk('button', 'kitchen-exit', `⬅ ${L('Sortir', 'Exit')}`), ticket: mk('div', 'kitchen-ticket'), hint: mk('div', 'kitchen-hint'), label: mk('div', 'kitchen-label'), gauges: mk('div', 'kitchen-gauges'), repPill };
+    }
+    Object.assign(this, Kitchen.shared);
     this.enterBtn.addEventListener('click', () => this.enter());
     this.exitBtn.addEventListener('click', () => this.exit());
     addEventListener('keydown', (e) => { if (this.active && e.key === 'Escape') this.exit(); });
@@ -277,9 +278,12 @@ export class Kitchen {
 
   /** Le bouton « Cuisiner » n'apparaît que sur le parking (niveau 1). */
   syncButton() {
-    const show = !this.active && this.ui.zone === 'parking' && this.stand.unlocked;
+    const show = !this.active && !document.body.classList.contains('in-kitchen') && this.ui.zone === 'parking' && this.stand.unlocked;
     this.enterBtn.classList.toggle('show', show);
   }
+
+  /** Emoji de la spécialité (bouton, ticket). */
+  get emoji() { return '🌭'; }
 
   /* ---------------- Souris / doigt ---------------- */
   bindInput() {
@@ -631,7 +635,15 @@ export class Kitchen {
         job.dog.position.lerp(new THREE.Vector3(h.x, 1.52, Math.min(1.42, h.z + 0.25)), Math.min(1, dt * 10));
       }
     }
-    // déplacement (il marche avec ses jambes), puis orientation
+    this.moveCook(m, dt, goal, lookX, lookZ, work, job && (job.carried || work === 'hand'));
+  }
+
+  /**
+   * Le cuisinier marche jusqu'à « goal » (x le long du plan de travail), regarde (lookX, lookZ) et fait le geste « work ».
+   * (partagé par toutes les cuisines)
+   */
+  moveCook(m, dt, goal, lookX, lookZ, work, carrying) {
+    const c = m.c, t = performance.now() / 1000, pos = c.root.position, STAND_Z = 0.15;
     const dx = goal - pos.x;
     const moving = Math.abs(dx) > 0.03;
     const speed = 1.7;
@@ -655,13 +667,16 @@ export class Kitchen {
         carry: [-1.0, -0.6, -0.4, -0.4, 0.06],
         sauce: [-1.15 + Math.sin(t * 9) * 0.07, -0.6, -1.0, -0.7, 0.1],
         hand: [-1.45, -0.15, -1.2, -0.3, 0.04],
-      }[work];
+        stretch: [-1.1 + Math.sin(t * 7) * 0.12, -0.5, -1.1 - Math.sin(t * 7) * 0.12, -0.5, 0.14], // étaler la pâte à deux mains
+        oven: [-1.25, -0.25, -1.2, -0.3, 0.1],
+        cut: [-1.1, -0.5 + Math.sin(t * 8) * 0.15, -0.6, -0.6, 0.12],
+      }[work] || [-0.6, -0.7, -0.2, -0.3, 0.03];
       c.arms[0].rotation.x += (P[0] - c.arms[0].rotation.x) * e;
       c.forearms[0].rotation.x += (P[1] - c.forearms[0].rotation.x) * e;
       c.arms[1].rotation.x += (P[2] - c.arms[1].rotation.x) * e;
       c.forearms[1].rotation.x += (P[3] - c.forearms[1].rotation.x) * e;
       c.body.rotation.x += (P[4] - c.body.rotation.x) * e;
-    } else if (job && (job.carried || work === 'hand')) {
+    } else if (carrying) {
       // en marchant avec quelque chose dans les mains : bras devant
       c.arms[0].rotation.x = -1.0; c.forearms[0].rotation.x = -0.6;
     }
@@ -724,7 +739,7 @@ export class Kitchen {
     this.group.visible = st.unlocked;
     if (!st.unlocked) return;
     this.refreshEquipment();
-    this.updateRep();
+    if (this.stand.index === 0) this.updateRep(); // (un seul compteur d'étoiles pour tout le jeu)
     for (const l of this.lights) l.visible = this.active;
     this.outLight.visible = !this.active;
     this.fadeAwning(dt);
@@ -747,7 +762,15 @@ export class Kitchen {
     w.fixed.target.lerpVectors(this.from.target, target, k);
     w.fixed.fov = fov;
 
-    // cuisson
+    this.updatePlayer(dt);
+
+    // commande du client et conseil du moment
+    this.updateTicket(dt, narrow);
+  }
+
+  /** Ce que prépare le joueur (ici : les saucisses sur la plaque). */
+  updatePlayer(dt) {
+    const w = this.world;
     const tmp = new THREE.Color();
     for (const s of this.sausages) {
       s.sides[s.down] += COOK_RATE * (1 + 0.15 * this.game.state.hd.eq.speed) * dt; // (cuisson rapide : cuit plus vite)
@@ -771,9 +794,12 @@ export class Kitchen {
       s.gauge.classList.toggle('burn', v > GOOD[1]);
     }
     setSizzle(Math.min(1, (this.sausages.length + this.stand.cooks) / 2));
+  }
 
-    // commande du client et conseil du moment
-    this.updateTicket(dt, narrow);
+  /** Texte de la commande sur le ticket. */
+  orderHtml(c) {
+    const m = E.hotdogModel(c.order.model);
+    return `${m.emoji} ${m.name} + ${orderItems(c.order).map((t) => `${ITEM[t].emoji} ${TOPPING_NAMES[t]()}`).join(' + ')}`;
   }
 
   /**
@@ -821,7 +847,7 @@ export class Kitchen {
       p.sp.material.opacity = p.peak * Math.min(1, k * 5) * (1 - k);
       if (p.life <= 0) p.sp.visible = false;
     }
-    for (const b of [-1, 1].flatMap((d) => BOTTLES.map((k) => this.halves[d][k]))) {
+    for (const b of [-1, 1].flatMap((d) => BOTTLES.map((k) => this.halves[d][k])).filter(Boolean)) { // (flacons pressés, s'il y en a)
       const q = b.userData.squeeze || 0;
       b.scale.set(1 + q * 0.12, 1 - q * 0.1, 1 + q * 0.12);
       b.userData.squeeze = Math.max(0, q - dt * 4);
@@ -847,7 +873,7 @@ export class Kitchen {
     }
     const c = this.customer();
     this.ticket.innerHTML = c
-      ? `<b>${L('Commande', 'Order')}</b><span>${E.hotdogModel(c.order.model).emoji} ${E.hotdogModel(c.order.model).name} + ${orderItems(c.order).map((t) => `${ITEM[t].emoji} ${TOPPING_NAMES[t]()}`).join(' + ')}</span><em>${money(this.game.orderPrice(c.order))}</em>`
+      ? `<b>${L('Commande', 'Order')}</b><span>${this.orderHtml(c)}</span><em>${money(this.game.orderPrice(c.order, this.stand))}</em>`
       : `<b>${L('Commande', 'Order')}</b><span class="wait">${L('En attente d’un client…', 'Waiting for a customer…')}</span>`;
     this.ticket.classList.toggle('new', !!c && c !== this.lastCustomer);
     this.lastCustomer = c;
@@ -884,7 +910,7 @@ export class Kitchen {
  * Le cuisinier embauché : un personnage du jeu en tenue (veste et tablier blancs, toque),
  * debout devant son poste au bout du plan de travail.
  */
-function makeCook(scene, parent, x) {
+export function makeCook(scene, parent, x) {
   const c = new Customer(scene, new THREE.Vector3());
   scene.remove(c.root);
   // (le personnage s'anime comme un client, au niveau du sol : on le pose sur le plancher du camion)

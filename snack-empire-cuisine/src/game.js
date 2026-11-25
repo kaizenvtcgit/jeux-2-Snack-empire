@@ -9,6 +9,7 @@ import { Customer, PEOPLE } from './people.js';
 import * as E from './economy.js';
 import { L } from './i18n.js';
 import { randomOrder } from './kitchen.js';
+import { randomPizzaOrder } from './pizza.js';
 import { loadSave, writeSave, clearSave } from './save.js';
 
 const MAX_CUSTOMERS = { high: 70, low: 45 };
@@ -20,7 +21,8 @@ function defaultState() {
     recipes: { hotdog: 1 },
     up: { speed: 0, marketing: 0, queue: 0 },
     // le camion n°1 démarre sans cuisinier : c'est le joueur qui cuisine, jusqu'à ce qu'il en embauche un
-    stands: SLOT_X.map((_, i) => ({ unlocked: i === 0, cooks: i === 0 ? 0 : 1 })),
+    // les camions-cuisines (hot-dogs, pizza) démarrent sans personnel : on y cuisine soi-même avant d'embaucher
+    stands: SLOT_X.map((_, i) => ({ unlocked: i === 0, cooks: E.isKitchenTruck(i) ? 0 : 1 })),
     handServed: 0,
     rate: 0,
     lastSeen: Date.now(),
@@ -118,8 +120,8 @@ export class Game {
     const S = this.state;
     stand.jobs = (stand.jobs || []).filter((j) => stand.queue.includes(j.c));
     // chaque client arrivé dans la file passe sa commande (garnitures du hot-dog)
-    for (const q of stand.queue) if (q.state === 'queue' && q.arrived && !q.order) q.order = randomOrder(S);
-    const D = E.hotdogPrepTime(S.hd);
+    for (const q of stand.queue) if (q.state === 'queue' && q.arrived && !q.order) q.order = this.orderFor(stand);
+    const D = E.prepTimeFor(stand.index, E.truckState(S, stand.index));
     for (let k = 0; k < stand.cooks; k++) {
       if (stand.jobs.some((j) => j.k === k)) continue;
       // chacun sert d'abord le client devant sa moitié de fenêtre (1er cuisinier : place 0 à gauche ; 2e : place 1 à droite)
@@ -128,7 +130,7 @@ export class Game {
       const c = free(mine) ? mine : stand.queue.find(free);
       if (!c) continue;
       // (le cuisinier prépare exactement ce que le client a commandé : le modèle fixe le prix de base)
-      stand.jobs.push({ k, c, timer: D, duration: D, recipe: E.hotdogModel(c.order && c.order.model) });
+      stand.jobs.push({ k, c, timer: D, duration: D, recipe: E.truckModel(stand.index, c.order && c.order.model) });
     }
     for (const j of [...stand.jobs]) {
       j.timer -= dt;
@@ -146,7 +148,7 @@ export class Game {
     stand.jobs.splice(stand.jobs.indexOf(j), 1);
     const order = j.c.order || { model: 'hotdog', tops: [] };
     // le cuisinier vend au prix de la carte (garnitures comprises) ; toi, tu vends 3× plus cher (voir orderPrice)
-    const amount = this.basePrice(order) * this.affluence * (this.boost > 0 ? 2 : 1);
+    const amount = this.basePrice(order, stand) * this.affluence * (this.boost > 0 ? 2 : 1);
     this.salesAcc += 1;
     j.c.order = null;
     this.addMoney(amount);
@@ -159,9 +161,9 @@ export class Game {
   }
 
   /** Prix d'une commande à la carte : prix du modèle (selon son niveau) + chaque garniture. */
-  basePrice(order) {
-    const m = E.hotdogModel(order.model);
-    const extra = order.tops.reduce((sum, t) => sum + (E.TOPPING_PRICE[t] || 0), 0);
+  basePrice(order, stand) {
+    const m = E.truckModel(stand.index, order.model);
+    const extra = order.tops.reduce((sum, t) => sum + E.optionPrice(t), 0);
     return E.recipePrice(m, Math.max(1, this.state.recipes[m.id] || 1)) * (1 + extra);
   }
 
@@ -181,15 +183,18 @@ export class Game {
   }
 
   /* ---------- Achats du camion à hot-dogs ---------- */
-  buyEquip(key) {
-    const eq = E.EQUIPMENT[key], hd = this.state.hd, lvl = hd.eq[key];
+  /** Commande d'un client selon le camion (hot-dog ou pizza). */
+  orderFor(stand) { return stand.index === 1 ? randomPizzaOrder(this.state) : randomOrder(this.state); }
+
+  buyEquip(key, i = 0) {
+    const eq = E.EQUIPMENT[key], hd = E.truckState(this.state, i), lvl = hd.eq[key];
     if (!eq || lvl >= eq.costs.length || !this.spend(eq.costs[lvl])) return;
     hd.eq[key] = lvl + 1;
     this.save(); this.hooks.changed();
   }
 
   /** File d'attente d'un stand : espace d'attente (pour tous) + comptoir agrandi (camion n°1). */
-  queueCapOf(stand) { return E.queueCap(this.state.up.queue) + (stand.index === 0 ? this.state.hd.eq.counter : 0); }
+  queueCapOf(stand) { return E.queueCap(this.state.up.queue) + (E.isKitchenTruck(stand.index) ? E.truckState(this.state, stand.index).eq.counter : 0); }
 
   /* ---------- Gains hors-ligne ---------- */
   offlineGain() {
@@ -236,7 +241,8 @@ export class Game {
     this.state.stands[i].unlocked = true;
     // ouverture d'une zone (marché, port) : sa première recette est offerte
     const zone = E.zoneOf(i);
-    if (i >= 1 && i <= 3 && !E.TRUCK_RECIPES.some((r) => this.state.recipes[r.id])) { this.state.recipes.fries = 1; this.refreshMenus(); }
+    if (i === 1 && !this.state.recipes.margherita) { this.state.recipes.margherita = 1; this.refreshMenus(); } // la pizzeria ouvre avec la Margherita
+    if (i >= 2 && i <= 3 && !E.TRUCK_RECIPES.some((r) => this.state.recipes[r.id])) { this.state.recipes.fries = 1; this.refreshMenus(); }
     if (i === zone.first && !this.state.recipes[zone.recipes[0].id]) {
       this.state.recipes[zone.recipes[0].id] = 1;
       this.refreshMenus();
@@ -366,7 +372,7 @@ export class Game {
     // Arrivée de clients
     this.spawnT -= dt;
     if (this.spawnT <= 0) {
-      this.spawnT = E.spawnInterval(S.up.marketing, open.length) * (0.7 + Math.random() * 0.6) / (1 + 0.2 * S.hd.eq.sign / open.length); // (enseigne lumineuse : plus de clients)
+      this.spawnT = E.spawnInterval(S.up.marketing, open.length) * (0.7 + Math.random() * 0.6) / (1 + 0.2 * (S.hd.eq.sign + S.pz.eq.sign) / open.length); // (enseignes lumineuses : plus de clients)
       if (this.customers.length < MAX_CUSTOMERS[this.world.quality]) this.spawn(open);
     }
 
@@ -379,14 +385,14 @@ export class Game {
       stand.near = Math.hypot(stand.x - cam.x, stand.z - cam.z) < near;
       stand.update(dt, this.time);
       const front = stand.queue[0];
-      if (stand.index === 0) this.updateHotdogTruck(stand, dt);
+      if (E.isKitchenTruck(stand.index)) this.updateHotdogTruck(stand, dt);
       else if (!stand.serving && stand.cooks > 0 && front && front.state === 'queue' && front.arrived) {
         const menu = stand.recipes.filter((r) => (S.recipes[r.id] || 0) > 0); // camion ou étal du marché
         stand.recipe = menu[Math.floor(Math.random() * menu.length)];
         stand.serving = front;
         stand.duration = stand.timer = E.serviceTime(S.up.speed, stand.cooks);
       }
-      if (stand.index !== 0 && stand.serving && stand.cooks > 0) {
+      if (!E.isKitchenTruck(stand.index) && stand.serving && stand.cooks > 0) {
         stand.timer -= dt;
         if (stand.timer <= 0) this.finishOrder(stand);
       }
@@ -578,7 +584,7 @@ export class Game {
     const S = this.state;
     const demand = 1 / (3.2 * 0.9 ** S.up.marketing);
     let theo = 0;
-    for (const s of open) if (s.cooks > 0) theo += Math.min(demand * (s.index === 0 ? 1 + 0.2 * S.hd.eq.sign : 1), 1 / E.serviceTime(S.up.speed, s.cooks));
+    for (const s of open) if (s.cooks > 0) theo += Math.min(demand * (E.isKitchenTruck(s.index) ? 1 + 0.2 * E.truckState(S, s.index).eq.sign : 1), 1 / E.serviceTime(S.up.speed, s.cooks));
     const target = Math.max(1, theo / Math.max(0.3, this.salesRate));
     return this.affluence + (Math.min(target, 400) - this.affluence) * 0.15; // évolue en douceur
   }
@@ -588,14 +594,14 @@ export class Game {
    * Hot-dog fait main = 3 × le prix du hot-dog du camion (il monte avec ses améliorations), + chaque garniture.
    */
   /** Ce que vaut une commande préparée par toi : 3× le prix de la carte. */
-  orderPrice(order) { return this.basePrice(order) * 3 * this.affluence * (this.boost > 0 ? 2 : 1); }
+  orderPrice(order, stand) { return this.basePrice(order, stand) * 3 * this.affluence * (this.boost > 0 ? 2 : 1); }
   /** Ce que le client paie vraiment : le prix de la commande selon la note (q = 0 → 1). */
-  manualPrice(q, order) { return this.orderPrice(order) * (0.25 + 0.75 * q); }
+  manualPrice(q, order, stand) { return this.orderPrice(order, stand) * (0.25 + 0.75 * q); }
 
   /** Cuisine : le joueur sert un client (celui dont il prépare la commande). */
   serveManual(stand, q, c = stand.queue[0]) {
     if (!c || !stand.queue.includes(c)) return 0;
-    const amount = this.manualPrice(q, c.order || { model: 'hotdog', tops: [] });
+    const amount = this.manualPrice(q, c.order || { model: '', tops: [] }, stand);
     this.state.handServed = (this.state.handServed || 0) + 1;
     this.giveStars(c, q > 0.85 ? 3 : q > 0.55 ? 2 : 1); // ta note : bien cuit et bien garni = 3 étoiles
     this.finishOrder(stand, amount, c);

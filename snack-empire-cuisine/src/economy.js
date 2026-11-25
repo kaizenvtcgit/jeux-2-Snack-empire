@@ -11,20 +11,51 @@ export const HOTDOG_MODELS = [
   { id: 'cheesedog', name: L('Cheese-dog', 'Cheese dog'), emoji: '🧀', base: 9, unlock: 150, up: 40, extra: 'cheese' },
   { id: 'chilidog', name: L('Chili-dog', 'Chili dog'), emoji: '🌶️', base: 22, unlock: 1200, up: 300, extra: 'chili' },
 ];
-/** Spécialités des camions 2 à 4 (pas encore ouverts). */
+/** Camion n°2 : la pizzeria. need = ce qu'il faut mettre sur la pizza (en plus de la pâte étalée). */
+export const PIZZA_MODELS = [
+  { id: 'margherita', name: L('Margherita', 'Margherita'), emoji: '🍕', base: 7, unlock: 0, up: 20, need: ['sauce', 'mozza', 'basil'] },
+  { id: 'reine', name: L('Reine', 'Ham & mushroom'), emoji: '🍄', base: 14, unlock: 600, up: 120, need: ['sauce', 'mozza', 'ham', 'mushrooms'] },
+  { id: 'fourcheese', name: L('4 fromages', 'Four cheese'), emoji: '🧀', base: 30, unlock: 4000, up: 800, need: ['sauce', 'mozza', 'cheeses'] },
+];
+/** Garnitures de pizza en option (le client en demande parfois une). */
+export const PIZZA_EXTRAS = [
+  { id: 'olives', name: L('Olives', 'Olives'), emoji: '🫒', price: 0.2 },
+  { id: 'oregano', name: L('Origan', 'Oregano'), emoji: '🌿', price: 0.15 },
+];
+/** Ingrédients de la pizzeria (bacs du rail). */
+export const PIZZA_ITEMS = {
+  sauce: { name: L('Sauce tomate', 'Tomato sauce'), emoji: '🍅' },
+  mozza: { name: L('Mozzarella', 'Mozzarella'), emoji: '⚪' },
+  basil: { name: L('Basilic', 'Basil'), emoji: '🌿' },
+  ham: { name: L('Jambon', 'Ham'), emoji: '🥓' },
+  mushrooms: { name: L('Champignons', 'Mushrooms'), emoji: '🍄' },
+  cheeses: { name: L('Mélange 3 fromages', '3-cheese mix'), emoji: '🧀' },
+  olives: { name: L('Olives', 'Olives'), emoji: '🫒' },
+  oregano: { name: L('Origan', 'Oregano'), emoji: '🌱' },
+};
+export const pizzaModel = (id) => PIZZA_MODELS.find((m) => m.id === id) || PIZZA_MODELS[0];
+/** Spécialités des camions 2 à 4. */
 export const TRUCK_SPECIALTIES = [
   { emoji: '🍕', name: L('Pizza', 'Pizza') },
   { emoji: '🌮', name: L('Tacos', 'Tacos') },
   { emoji: '🍔', name: L('Burgers', 'Burgers') },
 ];
-/** Nombre d'emplacements ouverts à l'achat pour l'instant (étape 1 : le camion n°1 seulement). */
-export const OPEN_STANDS = 1;
+/** Nombre d'emplacements ouverts à l'achat pour l'instant (étape 2 : camions 1 et 2). */
+export const OPEN_STANDS = 2;
+/** Camions avec une cuisine où l'on peut entrer (et où les cuisiniers préparent vraiment les commandes). */
+export const isKitchenTruck = (i) => i === 0 || i === 1;
+/** Carte d'un camion-cuisine. */
+export const truckModels = (i) => (i === 1 ? PIZZA_MODELS : HOTDOG_MODELS);
+export const truckModel = (i, id) => { const list = truckModels(i); return list.find((m) => m.id === id) || list[0]; };
+/** Prix des options d'une commande (garnitures du hot-dog, extras de la pizza). */
+export const optionPrice = (t) => (TOPPING_PRICE[t] || (PIZZA_EXTRAS.find((x) => x.id === t) || {}).price || 0);
 /** Étoiles nécessaires pour ouvrir le niveau 2 (le marché). */
 export const STARS_GOAL = 100;
 export const TRUCK_RECIPES = [
   { id: 'fries', name: L('Frites', 'Fries'), emoji: '🍟', base: 8, unlock: 150, up: 40 },
 ];
 export const RECIPES = [...HOTDOG_MODELS, ...TRUCK_RECIPES];
+export const KITCHEN_RECIPES = () => [...HOTDOG_MODELS, ...PIZZA_MODELS];
 
 /** Garnitures du camion à hot-dogs (toutes disponibles dès le départ). */
 export const TOPPINGS = [
@@ -98,7 +129,7 @@ export const FAIR_RECIPES = [
   { id: 'donut', name: L('Beignet au sucre', 'Sugar donut'), emoji: '🍩', base: 2e14, unlock: 3e25, up: 7.5e12 },
   { id: 'lemonade', name: L('Limonade maison', 'Homemade lemonade'), emoji: '🍋', base: 5e14, unlock: 2e26, up: 3e13 },
 ];
-export const allRecipes = () => [...RECIPES, ...MARKET_RECIPES, ...PORT_RECIPES, ...BEACH_RECIPES, ...FAIR_RECIPES];
+export const allRecipes = () => [...RECIPES, ...PIZZA_MODELS, ...MARKET_RECIPES, ...PORT_RECIPES, ...BEACH_RECIPES, ...FAIR_RECIPES];
 
 /** Premier emplacement de chaque zone (0-3 : camions, 4-9 : marché, 10-17 : port, 18-25 : plage, 26-33 : fête). */
 export const MARKET_FIRST = 4;
@@ -121,7 +152,7 @@ export const zoneById = (id) => ZONES.find((z) => z.id === id);
 // marché vers 1 h, port vers 2 h 20, plage vers 6 h 30, fête (fin du jeu) vers 11 h.
 // (le 1er emplacement d'une zone l'ouvre)
 export const STAND_COST = [
-  0, 150, 4000, 60000,                                      // camions
+  0, 500, 4000, 60000,                                      // camions (le 2e : la pizzeria)
   2e6, 1e7, 4e7, 1.2e8, 5e8, 2e9,                           // marché
   7.5e9, 4e11, 5e12, 2e13, 5e13, 1.2e14, 2e14, 3e14,        // port
   1.2e15, 8e16, 1.2e18, 5e18, 2e19, 6e19, 1.2e20, 1.5e20,   // plage
@@ -129,7 +160,7 @@ export const STAND_COST = [
 ];
 /** Prix du 2e et du 3e vendeur de chaque emplacement (camion n°1 : il démarre sans cuisinier, le 1er coûte 50 $). */
 export const COOK_COST = [
-  [50, 150, 600], [0, 200, 800], [0, 5000, 25000], [0, 80000, 4e5],
+  [50, 150, 600], [200, 600, 2400], [0, 5000, 25000], [0, 80000, 4e5],
   [0, 3e6, 1.5e7], [0, 1.5e7, 7.5e7], [0, 5e7, 2.5e8], [0, 2e8, 8e8], [0, 8e8, 4e9], [0, 3e9, 1.5e10],
   [0, 1.2e10, 6e10], [0, 8e11, 4e12], [0, 1e13, 5e13], [0, 4e13, 2e14], [0, 1e14, 5e14], [0, 2.5e14, 1.2e15], [0, 4e14, 2e15], [0, 6e14, 3e15],
   [0, 2e15, 1e16], [0, 1.2e17, 6e17], [0, 2e18, 8e18], [0, 8e18, 4e19], [0, 3e19, 1.5e20], [0, 1e20, 5e20], [0, 2e20, 1e21], [0, 2.5e20, 1.2e21],
@@ -159,15 +190,22 @@ export const COOK_FACTOR = [1, 1.8, 2.5];
 export const COOK_SHOW_SECONDS = 7;
 /** Camion n°1 : temps qu'il faut à un cuisinier pour préparer un hot-dog (le « Grill turbo » l'accélère). */
 /** Temps qu'il faut à un cuisinier pour préparer un hot-dog (la « Cuisson rapide » l'accélère). */
-export const hotdogPrepTime = (hd = {}) => COOK_SHOW_SECONDS * (1 - 0.15 * ((hd.eq && hd.eq.speed) || 0));
+export const hotdogPrepTime = (hd = {}, base = COOK_SHOW_SECONDS) => base * (1 - 0.15 * ((hd.eq && hd.eq.speed) || 0));
+/** Temps de préparation d'une commande par un cuisinier, selon le camion (la pizza prend plus longtemps : le four). */
+export const prepTimeFor = (i, ts) => hotdogPrepTime(ts, i === 1 ? 9 : COOK_SHOW_SECONDS);
 /** État du camion à hot-dogs dans la sauvegarde (complété si absent). */
 export function hotdogState(S) {
   S.hd = S.hd || {};
   S.hd.tops = Object.assign({ ketchup: 1, mustard: 1, onions: 1 }, S.hd.tops || {});
   S.hd.eq = Object.assign(Object.fromEntries(Object.keys(EQUIPMENT).map((k) => [k, 0])), S.hd.eq || {});
+  // camion n°2 (pizzeria) : son propre équipement
+  S.pz = S.pz || {};
+  S.pz.eq = Object.assign(Object.fromEntries(Object.keys(EQUIPMENT).map((k) => [k, 0])), S.pz.eq || {});
   S.stars = S.stars || 0;
   return S.hd;
 }
+/** État (équipement…) d'un camion-cuisine. */
+export const truckState = (S, i) => (i === 1 ? S.pz : S.hd);
 export const MAX_COOKS = 3;
 /** Nombre maximum de cuisiniers / vendeurs d'un emplacement : 2 dans les camions, 3 ailleurs. */
 export const maxCooks = (i) => (i < MARKET_FIRST ? 2 : MAX_COOKS);

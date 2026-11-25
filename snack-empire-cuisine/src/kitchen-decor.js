@@ -446,6 +446,14 @@ export function makeBun() {
 /* ---------------- Équipement du camion à hot-dogs (s'affiche quand on l'achète) ---------------- */
 
 const PAN_CONTENT = {
+  sauce: { color: '#b3231a', shape: 'stew' },
+  mozza: { color: '#f4f1e6', shape: 'dice' },
+  basil: { color: '#3f7f2a', shape: 'leaf' },
+  ham: { color: '#e79a8e', shape: 'slice' },
+  mushrooms: { color: '#d9c4a0', shape: 'disc' },
+  cheeses: { color: '#f2c14e', shape: 'dice' },
+  olives: { color: '#262420', shape: 'ring' },
+  oregano: { color: '#5d7a2e', shape: 'dice' },
   onions: { color: '#efe7cf', shape: 'dice' },
   friedonions: { color: '#a86a2a', shape: 'dice' },
   pickles: { color: '#6f9a3a', shape: 'disc' },
@@ -466,7 +474,7 @@ export function buildPan(g, x, z, kind) {
   const c = PAN_CONTENT[kind];
   const m = phys({ color: c.color, roughness: kind === 'chili' ? 0.25 : 0.5, clearcoat: kind === 'chili' || kind === 'pickles' ? 0.6 : 0.1 });
   add(box(W - 0.01, 0.01, D - 0.01, m), 0, H - 0.025, 0, pan); // fond de garniture
-  const n = { dice: 40, disc: 14, ring: 14, slice: 6, stew: 0, strip: 7 }[c.shape];
+  const n = { dice: 40, disc: 14, ring: 14, slice: 6, stew: 0, strip: 7, leaf: 12 }[c.shape];
   if (c.shape === 'stew') {
     // chili : surface brillante bombée + louche
     add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), m), 0, H - 0.03, 0, pan).scale.set(0.9, 0.25, 1.25);
@@ -482,6 +490,7 @@ export function buildPan(g, x, z, kind) {
     else if (c.shape === 'disc') piece = cyl(0.016, 0.016, 0.005, m, 12);
     else if (c.shape === 'ring') piece = new THREE.Mesh(new THREE.TorusGeometry(0.012, 0.004, 6, 12), m);
     else if (c.shape === 'slice') piece = box(0.085, 0.004, 0.085, m);
+    else if (c.shape === 'leaf') { piece = new THREE.Mesh(new THREE.SphereGeometry(0.016, 8, 6), m); piece.scale.set(1, 0.25, 0.6); }
     else piece = box(0.09, 0.005, 0.02, m);
     piece.position.set(rnd(-W / 2 + 0.02, W / 2 - 0.02) * (c.shape === 'slice' || c.shape === 'strip' ? 0.2 : 1), H - 0.018 + (c.shape === 'slice' ? i * 0.005 : rnd(0, 0.01)), rnd(-D / 2 + 0.02, D / 2 - 0.02) * (c.shape === 'slice' ? 0.2 : 1));
     piece.rotation.set(c.shape === 'ring' ? Math.PI / 2 : rnd(-0.3, 0.3), rnd(0, 3), 0);
@@ -523,12 +532,12 @@ export function buildDispenser(g, x, y, z) {
 }
 
 /** Enseigne néon « HOT-DOGS » sur la carrosserie (dehors), de plus en plus lumineuse avec les niveaux. */
-export function buildNeon(g, x, y, z) {
+export function buildNeon(g, x, y, z, text = 'HOT-DOGS') {
   const tex = canvasTex(512, 160, (c, w, h) => {
     c.clearRect(0, 0, w, h);
     c.font = '900 92px "Arial Black", Impact, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.shadowColor = '#ff2d8a'; c.shadowBlur = 30; c.fillStyle = '#ffd1ea'; c.fillText('HOT-DOGS', w / 2, h / 2 + 4);
-    c.shadowBlur = 0; c.lineWidth = 6; c.strokeStyle = '#ff5fb0'; c.strokeText('HOT-DOGS', w / 2, h / 2 + 4);
+    c.shadowColor = '#ff2d8a'; c.shadowBlur = 30; c.fillStyle = '#ffd1ea'; c.fillText(text, w / 2, h / 2 + 4, w - 20);
+    c.shadowBlur = 0; c.lineWidth = 6; c.strokeStyle = '#ff5fb0'; c.strokeText(text, w / 2, h / 2 + 4, w - 20);
   });
   const mat = new THREE.MeshStandardMaterial({ map: tex, emissiveMap: tex, emissive: 0xffffff, emissiveIntensity: 1.6, transparent: true, alphaTest: 0.05, roughness: 0.4 });
   const n = new THREE.Group();
@@ -546,4 +555,127 @@ export function giantSausageGeometry() {
   const g = sausageGeometry();
   g.scale(1.4, 1.2, 1.2);
   return g;
+}
+
+
+/* ---------------- La pizzeria (camion n°2) ---------------- */
+
+/**
+ * Une pizza qui se prépare : boule de pâte qu'on étale, sauce, garnitures, cuisson (couleur), découpe.
+ * Renvoie { group, setStretch(0→1), add(item), setBake(v), cut() }.
+ */
+export function createPizza(r = 0.15) {
+  const group = new THREE.Group();
+  const doughM = phys({ color: '#f1dcae', roughness: 0.8, sheen: 0.3 });
+  const crustM = phys({ color: '#f1dcae', roughness: 0.75, sheen: 0.3 });
+  const ball = new THREE.Mesh(new THREE.SphereGeometry(0.06, 20, 14), doughM);
+  ball.scale.set(1, 0.65, 1); ball.position.y = 0.035;
+  group.add(ball);
+  const disc = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.012, 40), doughM);
+  disc.position.y = 0.006; group.add(disc);
+  const crust = new THREE.Mesh(new THREE.TorusGeometry(r, 0.016, 10, 40), crustM);
+  crust.rotation.x = Math.PI / 2; crust.position.y = 0.014; group.add(crust);
+  const layers = new THREE.Group(); layers.position.y = 0.013; group.add(layers);
+  const cuts = new THREE.Group(); cuts.visible = false; group.add(cuts);
+  for (let k = 0; k < 3; k++) { const c = new THREE.Mesh(new THREE.BoxGeometry(2 * r + 0.03, 0.004, 0.005), std({ color: '#5a3a1e', roughness: 0.9 })); c.rotation.y = (k * Math.PI) / 3; c.position.y = 0.03; cuts.add(c); }
+  const cheeseMats = [];
+  const R = (k = 0.8) => { const a = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * r * k; return [Math.cos(a) * d, Math.sin(a) * d]; };
+  const scatter = (n, make, y) => { const g = new THREE.Group(); for (let i = 0; i < n; i++) { const m = make(); const [x, z] = R(); m.position.set(x, y + Math.random() * 0.003, z); m.rotation.y = Math.random() * 3; g.add(m); } layers.add(g); return g; };
+  const api = {
+    group,
+    setStretch(k) {
+      // boule (k = 0) → pâte étalée (k = 1)
+      ball.visible = k < 1; disc.visible = crust.visible = k > 0;
+      ball.scale.set(1 + k * 0.6, 0.65 * (1 - k * 0.7), 1 + k * 0.6);
+      disc.scale.set(Math.max(0.05, k), 1, Math.max(0.05, k)); crust.scale.set(Math.max(0.05, k), Math.max(0.05, k), 1);
+    },
+    add(t) {
+      if (t === 'sauce') { const m = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.88, r * 0.88, 0.004, 36), phys({ color: '#b3231a', roughness: 0.35, clearcoat: 0.5 })); m.position.y = 0.002; layers.add(m); return; }
+      if (t === 'mozza' || t === 'cheeses') {
+        const color = t === 'mozza' ? '#f6f2e4' : '#f2c14e';
+        const m = phys({ color, roughness: 0.45, clearcoat: 0.3 }); cheeseMats.push(m);
+        scatter(t === 'mozza' ? 9 : 14, () => { const b = new THREE.Mesh(new THREE.SphereGeometry(t === 'mozza' ? 0.022 : 0.012, 10, 6), m); b.scale.y = 0.35; return b; }, 0.006);
+        return;
+      }
+      if (t === 'basil') { scatter(6, () => { const b = new THREE.Mesh(new THREE.SphereGeometry(0.014, 8, 6), std({ color: '#3f7f2a', roughness: 0.6 })); b.scale.set(1, 0.2, 0.6); return b; }, 0.012); return; }
+      if (t === 'ham') { scatter(6, () => box(0.035, 0.004, 0.03, std({ color: '#e79a8e', roughness: 0.6 })), 0.01); return; }
+      if (t === 'mushrooms') { scatter(7, () => { const b = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.004, 12, 1, false, 0, Math.PI), std({ color: '#d9c4a0', roughness: 0.7 })); return b; }, 0.011); return; }
+      if (t === 'olives') { scatter(7, () => { const b = new THREE.Mesh(new THREE.TorusGeometry(0.008, 0.004, 6, 12), std({ color: '#262420', roughness: 0.4 })); b.rotation.x = Math.PI / 2; return b; }, 0.012); return; }
+      if (t === 'oregano') { scatter(20, () => box(0.004, 0.002, 0.004, std({ color: '#5d7a2e', roughness: 0.8 })), 0.013); }
+    },
+    setBake(v) {
+      // pâte blanche → dorée → brûlée ; le fromage fond et dore
+      const k = Math.max(0, Math.min(1, v)), b = Math.max(0, v - 1.2);
+      const dough = new THREE.Color('#f1dcae').lerp(new THREE.Color('#d08a3c'), k).lerp(new THREE.Color('#3a2414'), Math.min(1, b * 1.6));
+      crustM.color.copy(dough); doughM.color.copy(dough);
+      for (const m of cheeseMats) m.color.lerp(new THREE.Color('#f3c15a'), Math.min(1, k * 0.04 + b * 0.1));
+      layers.children.forEach((g) => { if (g.children) g.children.forEach((c) => { if (c.scale && cheeseMats.includes(c.material)) c.scale.set(1 + k * 0.5, 0.35 * (1 - k * 0.5), 1 + k * 0.5); }); });
+    },
+    cut() { cuts.visible = true; },
+  };
+  api.setStretch(0);
+  return api;
+}
+
+/** Four à pizza posé sur le plan de travail : caisson inox, ouverture côté cuisinier, intérieur qui rougeoie, sole en pierre. */
+export function buildPizzaOven(g, x, z) {
+  const o = new THREE.Group();
+  const steel = MAT.steel(1, 1), dark = std({ color: '#26231f', roughness: 0.7 });
+  add(rbox(0.5, 0.06, 0.48, 0.015, steel), 0, 0.03, 0, o);                // socle
+  add(rbox(0.5, 0.05, 0.48, 0.015, steel), 0, 0.33, 0, o);                // toit
+  add(box(0.5, 0.26, 0.02, steel), 0, 0.18, 0.23, o);                     // fond (côté fenêtre)
+  for (const sx of [-1, 1]) add(box(0.02, 0.26, 0.48, steel), sx * 0.24, 0.18, 0, o);
+  add(box(0.46, 0.012, 0.44, std({ color: '#8a6a52', roughness: 0.95 })), 0, 0.066, 0, o); // sole en pierre
+  const glowM = std({ color: '#ff8a3a', emissive: '#ff5a10', emissiveIntensity: 1.2 });
+  add(box(0.44, 0.01, 0.4, glowM), 0, 0.3, 0, o);                         // résistance du haut
+  add(box(0.5, 0.05, 0.02, dark), 0, 0.31, -0.24, o);                     // bandeau avant
+  add(cyl(0.012, 0.012, 0.03, std({ color: '#111', roughness: 0.4 }), 10), 0.18, 0.31, -0.255, o).rotation.x = Math.PI / 2;
+  add(box(0.04, 0.012, 0.006, std({ color: '#ff3a2a', emissive: '#ff2a1a', emissiveIntensity: 2 })), -0.16, 0.31, -0.252, o); // voyant
+  o.position.set(x, 1.47, z);
+  g.add(o);
+  o.userData.glow = glowM;
+  return o;
+}
+
+/** Bac de boules de pâte. */
+export function buildDoughTray(g, x, z) {
+  const t = new THREE.Group();
+  add(rbox(0.36, 0.05, 0.26, 0.012, std({ color: '#e9e4d8', roughness: 0.45 })), 0, 0.025, 0, t);
+  const m = phys({ color: '#f1dcae', roughness: 0.8, sheen: 0.3 });
+  for (let k = 0; k < 6; k++) { const b = new THREE.Mesh(new THREE.SphereGeometry(0.045, 16, 12), m); b.scale.y = 0.6; b.position.set(-0.11 + (k % 3) * 0.11, 0.075, -0.06 + Math.floor(k / 3) * 0.12); t.add(b); }
+  // farine saupoudrée
+  add(box(0.32, 0.002, 0.22, std({ color: '#fbfaf5', roughness: 1, transparent: true, opacity: 0.55 })), 0, 0.052, 0, t);
+  t.position.set(x, 1.47, z);
+  g.add(t);
+  return t;
+}
+
+/** Planche ronde en bois pour étaler et couper la pizza. */
+export function buildRoundBoard(g, x, z) {
+  const b = add(cyl(0.2, 0.2, 0.025, std({ map: woodTex(), color: '#ffffff', roughness: 0.75 }), 40), x, 1.482, z, g);
+  return b;
+}
+
+/** Roulette à pizza. */
+export function buildCutter(g, x, z) {
+  const c = new THREE.Group();
+  add(cyl(0.012, 0.012, 0.12, std({ color: '#c1121f', roughness: 0.5 }), 12), 0, 0.012, -0.06, c).rotation.x = Math.PI / 2;
+  const wheel = add(cyl(0.035, 0.035, 0.004, std({ color: '#d3d7dc', metalness: 0.9, roughness: 0.2 }), 28), 0, 0.036, 0.03, c);
+  wheel.rotation.z = Math.PI / 2;
+  c.position.set(x, 1.47, z); c.rotation.y = 0.4;
+  g.add(c);
+  return c;
+}
+
+/** Pile de cartons à pizza. */
+export function buildPizzaBoxes(g, x, z, n = 6) {
+  const m = std({ color: '#c9a273', roughness: 0.9 }), top = std({ color: '#d93a2b', roughness: 0.8 });
+  for (let k = 0; k < n; k++) add(box(0.2, 0.03, 0.2, k === n - 1 ? top : m), x, 1.486 + k * 0.031, z, g).rotation.y = (Math.random() - 0.5) * 0.1;
+}
+
+/** Sac de farine (décor). */
+export function buildFlour(g, x, z) {
+  const s = add(rbox(0.2, 0.28, 0.14, 0.04, std({ color: '#efe8d6', roughness: 0.95 })), x, 1.61, z, g);
+  add(box(0.12, 0.06, 0.002, std({ color: '#2a6f97', roughness: 0.8 })), x, 1.63, z - 0.071, g);
+  return s;
 }

@@ -1,5 +1,5 @@
 import { THREE, M, add, rbox, cyl, sph, canvasTex, shadows } from './util.js';
-import { HOTDOG_MODELS, TRUCK_RECIPES, MARKET_RECIPES, MARKET_FIRST, PORT_FIRST, FAIR_FIRST, BEACH_FIRST, zoneOf } from './economy.js';
+import { HOTDOG_MODELS, PIZZA_MODELS, TRUCK_RECIPES, MARKET_RECIPES, MARKET_FIRST, PORT_FIRST, FAIR_FIRST, BEACH_FIRST, zoneOf } from './economy.js';
 import { MODELS } from './models.js';
 import { buildStall, ROW2_Z, STALL_TYPES } from './market.js';
 import { buildPortShop, SHOP_TYPES } from './port.js';
@@ -7,7 +7,7 @@ import { buildFairStand, FAIR_SLOTS, FAIR_TYPES } from './fair.js';
 import { buildBeachHut, BEACH_SLOTS, BEACH_TYPES } from './beach.js';
 import { buildStandFx } from './standfx.js';
 import { rigChefs, STAND_ACTION } from './chefanim.js';
-import { makeBun, makeTray, sausageGeometry } from './kitchen-decor.js';
+import { makeBun, makeTray, sausageGeometry, createPizza } from './kitchen-decor.js';
 
 // 4 camions sur le parking, 6 étals dans le marché couvert (à droite), 8 boutiques au port (à gauche).
 // Marché et port : une rangée du fond (z = 0) et une rangée devant (z = ROW2_Z), séparées par une allée.
@@ -32,13 +32,13 @@ export function queueLocal(i) {
  * (place 0 à gauche, côté 1er cuisinier ; place 1 à droite, côté joueur / 2e cuisinier), puis la file attend derrière.
  */
 export function queueLocalFor(index, i) {
-  if (index !== 0) return queueLocal(i);
+  if (index > 1) return queueLocal(i); // (camions-cuisines 1 et 2 : deux places au comptoir)
   if (i === 0) return { x: -0.3, z: 2.7 };
   if (i === 1) return { x: -1.5, z: 2.7 };
   return queueLocal(i + 1);
 }
 /** Nombre de places au comptoir (clients servis en même temps, tournés vers la fenêtre). */
-export const counterSpots = (index) => (index === 0 ? 2 : 1);
+export const counterSpots = (index) => (index <= 1 ? 2 : 1);
 const BODY_COLORS = ['#e63946', '#1f9aa6', '#f4a62a', '#8a5cd6'];
 const AWNING_COLORS = ['#1f9aa6', '#e63946', '#2a6f97', '#f4a62a'];
 
@@ -56,7 +56,7 @@ export class Stand {
     /** Rangée (marché, port) : 0 = fond (on y accède par l'allée), 1 = devant. */
     this.row = SLOT_ROW[index];
     // camion n°1 : uniquement des hot-dogs ; camions 2 à 4 : frites, tacos, burger, bubble tea
-    this.recipes = index === 0 ? HOTDOG_MODELS : zone.id === 'parking' ? TRUCK_RECIPES : zone.recipes;
+    this.recipes = index === 0 ? HOTDOG_MODELS : index === 1 ? PIZZA_MODELS : zone.id === 'parking' ? TRUCK_RECIPES : zone.recipes;
     this.unlocked = false;
     this.cooks = 1;
     this.queue = [];
@@ -134,7 +134,7 @@ export class Stand {
   setCooks(n) {
     this.cooks = n;
     // (camion n°1 : ce sont les vrais cuisiniers de la cuisine qu'on voit par la fenêtre)
-    this.truck.chefs.forEach((c, i) => { c.visible = i < n && this.index !== 0; });
+    this.truck.chefs.forEach((c, i) => { c.visible = i < n && this.index > 1; });
   }
 
   setMenu(levels) { this.truck.drawMenu(levels); }
@@ -236,6 +236,10 @@ function buildDining(seats, stand, tables = TABLES) {
         const sg = new THREE.Mesh(sausageGeometry(), M('#9c4a26', { r: 0.4, cached: true })); sg.position.y = 0.078; dog.add(sg);
         dog.scale.setScalar(0.75); dog.position.y = 0.01;
         food.add(dog);
+      } else if (stand.index === 1) {
+        // pizzeria : une pizza coupée dans l'assiette
+        const pz = createPizza(0.11); pz.setStretch(1); for (const t of ['sauce', 'mozza', 'basil']) pz.add(t); pz.setBake(1); pz.cut();
+        pz.group.position.y = 0.01; food.add(pz.group);
       } else {
         add(cyl(0.07, 0.07, 0.03, bun, 16), 0, 0.022, 0, food);
         add(cyl(0.075, 0.075, 0.025, meat, 16), 0, 0.048, 0, food);
@@ -297,7 +301,7 @@ function buildTruck(index) {
   });
 
   // Copie du modèle Blender, avec des matériaux propres à ce stand
-  const model = (index === 0 && MODELS.truckOpen ? MODELS.truckOpen : MODELS.truck).clone(true);
+  const model = (index <= 1 && MODELS.truckOpen ? MODELS.truckOpen : MODELS.truck).clone(true);
   model.traverse((o) => {
     if (!o.isMesh) return;
     o.castShadow = true; o.receiveShadow = true;
@@ -315,6 +319,16 @@ function buildTruck(index) {
   });
   group.add(model);
 
+  // Camion n°2 (pizzeria) : pas de burgers sur le comptoir, mais deux pizzas
+  if (index === 1) {
+    model.traverse((o) => { if (o.isMesh && (o.userData.part === 'Bun' || o.userData.part === 'Food')) o.visible = false; });
+    for (const [x, items] of [[-2.05, ['sauce', 'mozza', 'basil']], [-1.6, ['sauce', 'mozza', 'ham', 'mushrooms']]]) {
+      const pz = createPizza(0.14); pz.setStretch(1); for (const t of items) pz.add(t); pz.setBake(1); pz.cut();
+      pz.group.position.set(x, 1.525, 1.48);
+      pz.group.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.userData.part = 'CounterDog'; } });
+      group.add(pz.group);
+    }
+  }
   // Camion n°1 (camion à hot-dogs) : on retire les burgers et les steaks du modèle, et on pose des hot-dogs sur le comptoir
   if (index === 0) {
     model.traverse((o) => { if (o.isMesh && (o.userData.part === 'Bun' || o.userData.part === 'Food')) o.visible = false; });
@@ -346,7 +360,7 @@ function buildTruck(index) {
   const val = new THREE.Mesh(new THREE.PlaneGeometry(3.8, 0.3), M('#ffffff', { map: valance, transparent: true, r: 0.85 }));
   val.material.side = THREE.DoubleSide; val.material.alphaTest = 0.5;
   val.userData.part = 'Valance';
-  add(val, -0.9, index === 0 ? 2.41 : 2.21, 2.46, group); // (camion n°1 : grande fenêtre, auvent plus haut)
+  add(val, -0.9, index <= 1 ? 2.41 : 2.21, 2.46, group); // (camions-cuisines : grande fenêtre, auvent plus haut)
 
   // Cuisiniers (1 à 3 visibles dans la fenêtre)
   const chefM = M('#ffffff', { r: 0.8, cached: true });
@@ -378,7 +392,7 @@ function buildTruck(index) {
     g.strokeStyle = '#b88a52'; g.lineWidth = 18; g.strokeRect(0, 0, w, h);
     g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = 'bold 44px "Segoe UI", sans-serif'; g.fillText('MENU', w / 2, 70);
     g.textAlign = 'left'; g.font = '30px "Segoe UI Emoji", "Segoe UI", sans-serif';
-    (index === 0 ? HOTDOG_MODELS : TRUCK_RECIPES).filter((r) => (levels[r.id] || 0) > 0).slice(0, 5).forEach((r, i) => {
+    (index === 0 ? HOTDOG_MODELS : index === 1 ? PIZZA_MODELS : TRUCK_RECIPES).filter((r) => (levels[r.id] || 0) > 0).slice(0, 5).forEach((r, i) => {
       g.fillStyle = '#f4f1e8'; g.fillText(`${r.emoji} ${r.name}`, 26, 128 + i * 48);
     });
     menuTex.needsUpdate = true;

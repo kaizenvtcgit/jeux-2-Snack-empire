@@ -142,9 +142,9 @@ export class UI {
     $('#shop-list').addEventListener('click', (e) => {
       const btn = e.target.closest('button[data-act]');
       if (!btn || btn.disabled) return;
-      const [act, arg] = btn.dataset.act.split(':');
+      const [act, arg, arg2] = btn.dataset.act.split(':');
       if (act === 'recipe') game.buyRecipe(arg);
-      if (act === 'eq') game.buyEquip(arg);
+      if (act === 'eq') game.buyEquip(arg, +(arg2 || 0));
       if (act === 'up') game.buyUpgrade(arg);
       if (act === 'cook') game.hireCook(+arg);
       if (act === 'stand') this.buyStand(+arg);
@@ -237,6 +237,7 @@ export class UI {
                 : zone === 'port' ? L('⚓ Nouvelle boutique ouverte !', '⚓ New shop open!')
                   : zone === 'fair' ? L('🎪 Nouveau stand forain !', '🎪 New fair stand!')
                   : zone === 'beach' ? L('🛖 Nouvelle paillote sur la plage !', '🛖 New beach hut!')
+                    : i === 1 ? L('🍕 La pizzeria est ouverte ! Personne n\'y travaille encore : entre cuisiner tes premières pizzas', '🍕 The pizzeria is open! Nobody works there yet: step in and bake your first pizzas')
                     : L('🎉 Nouveau stand ouvert !', '🎉 New truck open!'));
       this.setZone(zone);
       // nouveau niveau : petite fête sur le site, puis (après avoir admiré la nouvelle zone) une pub de mi-partie.
@@ -256,6 +257,10 @@ export class UI {
       // camion n°1 : la carte des hot-dogs (ketchup, moutarde et oignons sont toujours disponibles)
       out.push({ head: true, id: 'h-hd', title: L('🌭 Camion n°1 · la carte', '🌭 Truck #1 · menu') });
       this.recipeCards(E.HOTDOG_MODELS, out);
+      if (S.stands[1].unlocked) {
+        out.push({ head: true, id: 'h-pz', title: L('🍕 Camion n°2 · la carte', '🍕 Truck #2 · menu') });
+        this.recipeCards(E.PIZZA_MODELS, out);
+      }
     } else if (this.tab === 'recipes') {
       let lockedShown = false;
       for (const r of E.zoneById(this.zone).recipes) {
@@ -284,15 +289,16 @@ export class UI {
       }
       if (this.zone === 'parking') {
         // équipement du camion à hot-dogs : chaque achat se voit dans la cuisine (sur les deux plans de travail) ou dehors
-        out.push({ head: true, id: 'h-eq', title: L('🌭 Camion n°1 · équipement', '🌭 Truck #1 · equipment') });
-        const eqSub = {
-          speed: (l) => L(`Cuisson et préparation −${15 * l} %`, `Cooking and prep −${15 * l}%`),
-          counter: (l) => L(`+${l} place${l > 1 ? 's' : ''} dans la file du camion`, `+${l} spot${l > 1 ? 's' : ''} in the truck's queue`),
-          sign: (l) => L(`Enseigne « HOT-DOGS » · +${20 * l} % de clients`, `“HOT DOGS” sign · +${20 * l}% customers`),
-        };
-        for (const [k, q] of Object.entries(E.EQUIPMENT)) {
-          const lvl = S.hd.eq[k], max = lvl >= q.costs.length, cost = max ? Infinity : q.costs[lvl];
-          out.push({ id: 'e-' + k, emoji: q.emoji, title: `${q.name} <b>${lvl}/${q.costs.length}</b>`, sub: eqSub[k](max ? lvl : lvl + 1) + (max ? '' : L(' (prochain niveau)', ' (next level)')), label: max ? 'MAX' : money(cost), cost, act: 'eq:' + k });
+        // équipement de chaque camion-cuisine ouvert : chaque achat se voit dans son camion (sur les deux plans de travail) ou dehors
+        for (const [ti, emoji, label] of [[0, '🌭', L('Camion n°1', 'Truck #1')], [1, '🍕', L('Camion n°2', 'Truck #2')]]) {
+          if (!S.stands[ti].unlocked) continue;
+          out.push({ head: true, id: 'h-eq' + ti, title: `${emoji} ${label} · ${L('équipement', 'equipment')}` });
+          const ts = E.truckState(S, ti);
+          for (const [k, q] of Object.entries(E.EQUIPMENT)) {
+            const lvl = ts.eq[k], max = lvl >= q.costs.length, cost = max ? Infinity : q.costs[lvl];
+            const sub = k === 'sign' ? L(`Enseigne « ${ti === 1 ? 'PIZZA' : 'HOT-DOGS'} » · +${20 * (max ? lvl : lvl + 1)} % de clients`, `“${ti === 1 ? 'PIZZA' : 'HOT DOGS'}” sign · +${20 * (max ? lvl : lvl + 1)}% customers`) : eqSub[k](max ? lvl : lvl + 1);
+            out.push({ id: `e${ti}-${k}`, emoji: k === 'speed' && ti === 1 ? '🔥' : q.emoji, title: `${k === 'speed' && ti === 1 ? L('Four plus chaud', 'Hotter oven') : q.name} <b>${lvl}/${q.costs.length}</b>`, sub: sub + (max ? '' : L(' (prochain niveau)', ' (next level)')), label: max ? 'MAX' : money(cost), cost, act: `eq:${k}:${ti}` });
+          }
         }
       }
     } else {
@@ -310,7 +316,7 @@ export class UI {
           const z = E.zoneOf(i).id;
           const max = st.cooks >= E.maxCooks(i), cost = max ? Infinity : E.COOK_COST[i][st.cooks];
           const who = z === 'parking' ? L('cuisiniers', 'cooks') : L('vendeurs', 'staff');
-          out.push({ id: 's-' + i, emoji: { parking: '👨‍🍳', market: '🧑‍🌾', port: '🧑‍✈️', fair: '🤹', beach: '🏄' }[z], title: `${nameOf(i)} <b>${st.cooks}/${E.maxCooks(i)} ${who}</b>`, sub: max ? (z === 'parking' ? L('Équipe au complet : plus de place dans le camion', 'Full team: no more room in the truck') : L('Équipe complète', 'Full team')) : st.cooks === 0 ? L('Personne ne sert : embauche ton 1er cuisinier !', 'Nobody is serving: hire your first cook!') : i === 0 ? L('Un 2e cuisinier : 2 commandes préparées à la fois', 'A 2nd cook: 2 orders prepared at once') : L(`Service ×${E.COOK_FACTOR[st.cooks]} plus rapide`, `Service ×${E.COOK_FACTOR[st.cooks]} faster`), label: max ? 'MAX' : `${L('Embaucher', 'Hire')}<br>${money(cost)}`, cost, act: 'cook:' + i });
+          out.push({ id: 's-' + i, emoji: { parking: '👨‍🍳', market: '🧑‍🌾', port: '🧑‍✈️', fair: '🤹', beach: '🏄' }[z], title: `${nameOf(i)} <b>${st.cooks}/${E.maxCooks(i)} ${who}</b>`, sub: max ? (z === 'parking' ? L('Équipe au complet : plus de place dans le camion', 'Full team: no more room in the truck') : L('Équipe complète', 'Full team')) : st.cooks === 0 ? L('Personne ne sert : embauche ton 1er cuisinier !', 'Nobody is serving: hire your first cook!') : E.isKitchenTruck(i) ? L('Un 2e cuisinier : 2 commandes préparées à la fois', 'A 2nd cook: 2 orders prepared at once') : L(`Service ×${E.COOK_FACTOR[st.cooks]} plus rapide`, `Service ×${E.COOK_FACTOR[st.cooks]} faster`), label: max ? 'MAX' : `${L('Embaucher', 'Hire')}<br>${money(cost)}`, cost, act: 'cook:' + i });
         }
       });
       const n = g.nextLockedStand();
@@ -324,7 +330,8 @@ export class UI {
         out.push({ id: 'soon-' + n, emoji: sp.emoji, title: `${L(`Camion n°${n + 1}`, `Truck #${n + 1}`)} · ${sp.name}`, sub: L('Nouvelle spécialité et sa cuisine : bientôt !', 'New specialty and its kitchen: coming soon!'), label: L('Bientôt', 'Soon'), cost: Infinity, act: 'none', locked: true });
       } else if (n >= 0 && n < E.OPEN_STANDS && (inZone(n) || opensNext)) {
         const cost = E.STAND_COST[n];
-        const card = n === E.MARKET_FIRST ? { emoji: '🏛️', title: L('Marché couvert <b>niveau 2</b>', 'Covered market <b>level 2</b>'), sub: L('Nouvelle zone : 6 étals + 7 nouvelles recettes', 'New area: 6 stalls + 7 new recipes') }
+        const card = n === 1 ? { emoji: '🍕', title: L('Camion n°2 · <b>la pizzeria</b>', 'Truck #2 · <b>pizzeria</b>'), sub: L('Nouvelle spécialité : pizzas au four (tu y cuisines avant d\'embaucher)', 'New specialty: oven pizzas (you cook there before hiring)') }
+          : n === E.MARKET_FIRST ? { emoji: '🏛️', title: L('Marché couvert <b>niveau 2</b>', 'Covered market <b>level 2</b>'), sub: L('Nouvelle zone : 6 étals + 7 nouvelles recettes', 'New area: 6 stalls + 7 new recipes') }
           : n === E.PORT_FIRST ? { emoji: '⚓', title: L('Le port <b>niveau 3</b>', 'The harbor <b>level 3</b>'), sub: L('Nouvelle zone : 8 boutiques, 9 recettes, arrivages ×3', 'New area: 8 shops, 9 recipes, fishing boat ×3') }
             : n === E.BEACH_FIRST ? { emoji: '🏖️', title: L('La plage <b>niveau 4</b>', 'The beach <b>level 4</b>'), sub: L('Nouvelle zone : 8 paillotes, 8 recettes, canicules ×3', 'New area: 8 huts, 8 recipes, heatwaves ×3') }
             : n === E.FAIR_FIRST ? { emoji: '🎡', title: L('Fête foraine <b>niveau 5</b>', 'The fair <b>level 5</b>'), sub: L('Nouvelle zone : 8 stands, 8 recettes, nuits ×3', 'New area: 8 stands, 8 recipes, nights ×3') }
@@ -391,7 +398,7 @@ export class UI {
     // pastille « achat possible » sur les onglets
     const S = this.game.state;
     const canBuy = (list) => list.some((r) => { const l = S.recipes[r.id] || 0; return S.money >= (l ? E.recipeUpCost(r, l) : r.unlock) && (l || r === list.find((x) => !(S.recipes[x.id] > 0))); });
-    const hdCan = () => canBuy(E.HOTDOG_MODELS);
+    const hdCan = () => canBuy(E.HOTDOG_MODELS) || (S.stands[1].unlocked && canBuy(E.PIZZA_MODELS));
     const canRecipe = this.zone === 'parking' ? hdCan() : canBuy(E.zoneById(this.zone).recipes);
     // pastilles sur les onglets de zone : « il y a quelque chose à acheter là-bas »
     const canStaff = (lo, hi) => S.stands.some((st, i) => i >= lo && i < hi && st.unlocked && st.cooks < E.maxCooks(i) && S.money >= E.COOK_COST[i][st.cooks]);
@@ -409,7 +416,7 @@ export class UI {
       b.classList.toggle('dot', z !== this.zone && zoneCan[z]);
     });
     const canUp = Object.entries(E.UPGRADES).some(([k, u]) => (k !== 'speed' || this.zone !== 'parking') && S.up[k] < u.max && S.money >= E.upgradeCost(u, S.up[k]))
-      || (this.zone === 'parking' && Object.entries(E.EQUIPMENT).some(([k, q]) => S.hd.eq[k] < q.costs.length && S.money >= q.costs[S.hd.eq[k]]));
+      || (this.zone === 'parking' && [0, 1].some((ti) => S.stands[ti].unlocked && Object.entries(E.EQUIPMENT).some(([k, q]) => { const l = E.truckState(S, ti).eq[k]; return l < q.costs.length && S.money >= q.costs[l]; })));
     const Zc = E.zoneById(this.zone), kc = E.ZONES.indexOf(Zc);
     const canStand = canStaff(Zc.first, Zc.first + Zc.count)
       || (nl >= 0 && nl < E.OPEN_STANDS && (E.zoneOf(nl) === Zc || (E.ZONES[kc + 1] && nl === E.ZONES[kc + 1].first)) && S.money >= E.STAND_COST[nl]);
@@ -537,6 +544,7 @@ export class UI {
         const cost = E.STAND_COST[i];
         const zid = E.zoneOf(i).id;
         const what = i === E.MARKET_FIRST ? L('🏛️ Marché couvert', '🏛️ Covered market') : i === E.PORT_FIRST ? L('⚓ Le port', '⚓ The harbor') : i === E.FAIR_FIRST ? L('🎡 Fête foraine', '🎡 The fair') : i === E.BEACH_FIRST ? L('🏖️ La plage', '🏖️ The beach')
+          : i === 1 ? L('🍕 Pizzeria', '🍕 Pizzeria')
           : zid === 'market' ? L('🔒 Nouvel étal', '🔒 New stall') : zid === 'port' ? L('🔒 Nouvelle boutique', '🔒 New shop') : zid === 'beach' ? L('🔒 Nouvelle paillote', '🔒 New hut') : zid === 'fair' ? L('🔒 Nouveau stand', '🔒 New stand') : L('🔒 Nouveau stand', '🔒 New truck');
         const html = `<span class="pb">${what}<br><b>${money(cost)}</b></span>`;
         if (pb.innerHTML !== html) pb.innerHTML = html;

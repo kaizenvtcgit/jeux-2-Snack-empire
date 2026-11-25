@@ -64,7 +64,7 @@ export function initTutorial(ui, game) {
     {
       text: L('<b>Équipe ton camion</b> ⚡ : la cuisson rapide accélère tout le monde, l\'enseigne attire plus de clients.', '<b>Equip your truck</b> ⚡: fast cooking speeds everyone up, the neon sign brings more customers.'),
       prep: () => shopOn('upgrades'),
-      target: () => card('e-speed'),
+      target: () => card('e0-speed'),
       done: () => S.hd.eq.speed + S.hd.eq.counter + S.hd.eq.sign >= 1,
     },
     {

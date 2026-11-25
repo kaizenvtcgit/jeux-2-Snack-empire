@@ -262,3 +262,9 @@ body.in-kitchen #hud { top: 16px; max-width: calc(50vw - 150px); }
 .pill.rep .bar i { display: block; height: 100%; background: linear-gradient(90deg, #ffb703, #ff5fb0); }
 .pill.rep.rush { background: linear-gradient(135deg, #ff7a00, #ff2d8a); animation: pulse .8s infinite alternate; }
 .float.stars { font-size: 15px; letter-spacing: -2px; }
+/* boutons « Cuisiner » : un par camion-cuisine, empilés */
+#kitchen-btn-2 { bottom: 150px; }
+#kitchen-btn-2.show { display: flex; }
+#kitchen-btn-2 { position: fixed; left: 16px; display: none; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 16px; border: 0; border-radius: var(--radius);
+  font-weight: 900; font-size: 17px; color: #3a1a00; background: linear-gradient(180deg, #ffd0a0, #ff8a3a); box-shadow: 0 4px 0 #b0500a, var(--shadow); z-index: 8; }
+#kitchen-btn-2 small { font-size: 11px; font-weight: 700; color: #6a3000; }

@@ -10,6 +10,7 @@ import { audio, sfx, setScene } from './audio.js';
 import { initTutorial } from './tutorial.js';
 import { platform, initPlatform, gameReady } from './platform.js';
 import { Kitchen } from './kitchen.js';
+import { PizzaKitchen } from './pizza.js';
 
 // Écran de chargement : la barre suit le téléchargement des modèles, puis la construction de la ville
 const ldFill = document.getElementById('ld-fill');
@@ -50,6 +51,7 @@ const quality = initQuality(world);
 ui.bind(game, quality);
 // Cuisine : on entre dans le camion n°1 pour préparer soi-même les hot-dogs
 const kitchen = new Kitchen(world, game, ui, game.stands[0]);
+const pizzeria = new PizzaKitchen(world, game, ui, game.stands[1]); // camion n°2
 
 const gain = game.offlineGain();
 if (gain) ui.offline(gain, (amount) => { game.addMoney(amount); sfx.jackpot(); ui.toast(`💰 +${amount.toLocaleString('fr-FR')} $`); });
@@ -71,6 +73,7 @@ function loop(now) {
   if (!ads.active) game.update(dt);
   visuals.update(dt);
   kitchen.update(ads.active ? 0 : dt);
+  pizzeria.update(ads.active ? 0 : dt);
   world.updateCamera(dt);
   world.animate(dt);
   ui.frame(dt);
@@ -92,4 +95,4 @@ gameReady(); // CrazyGames : fin du chargement, début de la partie
 const ld = document.getElementById('loading');
 setTimeout(() => { ld.classList.add('done'); setTimeout(() => ld.remove(), 700); }, Math.max(350, 1200 - performance.now()));
 // Accès console pour les tests : window.sfe.game.addMoney(100000)
-window.sfe = { game, world, ui, quality, visuals, audio, sfx, kitchen };
+window.sfe = { game, world, ui, quality, visuals, audio, sfx, kitchen, pizzeria };

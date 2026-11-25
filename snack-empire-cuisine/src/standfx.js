@@ -71,9 +71,14 @@ const FX = {
     add(cyl(0.52, 0.52, 0.05, C('#ffc300'), 20), 0, 0.4, 0, s);
     add(new THREE.Mesh(new THREE.SphereGeometry(0.5, 20, 10, 0, TAU, 0, Math.PI / 2), C('#e3a55a')), 0, 0.43, 0, s);
   }),
-  truck1: (g) => rooftop(g, (s) => { // frites
-    add(cyl(0.38, 0.3, 0.7, C('#e63946'), 4), 0, 0.15, 0, s).rotation.y = Math.PI / 4;
-    for (let i = 0; i < 9; i++) add(box(0.08, 0.55, 0.08, C('#ffd166')), -0.24 + (i % 3) * 0.24, 0.65 + (i % 2) * 0.1, -0.12 + Math.floor(i / 3) * 0.12, s).rotation.z = (i % 3 - 1) * 0.12;
+  truck1: (g) => rooftop(g, (s) => { // pizza (camion n°2) : une grande pizza dressée, avec une part qui dépasse
+    const p = new THREE.Group();
+    add(cyl(0.6, 0.6, 0.08, C('#d9984a'), 32), 0, 0, 0, p);
+    add(cyl(0.53, 0.53, 0.09, C('#c0392b'), 32), 0, 0.005, 0, p);
+    for (let i = 0; i < 9; i++) add(cyl(0.07, 0.07, 0.1, C('#f6f2e4'), 12), Math.cos(i * 0.7) * 0.32, 0.01, Math.sin(i * 0.7) * 0.32, p);
+    for (let i = 0; i < 6; i++) add(cyl(0.05, 0.05, 0.1, C('#9b2d20'), 12), Math.cos(i * 1.05 + 0.4) * 0.18, 0.012, Math.sin(i * 1.05 + 0.4) * 0.18, p);
+    p.rotation.x = Math.PI / 2 - 0.2; p.position.y = 0.6;
+    s.add(p);
   }),
   truck2: (g) => rooftop(g, (s) => { // tacos
     const shell = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.45, 20, 1, true, 0, Math.PI), C('#f2c14e', { r: 0.7 }));
