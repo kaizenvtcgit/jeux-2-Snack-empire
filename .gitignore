@@ -12,3 +12,6 @@ Thumbs.db
 
 # paquet à envoyer sur CrazyGames (refait à chaque mise à jour)
 *.zip
+
+# vidéos de présentation (trop lourdes pour git, gardées dans le dossier marketing)
+marketing/*.mp4
