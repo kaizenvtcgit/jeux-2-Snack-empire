@@ -3,14 +3,18 @@ import { platform } from './platform.js';
 // Copie « Cuisine » du jeu : sa propre clé, pour ne jamais toucher à la partie du jeu d'origine
 // (le jeu publié garde 'street-food-empire-save-v1' : ne pas la changer là-bas)
 // (v2 : nouvelle mécanique tycoon + cuisine, on repart d'une partie neuve)
-const KEY = 'snack-empire-cuisine-save-v2';
+// Mode essai : une partie à part (clé différente), pour tout tester vite sans toucher à la vraie partie
+const TEST_FLAG = 'snack-empire-cuisine-test-mode';
+export const TEST_MODE = (() => { try { return localStorage.getItem(TEST_FLAG) === '1'; } catch { return false; } })();
+export function setTestMode(on) { try { on ? localStorage.setItem(TEST_FLAG, '1') : localStorage.removeItem(TEST_FLAG); } catch { /* rien */ } }
+const KEY = TEST_MODE ? 'snack-empire-cuisine-test' : 'snack-empire-cuisine-save-v2';
 
 /*
  * Sur CrazyGames, la partie est enregistrée dans le compte du joueur (module « data » du SDK :
  * même progression sur tous ses appareils ; pour un invité, CrazyGames utilise le stockage du navigateur).
  * Ailleurs : stockage du navigateur (localStorage).
  */
-const cloud = () => (platform.sdk && platform.sdk.data) || null;
+const cloud = () => (!TEST_MODE && platform.sdk && platform.sdk.data) || null; // (l'essai reste sur ce navigateur)
 
 export function loadSave() {
   try {

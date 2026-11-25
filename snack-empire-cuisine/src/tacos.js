@@ -26,7 +26,7 @@ const ITEMS = ['chicken', 'beef', 'salad', 'tomato', 'onions', 'cheddar', 'salsa
 const PX = (k) => C - U[k];
 const WARM_RATE = 1 / 4; // une tortilla est chaude en 4 s environ
 const GOOD = [0.75, 1.35];
-const TACO_Y = 1.49;
+const TACO_Y = 1.503; // (juste au-dessus de la planche, dont le dessus est à 1,50)
 
 /** Ce que demande une commande : les garnitures du taco + l'option éventuelle. */
 export const tacoItems = (o) => [...E.tacoModel(o.model).need, ...o.tops];

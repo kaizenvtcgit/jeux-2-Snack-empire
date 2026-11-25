@@ -729,30 +729,31 @@ export class Kitchen {
     c.yaw += dy * Math.min(1, dt * 9);
     c.root.rotation.y = c.yaw;
     c.animate(dt, moving);
-    // gestes au poste (les jambes restent celles de l'animation)
-    if (!moving) {
-      const e = Math.min(1, dt * 8);
-      const P = {
-        idle: [-0.6 + Math.sin(t * 4) * 0.08, -0.7, -0.2, -0.3, 0.03],
-        fridge: [-0.25, -0.2, -0.15, -0.2, 0.35],
-        grill: [-0.95 + Math.sin(t * 6) * 0.07, -0.75, -0.55, -0.6, 0.08],
-        flip: [-1.3, -0.3, -0.55, -0.6, 0.08],
-        bun: [-1.0, -0.7, -1.0, -0.7, 0.1],
-        carry: [-1.0, -0.6, -0.4, -0.4, 0.06],
-        sauce: [-1.15 + Math.sin(t * 9) * 0.07, -0.6, -1.0, -0.7, 0.1],
-        hand: [-1.45, -0.15, -1.2, -0.3, 0.04],
-        stretch: [-1.1 + Math.sin(t * 7) * 0.12, -0.5, -1.1 - Math.sin(t * 7) * 0.12, -0.5, 0.14], // étaler la pâte à deux mains
-        oven: [-1.25, -0.25, -1.2, -0.3, 0.1],
-        cut: [-1.1, -0.5 + Math.sin(t * 8) * 0.15, -0.6, -0.6, 0.12],
-      }[work] || [-0.6, -0.7, -0.2, -0.3, 0.03];
-      c.arms[0].rotation.x += (P[0] - c.arms[0].rotation.x) * e;
-      c.forearms[0].rotation.x += (P[1] - c.forearms[0].rotation.x) * e;
-      c.arms[1].rotation.x += (P[2] - c.arms[1].rotation.x) * e;
-      c.forearms[1].rotation.x += (P[3] - c.forearms[1].rotation.x) * e;
-      c.body.rotation.x += (P[4] - c.body.rotation.x) * e;
-    } else if (carrying) {
-      // en marchant avec quelque chose dans les mains : bras devant
-      c.arms[0].rotation.x = -1.0; c.forearms[0].rotation.x = -0.6;
+    // gestes au poste : on garde une pose lissée à part, puis on la mélange avec l'animation de base
+    // (avant, l'animation remettait les bras à zéro à chaque image et le geste les retirait : ça vibrait)
+    const P = moving ? null : ({
+      idle: [-0.6 + Math.sin(t * 4) * 0.08, -0.7, -0.2, -0.3, 0.03],
+      fridge: [-0.25, -0.2, -0.15, -0.2, 0.35],
+      grill: [-0.95 + Math.sin(t * 6) * 0.07, -0.75, -0.55, -0.6, 0.08],
+      flip: [-1.3, -0.3, -0.55, -0.6, 0.08],
+      bun: [-1.0, -0.7, -1.0, -0.7, 0.1],
+      carry: [-1.0, -0.6, -0.4, -0.4, 0.06],
+      sauce: [-1.15 + Math.sin(t * 9) * 0.07, -0.6, -1.0, -0.7, 0.1],
+      hand: [-1.45, -0.15, -1.2, -0.3, 0.04],
+      stretch: [-1.1 + Math.sin(t * 7) * 0.12, -0.5, -1.1 - Math.sin(t * 7) * 0.12, -0.5, 0.14], // étaler la pâte à deux mains
+      oven: [-1.25, -0.25, -1.2, -0.3, 0.1],
+      cut: [-1.1, -0.5 + Math.sin(t * 8) * 0.15, -0.6, -0.6, 0.12],
+    }[work] || [-0.6, -0.7, -0.2, -0.3, 0.03]);
+    if (!m.pose) { m.pose = [-0.6, -0.7, -0.2, -0.3, 0.03]; m.pw = 0; }
+    const e = Math.min(1, dt * 8);
+    if (P) for (let i = 0; i < 5; i++) m.pose[i] += (P[i] - m.pose[i]) * e;
+    else if (carrying) { m.pose[0] += (-1.0 - m.pose[0]) * e; m.pose[1] += (-0.6 - m.pose[1]) * e; }
+    m.pw += ((P ? 1 : 0) - m.pw) * Math.min(1, dt * 7);
+    const w = m.pw, wc = carrying ? Math.max(w, 1) : w;
+    const parts = [c.arms[0], c.forearms[0], c.arms[1], c.forearms[1], c.body];
+    for (let i = 0; i < 5; i++) {
+      const k = i < 2 ? wc : w; // en marchant les mains pleines : bras droit devant
+      parts[i].rotation.x += (m.pose[i] - parts[i].rotation.x) * k;
     }
   }
 

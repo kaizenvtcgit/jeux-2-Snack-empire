@@ -569,56 +569,168 @@ export function giantSausageGeometry() {
 
 /* ---------------- La pizzeria (camion n°2) ---------------- */
 
+/* ----- Pizza : textures et formes partagées ----- */
+
+/** Pâte : beige avec de petites traces de farine et des bulles. */
+const doughTex = once(() => canvasTex(256, 256, (g, w, h) => {
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 900; i++) { g.fillStyle = `rgba(${Math.random() < 0.5 ? '255,255,255' : '190,160,120'},${rnd(0.08, 0.25)})`; g.beginPath(); g.arc(Math.random() * w, Math.random() * h, rnd(0.5, 2.2), 0, 7); g.fill(); }
+}));
+/** Croûte cuite : taches « léopard » brun foncé (transparent ailleurs), seulement sur le bord. */
+const charTex = once(() => canvasTex(512, 128, (g, w, h) => {
+  g.clearRect(0, 0, w, h);
+  for (let i = 0; i < 160; i++) {
+    const x = Math.random() * w, y = rnd(0.28, 0.72) * h, r = rnd(2, 9);
+    const gr = g.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, 'rgba(45,22,10,.95)'); gr.addColorStop(0.6, 'rgba(90,45,18,.55)'); gr.addColorStop(1, 'rgba(120,60,20,0)');
+    g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+  }
+  // dorure générale du bord
+  const lg = g.createLinearGradient(0, 0, 0, h);
+  lg.addColorStop(0.22, 'rgba(150,80,25,0)'); lg.addColorStop(0.45, 'rgba(150,80,25,.35)'); lg.addColorStop(0.55, 'rgba(150,80,25,.35)'); lg.addColorStop(0.78, 'rgba(150,80,25,0)');
+  g.fillStyle = lg; g.fillRect(0, 0, w, h);
+}));
+/** Sauce tomate : rouge avec des morceaux de tomate plus sombres, des reflets d'huile et des herbes. */
+const sauceTex = once(() => canvasTex(256, 256, (g, w, h) => {
+  g.fillStyle = '#b3261a'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 260; i++) { g.fillStyle = Math.random() < 0.5 ? `rgba(120,15,10,${rnd(0.2, 0.5)})` : `rgba(230,80,40,${rnd(0.15, 0.4)})`; g.beginPath(); g.ellipse(Math.random() * w, Math.random() * h, rnd(2, 7), rnd(1.5, 5), Math.random() * 3, 0, 7); g.fill(); }
+  for (let i = 0; i < 70; i++) { g.fillStyle = `rgba(40,70,20,${rnd(0.4, 0.8)})`; g.fillRect(Math.random() * w, Math.random() * h, rnd(1, 2.5), rnd(1, 2.5)); }
+}));
+/** Cercle irrégulier (bord de sauce, tranche de jambon…). */
+function wobblyShape(r, n = 40, amp = 0.06, sx = 1, sz = 1) {
+  const s = new THREE.Shape(), ph = Math.random() * 6, ph2 = Math.random() * 6;
+  for (let i = 0; i <= n; i++) {
+    const a = (i / n) * Math.PI * 2, k = 1 + amp * (Math.sin(a * 3 + ph) * 0.6 + Math.sin(a * 7 + ph2) * 0.4);
+    const x = Math.cos(a) * r * k * sx, y = Math.sin(a) * r * k * sz;
+    i ? s.lineTo(x, y) : s.moveTo(x, y);
+  }
+  return s;
+}
+/** Forme plate posée à plat (ShapeGeometry tournée vers le haut). */
+const flatShape = (shape, mat) => { const m = new THREE.Mesh(new THREE.ShapeGeometry(shape), mat); m.rotation.x = -Math.PI / 2; return m; };
+/** Petit « pâté » bosselé (fromage, viande hachée…). */
+function lump(size, mat, flat = 0.4, detail = 1) {
+  // (bosses calculées à partir de la direction : un même sommet partagé par plusieurs faces bouge pareil, pas de trous)
+  const geo = new THREE.IcosahedronGeometry(size, detail), p = geo.attributes.position, s = [rnd(2, 5), rnd(2, 5), rnd(0, 6)];
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i) / size, y = p.getY(i) / size, z = p.getZ(i) / size;
+    const k = 1 + 0.16 * Math.sin(x * s[0] + s[2]) * Math.cos(z * s[1] - s[2]) + 0.08 * Math.sin(y * 4 + x * 3);
+    p.setXYZ(i, x * size * k, y * size * k * flat, z * size * k);
+  }
+  geo.computeVertexNormals();
+  return new THREE.Mesh(geo, mat);
+}
+/** Tranche de champignon vue de dessus : chapeau arrondi + pied. */
+const mushroomShape = once(() => {
+  const s = new THREE.Shape();
+  s.moveTo(-0.018, 0); s.quadraticCurveTo(-0.019, 0.016, 0, 0.018); s.quadraticCurveTo(0.019, 0.016, 0.018, 0);
+  s.lineTo(0.006, 0); s.lineTo(0.0065, -0.014); s.quadraticCurveTo(0, -0.017, -0.0065, -0.014); s.lineTo(-0.006, 0); s.lineTo(-0.018, 0);
+  return s;
+});
+/** Feuille (basilic) : ovale pointu, nervure au milieu. */
+const leafShape = once(() => {
+  const s = new THREE.Shape();
+  s.moveTo(0, -0.018); s.quadraticCurveTo(0.014, -0.006, 0, 0.02); s.quadraticCurveTo(-0.014, -0.006, 0, -0.018);
+  return s;
+});
+
 /**
- * Une pizza qui se prépare : boule de pâte qu'on étale, sauce, garnitures, cuisson (couleur), découpe.
- * Renvoie { group, setStretch(0→1), add(item), setBake(v), cut() }.
+ * Une pizza qui se prépare : boule de pâte → pâte étalée (bord gonflé) → sauce, fromage, garnitures → cuisson
+ * (la croûte dore et se tache de brun, le fromage fond) → découpe en 6 parts.
+ * Renvoie { group, setStretch(k), add(item), setBake(v), cut() }.
  */
 export function createPizza(r = 0.15) {
   const group = new THREE.Group();
-  const doughM = phys({ color: '#f1dcae', roughness: 0.8, sheen: 0.3 });
-  const crustM = phys({ color: '#f1dcae', roughness: 0.75, sheen: 0.3 });
-  const ball = new THREE.Mesh(new THREE.SphereGeometry(0.06, 20, 14), doughM);
-  ball.scale.set(1, 0.65, 1); ball.position.y = 0.035;
-  group.add(ball);
-  const disc = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.012, 40), doughM);
-  disc.position.y = 0.006; group.add(disc);
-  const crust = new THREE.Mesh(new THREE.TorusGeometry(r, 0.016, 10, 40), crustM);
-  crust.rotation.x = Math.PI / 2; crust.position.y = 0.014; group.add(crust);
-  const layers = new THREE.Group(); layers.position.y = 0.013; group.add(layers);
+  const doughM = phys({ color: '#f1dcae', map: doughTex(), side: THREE.DoubleSide, roughness: 0.85, sheen: 0.4, sheenColor: new THREE.Color('#fff3da') });
+  const ball = lump(0.06, doughM, 0.62, 3);
+  ball.position.y = 0.035; group.add(ball);
+  // pâte étalée : profil tourné (centre fin, bord gonflé et irrégulier)
+  const prof = [[0, 0.006], [0.84, 0.007], [0.9, 0.014], [0.95, 0.026], [1.0, 0.03], [1.05, 0.025], [1.08, 0.013], [1.075, 0.002], [0.9, 0], [0, 0]];
+  const geo = new THREE.LatheGeometry(prof.map(([x, y]) => new THREE.Vector2(x * r, y)), 56);
+  const p = geo.attributes.position, ph = [Math.random() * 6, Math.random() * 6];
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), z = p.getZ(i), d = Math.hypot(x, z);
+    if (d < 0.8 * r) continue;
+    const a = Math.atan2(z, x), k = 1 + 0.025 * Math.sin(a * 5 + ph[0]) + 0.015 * Math.sin(a * 11 + ph[1]);
+    p.setXYZ(i, x * k, p.getY(i) * (1 + 0.25 * Math.sin(a * 4 + ph[1])), z * k);
+  }
+  geo.computeVertexNormals();
+  const base = new THREE.Group(); group.add(base);
+  base.add(new THREE.Mesh(geo, doughM));
+  const charM = std({ map: charTex(), side: THREE.DoubleSide, transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, roughness: 0.9 });
+  base.add(new THREE.Mesh(geo, charM));
+  const layers = new THREE.Group(); layers.position.y = 0.007; group.add(layers);
+  // découpe : 3 fines lignes (6 parts), visibles seulement sur la pizza
   const cuts = new THREE.Group(); cuts.visible = false; group.add(cuts);
-  for (let k = 0; k < 3; k++) { const c = new THREE.Mesh(new THREE.BoxGeometry(2 * r + 0.03, 0.004, 0.005), std({ color: '#5a3a1e', roughness: 0.9 })); c.rotation.y = (k * Math.PI) / 3; c.position.y = 0.03; cuts.add(c); }
-  const cheeseMats = [];
-  const R = (k = 0.8) => { const a = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * r * k; return [Math.cos(a) * d, Math.sin(a) * d]; };
-  const scatter = (n, make, y) => { const g = new THREE.Group(); for (let i = 0; i < n; i++) { const m = make(); const [x, z] = R(); m.position.set(x, y + Math.random() * 0.003, z); m.rotation.y = Math.random() * 3; g.add(m); } layers.add(g); return g; };
+  const cutM = std({ color: '#5b2a12', transparent: true, opacity: 0.55, roughness: 1, depthWrite: false });
+  for (let k = 0; k < 3; k++) { const c = new THREE.Mesh(new THREE.PlaneGeometry(2 * r * 0.96, 0.0035), cutM); c.rotation.x = -Math.PI / 2; c.rotation.z = (k * Math.PI) / 3; c.position.y = 0.034; cuts.add(c); }
+  const melt = []; // fromages : { mesh, mat, s } (fondent à la cuisson)
+  const sauceMats = [];
+  const R = (k = 0.78) => { const a = Math.random() * Math.PI * 2, d = Math.sqrt(Math.random()) * r * k; return [Math.cos(a) * d, Math.sin(a) * d]; };
+  const scatter = (n, make, y) => { const g = new THREE.Group(); for (let i = 0; i < n; i++) { const m = make(i); const [x, z] = R(); m.position.set(x, y + Math.random() * 0.002, z); m.rotation.y = Math.random() * 6; g.add(m); } layers.add(g); return g; };
+  let level = 0; // chaque garniture se pose un peu au-dessus de la précédente
   const api = {
     group,
     setStretch(k) {
-      // boule (k = 0) → pâte étalée (k = 1)
-      ball.visible = k < 1; disc.visible = crust.visible = k > 0;
-      ball.scale.set(1 + k * 0.6, 0.65 * (1 - k * 0.7), 1 + k * 0.6);
-      disc.scale.set(Math.max(0.05, k), 1, Math.max(0.05, k)); crust.scale.set(Math.max(0.05, k), Math.max(0.05, k), 1);
+      ball.visible = k < 1; base.visible = k > 0;
+      ball.scale.set(1 + k * 0.6, 1 - k * 0.7, 1 + k * 0.6);
+      const s = Math.max(0.05, k); base.scale.set(s, 0.5 + 0.5 * s, s);
     },
     add(t) {
-      if (t === 'sauce') { const m = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.88, r * 0.88, 0.004, 36), phys({ color: '#b3231a', roughness: 0.35, clearcoat: 0.5 })); m.position.y = 0.002; layers.add(m); return; }
+      level += 0.0015;
+      const y = level;
+      if (t === 'sauce') {
+        const m = new THREE.Mesh(new THREE.ShapeGeometry(wobblyShape(r * 0.86, 48, 0.035)), phys({ map: sauceTex(), roughness: 0.35, clearcoat: 0.6, clearcoatRoughness: 0.4 }));
+        m.rotation.x = -Math.PI / 2; m.position.y = y; layers.add(m); sauceMats.push(m.material); return;
+      }
       if (t === 'mozza' || t === 'cheeses') {
-        const color = t === 'mozza' ? '#f6f2e4' : '#f2c14e';
-        const m = phys({ color, roughness: 0.45, clearcoat: 0.3 }); cheeseMats.push(m);
-        scatter(t === 'mozza' ? 9 : 14, () => { const b = new THREE.Mesh(new THREE.SphereGeometry(t === 'mozza' ? 0.022 : 0.012, 10, 6), m); b.scale.y = 0.35; return b; }, 0.006);
+        const cols = t === 'mozza' ? ['#f7f3e6'] : ['#f6efd8', '#f2c14e', '#e8a33a'];
+        const n = t === 'mozza' ? 10 : 15;
+        scatter(n, (i) => {
+          const mat = phys({ color: cols[i % cols.length], roughness: 0.42, clearcoat: 0.35, sheen: 0.3 });
+          const s = t === 'mozza' ? rnd(0.018, 0.026) : rnd(0.011, 0.017);
+          const m = lump(s, mat, 0.45); melt.push({ mesh: m, mat, base: mat.color.clone() }); return m;
+        }, y + 0.004);
         return;
       }
-      if (t === 'basil') { scatter(6, () => { const b = new THREE.Mesh(new THREE.SphereGeometry(0.014, 8, 6), std({ color: '#3f7f2a', roughness: 0.6 })); b.scale.set(1, 0.2, 0.6); return b; }, 0.012); return; }
-      if (t === 'ham') { scatter(6, () => box(0.035, 0.004, 0.03, std({ color: '#e79a8e', roughness: 0.6 })), 0.01); return; }
-      if (t === 'mushrooms') { scatter(7, () => { const b = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.004, 12, 1, false, 0, Math.PI), std({ color: '#d9c4a0', roughness: 0.7 })); return b; }, 0.011); return; }
-      if (t === 'olives') { scatter(7, () => { const b = new THREE.Mesh(new THREE.TorusGeometry(0.008, 0.004, 6, 12), std({ color: '#262420', roughness: 0.4 })); b.rotation.x = Math.PI / 2; return b; }, 0.012); return; }
-      if (t === 'oregano') { scatter(20, () => box(0.004, 0.002, 0.004, std({ color: '#5d7a2e', roughness: 0.8 })), 0.013); }
+      if (t === 'basil') {
+        const mat = phys({ color: '#2f7a26', roughness: 0.35, clearcoat: 0.6, side: THREE.DoubleSide });
+        scatter(5, () => { const l = flatShape(leafShape(), mat); l.rotation.z = Math.random() * 6; l.scale.setScalar(rnd(0.9, 1.25)); return l; }, y + 0.016);
+        return;
+      }
+      if (t === 'ham') {
+        const mat = phys({ color: '#e48f86', roughness: 0.5, sheen: 0.4, sheenColor: new THREE.Color('#ffd2c8'), side: THREE.DoubleSide });
+        const fat = std({ color: '#f6dcd2', roughness: 0.6, side: THREE.DoubleSide });
+        scatter(6, () => {
+          const g = new THREE.Group(), sh = wobblyShape(0.019, 20, 0.12, 1.3, 0.9);
+          const top = flatShape(sh, mat); top.position.y = 0.001; g.add(top);
+          const rim = flatShape(sh, fat); rim.scale.setScalar(1.12); g.add(rim);
+          g.rotation.x = rnd(-0.12, 0.12); return g;
+        }, y + 0.012);
+        return;
+      }
+      if (t === 'mushrooms') {
+        const mat = std({ color: '#e3d2b2', roughness: 0.7, side: THREE.DoubleSide }), edge = std({ color: '#8a6a48', roughness: 0.8, side: THREE.DoubleSide });
+        scatter(7, () => { const g = new THREE.Group(); const a = flatShape(mushroomShape(), mat); a.position.y = 0.0008; g.add(a); const b = flatShape(mushroomShape(), edge); b.scale.setScalar(1.12); g.add(b); g.scale.setScalar(rnd(0.9, 1.15)); return g; }, y + 0.013);
+        return;
+      }
+      if (t === 'olives') {
+        const mat = phys({ color: '#1f1d1a', roughness: 0.25, clearcoat: 0.8 });
+        scatter(8, () => { const o = new THREE.Mesh(new THREE.TorusGeometry(0.008, 0.0042, 8, 16), mat); o.rotation.x = Math.PI / 2; return o; }, y + 0.016);
+        return;
+      }
+      if (t === 'oregano') { const mat = std({ color: '#4f6d24', roughness: 0.9 }); scatter(40, () => box(rnd(0.002, 0.004), 0.0015, rnd(0.002, 0.004), mat), y + 0.018); }
     },
     setBake(v) {
-      // pâte blanche → dorée → brûlée ; le fromage fond et dore
+      // pâte pâle → dorée (taches brunes sur le bord) → brûlée ; le fromage fond, s'étale et dore par endroits
       const k = Math.max(0, Math.min(1, v)), b = Math.max(0, v - 1.2);
-      const dough = new THREE.Color('#f1dcae').lerp(new THREE.Color('#d08a3c'), k).lerp(new THREE.Color('#3a2414'), Math.min(1, b * 1.6));
-      crustM.color.copy(dough); doughM.color.copy(dough);
-      for (const m of cheeseMats) m.color.lerp(new THREE.Color('#f3c15a'), Math.min(1, k * 0.04 + b * 0.1));
-      layers.children.forEach((g) => { if (g.children) g.children.forEach((c) => { if (c.scale && cheeseMats.includes(c.material)) c.scale.set(1 + k * 0.5, 0.35 * (1 - k * 0.5), 1 + k * 0.5); }); });
+      doughM.color.copy(new THREE.Color('#f1dcae').lerp(new THREE.Color('#e0a35a'), k).lerp(new THREE.Color('#3a2414'), Math.min(1, b * 1.6)));
+      charM.opacity = Math.min(1, k * 0.9 + b);
+      for (const m of sauceMats) m.color.copy(new THREE.Color('#ffffff').lerp(new THREE.Color('#9a6a5a'), Math.min(1, k * 0.25 + b)));
+      for (const c of melt) {
+        c.mesh.scale.set(1 + k * 0.7, 1 - k * 0.55, 1 + k * 0.7);
+        c.mat.color.copy(c.base).lerp(new THREE.Color('#f0c86a'), k * 0.18).lerp(new THREE.Color('#5a3418'), Math.min(1, b * 1.2));
+      }
     },
     cut() { cuts.visible = true; },
   };
@@ -692,44 +804,136 @@ export function buildFlour(g, x, z) {
 
 /* ---------------- La taqueria (camion n°3) ---------------- */
 
+/** Tortilla : crème avec de petits grains de maïs. */
+const tortTex = once(() => canvasTex(256, 256, (g, w, h) => {
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h);
+  for (let i = 0; i < 700; i++) { g.fillStyle = `rgba(${Math.random() < 0.5 ? '200,170,110' : '255,250,235'},${rnd(0.1, 0.3)})`; g.beginPath(); g.arc(Math.random() * w, Math.random() * h, rnd(0.6, 2), 0, 7); g.fill(); }
+}));
+/** Tortilla chauffée : taches grillées (transparent ailleurs). */
+const toastTex = once(() => canvasTex(256, 256, (g, w, h) => {
+  g.clearRect(0, 0, w, h);
+  for (let i = 0; i < 90; i++) {
+    const x = Math.random() * w, y = Math.random() * h, r = rnd(3, 12);
+    const gr = g.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, 'rgba(80,40,12,.85)'); gr.addColorStop(0.5, 'rgba(140,80,30,.45)'); gr.addColorStop(1, 'rgba(160,100,40,0)');
+    g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
+  }
+}));
+/** Disque en grille polaire (pour pouvoir le plier). */
+function polarDisc(r, rings = 10, seg = 48) {
+  const pos = [], uv = [], idx = [];
+  pos.push(0, 0, 0); uv.push(0.5, 0.5);
+  for (let i = 1; i <= rings; i++) for (let j = 0; j < seg; j++) {
+    const a = (j / seg) * Math.PI * 2, d = (i / rings) * r;
+    pos.push(Math.cos(a) * d, 0, Math.sin(a) * d); uv.push(0.5 + Math.cos(a) * d / (2 * r), 0.5 + Math.sin(a) * d / (2 * r));
+  }
+  const at = (i, j) => (i === 0 ? 0 : 1 + (i - 1) * seg + (j % seg));
+  for (let j = 0; j < seg; j++) idx.push(0, at(1, j + 1), at(1, j));
+  for (let i = 1; i < rings; i++) for (let j = 0; j < seg; j++) idx.push(at(i, j), at(i, j + 1), at(i + 1, j), at(i, j + 1), at(i + 1, j + 1), at(i + 1, j));
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  geo.setIndex(idx);
+  geo.userData.flat = Float32Array.from(pos);
+  geo.computeVertexNormals();
+  return geo;
+}
 /**
- * Un taco qui se prépare : tortilla qu'on chauffe (couleur), garnitures posées au milieu, puis pliage en demi-lune.
+ * Coupe d'un taco plié : fond arrondi étroit (rayon RS) puis bords presque droits qui s'écartent un peu.
+ * s = distance depuis le milieu de la tortilla (le long de la tortilla) → [écart z, hauteur y].
+ */
+const TACO_A0 = 0.9 * Math.PI / 2;
+function tacoProfile(s, RS) {
+  const a = Math.abs(s), sg = Math.sign(s) || 1, s0 = RS * TACO_A0;
+  if (a <= s0) { const t = a / RS; return [sg * RS * Math.sin(t), RS * (1 - Math.cos(t))]; }
+  return [sg * (RS * Math.sin(TACO_A0) + (a - s0) * Math.cos(TACO_A0)), RS * (1 - Math.cos(TACO_A0)) + (a - s0) * Math.sin(TACO_A0)];
+}
+/** Demi-largeur de l'intérieur du taco à la hauteur y. */
+function tacoHalf(y, RS) {
+  const yA = RS * (1 - Math.cos(TACO_A0));
+  if (y <= yA) return RS * Math.sin(Math.acos(1 - Math.max(0, y) / RS));
+  return RS * Math.sin(TACO_A0) + (y - yA) / Math.tan(TACO_A0);
+}
+/** Plie le disque autour de l'axe X : k = 0 à plat, k = 1 en taco. */
+function bendDisc(geo, r, k) {
+  const p = geo.attributes.position, f = geo.userData.flat, RS = r * 0.2;
+  for (let i = 0; i < p.count; i++) {
+    const x = f[i * 3], z = f[i * 3 + 2], [zf, yf] = tacoProfile(z, RS);
+    p.setXYZ(i, x, yf * k, z + (zf - z) * k);
+  }
+  p.needsUpdate = true; geo.computeVertexNormals();
+}
+
+/**
+ * Un taco qui se prépare : tortilla qu'on chauffe (elle dore et se tache), garnitures posées au milieu,
+ * puis pliage en « U » : la garniture se tasse au fond et dépasse un peu en haut.
  * Renvoie { group, setWarm(v), add(item), fold(), folded }.
  */
 export function createTaco(r = 0.11) {
   const group = new THREE.Group();
-  const tortM = phys({ color: '#f0deb0', roughness: 0.85, sheen: 0.3 });
-  const flat = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.006, 36), tortM);
-  flat.position.y = 0.003; group.add(flat);
-  // taco plié : demi-tube ouvert vers le haut (la garniture se voit entre les deux bords)
-  const shell = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.55, r * 0.55, r * 1.9, 28, 1, true, Math.PI / 2, Math.PI), tortM);
-  shell.material.side = THREE.DoubleSide;
-  shell.rotation.z = Math.PI / 2; shell.position.y = r * 0.55; shell.visible = false;
-  group.add(shell);
-  const fill = new THREE.Group(); fill.position.y = 0.008; group.add(fill);
-  const strip = () => [(Math.random() - 0.5) * r * 1.6, (Math.random() - 0.5) * r * 0.5];
-  const scatter = (n, make, y = 0) => { for (let i = 0; i < n; i++) { const m = make(); const [x, z] = strip(); m.position.set(x, y + Math.random() * 0.004, z); m.rotation.y = Math.random() * 3; fill.add(m); } };
+  const geo = polarDisc(r);
+  const tortM = phys({ color: '#f0deb0', map: tortTex(), roughness: 0.85, sheen: 0.35, sheenColor: new THREE.Color('#fff2d0'), side: THREE.DoubleSide });
+  const toastM = std({ map: toastTex(), transparent: true, opacity: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, roughness: 0.9, side: THREE.DoubleSide });
+  const shell = new THREE.Group(); shell.position.y = 0.002; group.add(shell);
+  shell.add(new THREE.Mesh(geo, tortM)); shell.add(new THREE.Mesh(geo, toastM));
+  const fill = new THREE.Group(); group.add(fill);
+  const pieces = []; // { m, flat: [x,y,z], layer }
+  let layer = 0;
+  const put = (m, x, z, h = 0) => { m.position.set(x, 0.006 + layer * 0.002 + h, z); pieces.push({ m, flat: [x, m.position.y, z], layer, h, j: Math.random() * 0.9 }); fill.add(m); };
+  const strip = () => [(Math.random() - 0.5) * r * 1.45, (Math.random() - 0.5) * r * 0.5];
+  const many = (n, make) => { for (let i = 0; i < n; i++) { const m = make(i); const [x, z] = strip(); m.rotation.y = Math.random() * 6; put(m, x, z, Math.random() * 0.003); } };
+  let foldK = 0, foldTo = 0, lastT = 0;
+  const applyFold = (k) => {
+    bendDisc(geo, r, k);
+    const RS = r * 0.2, top = Math.max(1, layer);
+    for (const p of pieces) {
+      // dans le « U » : la garniture se range en couches (la première au fond, la dernière en haut),
+      // sans dépasser les bords de la tortilla (plus bas vers les extrémités du taco)
+      const xF = p.flat[0] * 0.82;
+      const wall = tacoProfile(Math.sqrt(Math.max(0, r * r - xF * xF)), RS)[1];
+      const yF = Math.min(0.008 + ((p.layer - p.j) / top) * wall * 1.02 + p.h, wall + 0.012); // la garniture dépasse un peu
+      const half = tacoHalf(yF, RS) * 0.72;
+      const zF = THREE.MathUtils.clamp(p.flat[2] / (r * 0.25), -1, 1) * half;
+      p.m.position.set(p.flat[0] + (xF - p.flat[0]) * k, p.flat[1] + (yF - p.flat[1]) * k, p.flat[2] + (zF - p.flat[2]) * k);
+    }
+  };
+  // le pliage s'anime tout seul (≈ 0,35 s) dès que fold() est appelé
+  shell.children[0].onBeforeRender = () => {
+    const t = performance.now() / 1000, dt = lastT ? Math.min(0.1, t - lastT) : 0; lastT = t;
+    if (foldK === foldTo) return;
+    foldK = Math.min(foldTo, foldK + dt / 0.35);
+    applyFold(foldK);
+  };
   const api = {
     group, folded: false,
     setWarm(v) {
       const k = Math.max(0, Math.min(1, v)), b = Math.max(0, v - 1.3);
-      tortM.color.copy(new THREE.Color('#f0deb0').lerp(new THREE.Color('#d9a55a'), k).lerp(new THREE.Color('#3a2414'), Math.min(1, b * 1.5)));
+      tortM.color.copy(new THREE.Color('#f0deb0').lerp(new THREE.Color('#e6bd7a'), k).lerp(new THREE.Color('#3a2414'), Math.min(1, b * 1.5)));
+      toastM.opacity = Math.min(1, k * 0.85 + b);
     },
     add(t) {
-      const col = { chicken: '#e2c08a', beef: '#6a3a22', salad: '#7fbf4a', tomato: '#d8402e', onions: '#efe7cf', cheddar: '#f2a516', piment: '#b0201a', lime: '#9ccf3a' }[t];
+      layer += 1;
+      if (t === 'chicken') { const mats = ['#d9a865', '#c98f4c', '#e6c08a'].map((c) => phys({ color: c, roughness: 0.6, sheen: 0.3 })); many(11, (i) => { const m = rbox(rnd(0.022, 0.03), 0.008, rnd(0.008, 0.011), 0.003, mats[i % 3]); return m; }); return; }
+      if (t === 'beef') { const mats = ['#5e321d', '#6e3d24', '#4a2716'].map((c) => std({ color: c, roughness: 0.75 })); many(16, (i) => lump(rnd(0.006, 0.009), mats[i % 3], 0.7, 0)); return; }
+      if (t === 'salad') { const mats = ['#7cc24a', '#a3d867', '#5fa83a'].map((c) => std({ color: c, roughness: 0.6 })); many(16, (i) => box(rnd(0.022, 0.034), 0.002, 0.004, mats[i % 3])); return; }
+      if (t === 'tomato') { const mat = phys({ color: '#d3362a', roughness: 0.35, clearcoat: 0.5 }); many(10, () => rbox(0.009, 0.008, 0.009, 0.002, mat)); return; }
+      if (t === 'onions') { const mat = phys({ color: '#f3eedf', roughness: 0.3, transmission: 0.2, clearcoat: 0.4 }); many(12, () => rbox(0.007, 0.005, 0.007, 0.0015, mat)); return; }
+      if (t === 'cheddar') { const mats = ['#f2a516', '#f7bd3a'].map((c) => std({ color: c, roughness: 0.5 })); many(18, (i) => box(rnd(0.018, 0.026), 0.0025, 0.003, mats[i % 2])); return; }
+      if (t === 'piment') { const mat = phys({ color: '#c01e14', roughness: 0.3, clearcoat: 0.6 }); many(7, () => { const o = new THREE.Mesh(new THREE.TorusGeometry(0.006, 0.0022, 6, 14), mat); o.rotation.x = Math.PI / 2; return o; }); return; }
       if (t === 'salsa' || t === 'guac') {
-        const m = new THREE.Mesh(new THREE.CapsuleGeometry(0.012, r * 1.3, 4, 8), phys({ color: t === 'salsa' ? '#c23a24' : '#8fbf3a', roughness: 0.3, clearcoat: 0.5 }));
-        m.rotation.z = Math.PI / 2; m.scale.set(1, 0.5, 1); m.position.set(0, 0.012, (Math.random() - 0.5) * 0.02); fill.add(m); return;
+        const mat = phys({ color: t === 'salsa' ? '#c2361f' : '#86b83a', roughness: 0.3, clearcoat: 0.6 });
+        for (let i = 0; i < 5; i++) { const m = lump(rnd(0.009, 0.013), mat, 0.45, 1); put(m, (i - 2) * r * 0.32 + rnd(-0.01, 0.01), rnd(-0.01, 0.01), 0.002); }
+        return;
       }
-      if (t === 'salad') { scatter(8, () => { const l = new THREE.Mesh(new THREE.SphereGeometry(0.016, 8, 6), std({ color: col, roughness: 0.6 })); l.scale.set(1, 0.3, 0.7); return l; }, 0.004); return; }
-      if (t === 'lime') { const w = new THREE.Mesh(new THREE.SphereGeometry(0.018, 10, 8, 0, Math.PI), std({ color: col, roughness: 0.5 })); w.position.set(r * 0.7, 0.01, 0); fill.add(w); return; }
-      scatter(t === 'piment' ? 10 : 12, () => box(t === 'piment' ? 0.005 : 0.014, 0.008, t === 'piment' ? 0.005 : 0.014, std({ color: col, roughness: 0.55 })), 0.006);
+      if (t === 'lime') {
+        const g = new THREE.Group();
+        const peel = new THREE.Mesh(new THREE.SphereGeometry(0.016, 14, 10, 0, Math.PI, 0, Math.PI / 2), std({ color: '#5f9e2a', roughness: 0.5, side: THREE.DoubleSide }));
+        const flesh = new THREE.Mesh(new THREE.CircleGeometry(0.0155, 14, 0, Math.PI), phys({ color: '#d8ee8a', roughness: 0.3, clearcoat: 0.6, side: THREE.DoubleSide }));
+        flesh.rotation.x = -Math.PI / 2; g.add(peel, flesh); g.rotation.z = Math.PI / 2; g.rotation.y = 0.4;
+        put(g, r * 0.62, 0, 0.004);
+      }
     },
-    fold() {
-      // la tortilla se plie : la garniture se resserre au fond du taco
-      api.folded = true; flat.visible = false; shell.visible = true;
-      fill.scale.set(1, 1, 0.5); fill.position.y = 0.012;
-    },
+    fold() { api.folded = true; foldTo = 1; if (!lastT) { foldK = 1; applyFold(1); } },
   };
   return api;
 }

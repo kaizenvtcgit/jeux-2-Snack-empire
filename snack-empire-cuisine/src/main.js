@@ -12,6 +12,7 @@ import { platform, initPlatform, gameReady } from './platform.js';
 import { Kitchen } from './kitchen.js';
 import { PizzaKitchen } from './pizza.js';
 import { TacoKitchen } from './tacos.js';
+import { initTestMode } from './testmode.js';
 
 // Écran de chargement : la barre suit le téléchargement des modèles, puis la construction de la ville
 const ldFill = document.getElementById('ld-fill');
@@ -54,6 +55,7 @@ ui.bind(game, quality);
 const kitchen = new Kitchen(world, game, ui, game.stands[0]);
 const pizzeria = new PizzaKitchen(world, game, ui, game.stands[1]); // camion n°2
 const taqueria = new TacoKitchen(world, game, ui, game.stands[2]); // camion n°3
+initTestMode(game, ui, [kitchen, pizzeria, taqueria]); // 🧪 (Réglages → Mode essai)
 
 const gain = game.offlineGain();
 if (gain) ui.offline(gain, (amount) => { game.addMoney(amount); sfx.jackpot(); ui.toast(`💰 +${amount.toLocaleString('fr-FR')} $`); });
@@ -72,11 +74,14 @@ function loop(now) {
   const dt = Math.min(0.1, realDt);
   last = now;
   quality.tick(realDt);
-  if (!ads.active) game.update(dt);
+  // (mode essai : le jeu peut tourner plus vite, en plusieurs petits pas pour rester stable)
+  for (let n = 0; n < (game.speed || 1); n++) {
+    if (!ads.active) game.update(dt);
+    kitchen.update(ads.active ? 0 : dt);
+    pizzeria.update(ads.active ? 0 : dt);
+    taqueria.update(ads.active ? 0 : dt);
+  }
   visuals.update(dt);
-  kitchen.update(ads.active ? 0 : dt);
-  pizzeria.update(ads.active ? 0 : dt);
-  taqueria.update(ads.active ? 0 : dt);
   world.updateCamera(dt);
   world.animate(dt);
   ui.frame(dt);
