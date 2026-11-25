@@ -244,7 +244,8 @@ export function createWorld(container) {
         sun.position.copy(f.target).add(SUN_OFFSET);
         sun.target.updateMatrixWorld();
         scene.fog.density = 0.004;
-        useComposer ? composer.render() : renderer.render(scene, camera);
+        // pas de halo lumineux dans la cuisine : de près, les reflets de l'inox deviendraient une grosse tache blanche
+        renderer.render(scene, camera);
         return;
       }
       // Limite le déplacement de la caméra à la zone de jeu

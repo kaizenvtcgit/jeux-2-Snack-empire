@@ -84,7 +84,7 @@ export class Kitchen {
   buildRoom() {
     const g = this.group;
     const wall = M('#e4e7ea', { r: 0.55, m: 0.15 });
-    const steel = M('#c9ced4', { r: 0.28, m: 0.85 });
+    const steel = M('#b9bfc6', { r: 0.55, m: 0.6 }); // inox brossé : pas d'effet miroir (sinon gros reflet blanc)
     const floorM = M('#3b3f46', { r: 0.8 });
     const dark = M('#2b2e33', { r: 0.5, m: 0.5 });
     const X0 = -3.2, X1 = 1.95, Z0 = -1.15, Z1 = 1.17, F = 0.75, C = 3.0;
@@ -120,11 +120,11 @@ export class Kitchen {
     add(hood, GRILL_X, 2.72, 0.82, g);
     add(box(0.75, 0.02, 0.45, dark), GRILL_X, 2.565, 0.82, g);
     // néon au plafond + lumière chaude de la cuisine
-    add(box(2.6, 0.04, 0.12, M('#ffffff', { emissive: '#fff4dc', ei: 2.5 })), -0.9, 2.96, 0.0, g);
-    const light = new THREE.PointLight('#ffe6c4', 6, 7, 1.6);
+    add(box(2.6, 0.04, 0.12, M('#ffffff', { emissive: '#fff4dc', ei: 1.2 })), -0.9, 2.96, 0.0, g);
+    const light = new THREE.PointLight('#ffe6c4', 3, 7, 1.6);
     light.position.set(-0.9, 2.75, 0.1);
     g.add(light);
-    const fill = new THREE.PointLight('#ffffff', 2.5, 5, 1.8);
+    const fill = new THREE.PointLight('#ffffff', 1.5, 5, 1.8);
     fill.position.set(-1.1, 2.4, -0.6);
     g.add(fill);
     // l'intérieur ne projette pas d'ombre (sinon le soleil ne passe plus par la fenêtre)
@@ -145,7 +145,7 @@ export class Kitchen {
   buildStations() {
     const g = this.group;
     const dark = M('#24262a', { r: 0.45, m: 0.6 });
-    const steel = M('#c9ced4', { r: 0.28, m: 0.85 });
+    const steel = M('#b9bfc6', { r: 0.55, m: 0.6 });
 
     // Grill : plaque + barreaux + boutons
     add(rbox(0.62, 0.08, 0.55, 0.02, dark), GRILL_X, 1.51, 0.82, g);
