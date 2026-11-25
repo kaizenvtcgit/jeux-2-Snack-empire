@@ -357,7 +357,8 @@ export class Kitchen {
     this.stand.truck.chefs.forEach((c) => { c.userData.wasVisible = c.visible; c.visible = false; });
     this.stand.manual = true;
     document.body.classList.add('in-kitchen');
-    this.camX = this.full() ? C : CAM_X0; // (équipe au complet : vue centrée sur les deux cuisiniers)
+    // vue de départ : ta moitié ; équipe au complet : les deux cuisiniers ; écran étroit : le centre de ta moitié
+    this.camX = this.full() ? C : innerWidth / innerHeight < 1.1 ? C - 1.15 : CAM_X0;
     this.anim = 0; // petite entrée en douceur
     this.from = { pos: w.camera.position.clone(), target: w.controls.target.clone() };
     w.fixed = { pos: new THREE.Vector3(), target: new THREE.Vector3(), fov: w.camera.fov };
@@ -865,7 +866,7 @@ export class Kitchen {
     const [text, focus] = this.nextStep();
     this.hint.textContent = text;
     // écran étroit (téléphone) : la caméra glisse toute seule vers le poste utile, sauf si le joueur vient de glisser lui-même
-    if (narrow && performance.now() - this.lastDrag > 2500) this.camX += (focus - this.camX) * Math.min(1, dt * 2.5);
+    void focus; // (plus de déplacement automatique de la caméra : elle ne bouge que si le joueur la fait glisser)
   }
 
   /** Conseil : la prochaine chose à faire. */
