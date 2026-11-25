@@ -288,9 +288,9 @@ export class UI {
       S.stands.forEach((st, i) => {
         if (st.unlocked && inZone(i)) {
           const z = E.zoneOf(i).id;
-          const max = st.cooks >= E.MAX_COOKS, cost = max ? Infinity : E.COOK_COST[i][st.cooks];
+          const max = st.cooks >= E.maxCooks(i), cost = max ? Infinity : E.COOK_COST[i][st.cooks];
           const who = z === 'parking' ? L('cuisiniers', 'cooks') : L('vendeurs', 'staff');
-          out.push({ id: 's-' + i, emoji: { parking: '👨‍🍳', market: '🧑‍🌾', port: '🧑‍✈️', fair: '🤹', beach: '🏄' }[z], title: `${nameOf(i)} <b>${st.cooks}/${E.MAX_COOKS} ${who}</b>`, sub: max ? L('Équipe complète', 'Full team') : st.cooks === 0 ? L('Personne ne sert : embauche ton 1er cuisinier !', 'Nobody is serving: hire your first cook!') : L(`Service ×${E.COOK_FACTOR[st.cooks]} plus rapide`, `Service ×${E.COOK_FACTOR[st.cooks]} faster`), label: max ? 'MAX' : `${L('Embaucher', 'Hire')}<br>${money(cost)}`, cost, act: 'cook:' + i });
+          out.push({ id: 's-' + i, emoji: { parking: '👨‍🍳', market: '🧑‍🌾', port: '🧑‍✈️', fair: '🤹', beach: '🏄' }[z], title: `${nameOf(i)} <b>${st.cooks}/${E.maxCooks(i)} ${who}</b>`, sub: max ? L('Équipe complète', 'Full team') : st.cooks === 0 ? L('Personne ne sert : embauche ton 1er cuisinier !', 'Nobody is serving: hire your first cook!') : L(`Service ×${E.COOK_FACTOR[st.cooks]} plus rapide`, `Service ×${E.COOK_FACTOR[st.cooks]} faster`), label: max ? 'MAX' : `${L('Embaucher', 'Hire')}<br>${money(cost)}`, cost, act: 'cook:' + i });
         }
       });
       const n = g.nextLockedStand();
@@ -348,7 +348,7 @@ export class UI {
     const canBuy = (list) => list.some((r) => { const l = S.recipes[r.id] || 0; return S.money >= (l ? E.recipeUpCost(r, l) : r.unlock) && (l || r === list.find((x) => !(S.recipes[x.id] > 0))); });
     const canRecipe = canBuy(E.zoneById(this.zone).recipes);
     // pastilles sur les onglets de zone : « il y a quelque chose à acheter là-bas »
-    const canStaff = (lo, hi) => S.stands.some((st, i) => i >= lo && i < hi && st.unlocked && st.cooks < E.MAX_COOKS && S.money >= E.COOK_COST[i][st.cooks]);
+    const canStaff = (lo, hi) => S.stands.some((st, i) => i >= lo && i < hi && st.unlocked && st.cooks < E.maxCooks(i) && S.money >= E.COOK_COST[i][st.cooks]);
     const nl = this.game.nextLockedStand();
     const zoneCan = {};
     E.ZONES.forEach((Z, k) => {

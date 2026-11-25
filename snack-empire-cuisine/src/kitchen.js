@@ -469,7 +469,7 @@ export class Kitchen {
     if (!job) {
       // en attente : il racle sa plaque avec la spatule et jette un œil vers la fenêtre
       look = G + Math.sin(t * 0.5) * 0.1 + (Math.sin(t * 0.23) > 0.8 ? 0.4 : 0);
-      armR = -1.05 + Math.sin(t * 5) * 0.12;
+      armR = -0.7 + Math.sin(t * 5) * 0.1; armL = -0.25; // (bras détendus, la spatule à la main)
     } else {
       const p = st.duration > 0 ? 1 - st.timer / st.duration : 0;
       const ord = job.order;
@@ -549,6 +549,11 @@ export class Kitchen {
     c.arms[0].rotation.x += (armR - c.arms[0].rotation.x) * e;
     c.arms[1].rotation.x += (armL - c.arms[1].rotation.x) * e;
     c.arms[0].rotation.z = 0.1 + reachZ * 0.3; c.arms[1].rotation.z = -0.15;
+    // coudes pliés pour travailler sur le plan (plus tendus quand il tend le hot-dog)
+    const reach = armR < -1.3 ? 0.25 : 0.75;
+    c.forearms[0].rotation.x += (-reach - c.forearms[0].rotation.x) * e;
+    c.forearms[1].rotation.x += (-(armL < -1.3 ? 0.25 : 0.6) - c.forearms[1].rotation.x) * e;
+    c.body.rotation.x = job ? 0.06 : 0.02; // penché sur son travail
     c.root.position.y = 0.75 + (job ? Math.abs(Math.sin(t * 4)) * 0.008 : 0);
     for (const b of [this.cookKetchup, this.cookMustard]) {
       const q = b.userData.squeeze || 0;
@@ -732,8 +737,8 @@ function makeCook(scene, parent) {
   add(cyl(0.11, 0.09, 0.12, white, 24), 0, 0.08, 0, hat);
   add(new THREE.Mesh(new THREE.SphereGeometry(0.12, 20, 12), white), 0, 0.15, 0, hat).scale.set(1, 0.55, 1);
   hat.position.set(0, (top - 0.06) * s, 0);
-  c.root.add(hat);
-  const apron = add(box(0.3, 0.55, 0.012, white), 0, (top * 0.42) * s, (front - 0.01) * s, c.root);
+  c.body.add(hat); // (la toque suit la tête)
+  const apron = add(box(0.3, 0.55, 0.012, white), 0, (top * 0.42) * s, (front - 0.01) * s, c.body);
   apron.rotation.x = 0.05;
   c.root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
   c.state = 'cook';

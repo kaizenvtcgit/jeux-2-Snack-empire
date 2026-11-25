@@ -7,8 +7,10 @@ import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
  * de file d'attente et de repas assis restent valables.
  *
  *   Body           tronc, cou, tête, visage (pivot au sol)
- *   LegL / LegR    pivot à la hanche (±0,082 ; 0,92) : pantalon, chaussure, semelle
- *   ArmL / ArmR    pivot à l'épaule (±0,2 ; 1,42) : manche, bras, coude, avant-bras, main et doigts
+ *   LegL / LegR    cuisse, pivot à la hanche (±0,082 ; 0,92)
+ *   ShinL / ShinR  jambe et chaussure, pivot au genou (±0,082 ; 0,46)
+ *   ArmL / ArmR    manche et bras, pivot à l'épaule (±0,2 ; 1,42)
+ *   ForearmL / ForearmR   avant-bras et main, pivot au coude (±0,2 ; 1,13)
  *   HairShort / HairLong / Cap   coiffures (une seule visible à la fois)
  *
  * Le personnage regarde vers +z. Chaque morceau porte le nom de son « emplacement de couleur »
@@ -84,32 +86,38 @@ export function buildCharacter() {
   piece(body, 'Mouth', xf(capsule(0.007, 0.028, 3, 8), { p: V(0, 1.572, 0.093), r: [0, 0, Math.PI / 2], s: [1, 1, 0.8] }));
   root.add(body);
 
-  /* ---------- Jambes : pantalon droit, chaussure arrondie avec semelle ---------- */
-  for (const [name, sx] of [['LegL', 1], ['LegR', -1]]) {
-    const leg = node(name, V(sx * 0.082, 0.92, 0));
-    piece(leg, 'Pants', lathe([[0.088, 0.04], [0.084, -0.08], [0.073, -0.3], [0.06, -0.45], [0.059, -0.53], [0.054, -0.7], [0.05, -0.83], [0.052, -0.845]]));
-    piece(leg, 'Shoes', xf(sphere(0.05, 16, 10), { p: V(0, -0.878, 0.035), s: [1, 0.78, 2.35] }));
-    piece(leg, 'Shoes', xf(new THREE.CylinderGeometry(0.044, 0.05, 0.05, 14), { p: V(0, -0.85, -0.005) }));
-    piece(leg, 'Sole', xf(new THREE.BoxGeometry(0.1, 0.018, 0.25), { p: V(0, -0.911, 0.035) }));
-    root.add(leg);
+  /* ---------- Jambes : cuisse (pivot à la hanche) + jambe et chaussure (pivot au genou) ---------- */
+  for (const [side, sx] of [['L', 1], ['R', -1]]) {
+    const thigh = node('Leg' + side, V(sx * 0.082, 0.92, 0));
+    piece(thigh, 'Pants', lathe([[0.088, 0.04], [0.084, -0.08], [0.073, -0.3], [0.062, -0.44], [0.058, -0.48]]));
+    piece(thigh, 'Pants', xf(sphere(0.059, 14, 10), { p: V(0, -0.46, 0) }));
+    root.add(thigh);
+    const shin = node('Shin' + side, V(sx * 0.082, 0.46, 0)); // genou
+    piece(shin, 'Pants', lathe([[0.058, 0.02], [0.059, -0.07], [0.054, -0.24], [0.05, -0.37], [0.052, -0.385]]));
+    piece(shin, 'Shoes', xf(sphere(0.05, 16, 10), { p: V(0, -0.418, 0.035), s: [1, 0.78, 2.35] }));
+    piece(shin, 'Shoes', xf(new THREE.CylinderGeometry(0.044, 0.05, 0.05, 14), { p: V(0, -0.39, -0.005) }));
+    piece(shin, 'Sole', xf(new THREE.BoxGeometry(0.1, 0.018, 0.25), { p: V(0, -0.451, 0.035) }));
+    root.add(shin);
   }
 
-  /* ---------- Bras : manche courte, coude, avant-bras, main avec doigts ---------- */
-  for (const [name, sx] of [['ArmL', 1], ['ArmR', -1]]) {
-    const arm = node(name, V(sx * 0.2, 1.42, 0)); // (pivot identique à l'ancien modèle)
+  /* ---------- Bras : manche et bras (pivot à l'épaule) + avant-bras et main (pivot au coude) ---------- */
+  for (const [side, sx] of [['L', 1], ['R', -1]]) {
+    const arm = node('Arm' + side, V(sx * 0.2, 1.42, 0)); // (pivot identique à l'ancien modèle)
     // manche : dessus arrondi (épaule), un peu plus large en bas
     piece(arm, 'Shirt', lathe([[0.012, 0.045], [0.04, 0.036], [0.054, 0.012], [0.058, -0.04], [0.057, -0.13], [0.058, -0.17]]));
     piece(arm, 'Skin', lathe([[0.043, -0.15], [0.041, -0.22], [0.037, -0.29]], 16));
     piece(arm, 'Skin', xf(sphere(0.037, 14, 10), { p: V(0, -0.29, 0) }));
-    piece(arm, 'Skin', xf(lathe([[0.038, -0.29], [0.036, -0.36], [0.03, -0.5], [0.027, -0.525]], 16), { p: V(0, 0, 0.012) }));
-    // main : paume aplatie (tournée vers le corps), quatre doigts légèrement repliés, pouce vers l'avant
-    piece(arm, 'Skin', xf(sphere(0.03, 14, 10), { p: V(0, -0.565, 0.014), s: [0.62, 1.2, 1.12] }));
-    for (let k = 0; k < 4; k++) {
-      const z = 0.034 - k * 0.0135;
-      piece(arm, 'Skin', xf(capsule(0.0078, 0.032 - Math.abs(k - 1.5) * 0.004, 3, 6), { p: V(-sx * 0.002, -0.618, z), r: [0.15, 0, sx * 0.08] }));
-    }
-    piece(arm, 'Skin', xf(capsule(0.0085, 0.026, 3, 6), { p: V(-sx * 0.012, -0.566, 0.05), r: [0.7, 0, -sx * 0.3] }));
     root.add(arm);
+    const fore = node('Forearm' + side, V(sx * 0.2, 1.13, 0)); // coude
+    piece(fore, 'Skin', lathe([[0.037, 0.0], [0.036, -0.07], [0.03, -0.21], [0.027, -0.235]], 16));
+    // main : paume aplatie (tournée vers le corps), quatre doigts légèrement repliés, pouce vers l'avant
+    piece(fore, 'Skin', xf(sphere(0.03, 14, 10), { p: V(0, -0.275, 0.006), s: [0.62, 1.2, 1.12] }));
+    for (let k = 0; k < 4; k++) {
+      const z = 0.026 - k * 0.0135;
+      piece(fore, 'Skin', xf(capsule(0.0078, 0.032 - Math.abs(k - 1.5) * 0.004, 3, 6), { p: V(-sx * 0.002, -0.328, z), r: [0.15, 0, sx * 0.08] }));
+    }
+    piece(fore, 'Skin', xf(capsule(0.0085, 0.026, 3, 6), { p: V(-sx * 0.012, -0.276, 0.042), r: [0.7, 0, -sx * 0.3] }));
+    root.add(fore);
   }
 
   /* ---------- Coiffures ---------- */

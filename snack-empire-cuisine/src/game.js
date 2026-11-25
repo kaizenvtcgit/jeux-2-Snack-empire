@@ -45,6 +45,17 @@ export class Game {
       st.splice(18, 16, ...oldBeach, ...oldFair);
     }
     this.state.levelSwap45 = true;
+    // copie Cuisine : le camion n°1 vend des hot-dogs (recette de départ). Les parties d'avant ce changement
+    // avaient « burger » en recette de départ et « hotdog » en 4e recette : on échange leurs niveaux.
+    if (saved && !saved.hotdogTruck) {
+      const r = this.state.recipes, b = r.burger, h = r.hotdog;
+      delete r.burger; delete r.hotdog;
+      if (b) r.hotdog = b;
+      if (h) r.burger = h;
+    }
+    this.state.hotdogTruck = true;
+    // 2 cuisiniers au plus par camion
+    this.state.stands.forEach((st, i) => { st.cooks = Math.min(st.cooks, E.maxCooks(i)); });
     this.isNewPlayer = !saved;
 
     this.stands = SLOT_X.map((_, i) => new Stand(world.scene, i));
@@ -147,7 +158,7 @@ export class Game {
 
   hireCook(i) {
     const st = this.state.stands[i];
-    if (!st.unlocked || st.cooks >= E.MAX_COOKS || !this.spend(E.COOK_COST[i][st.cooks])) return;
+    if (!st.unlocked || st.cooks >= E.maxCooks(i) || !this.spend(E.COOK_COST[i][st.cooks])) return;
     st.cooks += 1;
     this.stands[i].setCooks(st.cooks);
     this.save(); this.hooks.changed();

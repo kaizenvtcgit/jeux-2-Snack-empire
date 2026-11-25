@@ -54,8 +54,17 @@ export class Customer {
       root.add(m);
       parts[p.name] = m;
     }
+    // squelette : genoux sous les cuisses, avant-bras sous les bras ; bras et coiffure suivent le buste
+    const attach = (child, parent) => { if (!child || !parent) return; root.remove(child); child.position.sub(parent.position); parent.add(child); };
+    this.body = parts.Body;
+    for (const n of ['ArmL', 'ArmR', 'HairShort', 'HairLong', 'Cap']) attach(parts[n], this.body);
+    attach(parts.ShinL, parts.LegL); attach(parts.ShinR, parts.LegR);
+    attach(parts.ForearmL, parts.ArmL); attach(parts.ForearmR, parts.ArmR);
     this.legs = [parts.LegL, parts.LegR];
+    this.shins = [parts.ShinL, parts.ShinR];
     this.arms = [parts.ArmL, parts.ArmR];
+    this.forearms = [parts.ForearmL, parts.ForearmR];
+    this.walkK = 0; // 0 = à l'arrêt, 1 = en marche (transition en douceur)
 
     root.position.copy(pos);
     root.scale.setScalar(0.92 + Math.random() * 0.16);
@@ -94,14 +103,12 @@ export class Customer {
   /** S'asseoir (orienté vers yaw) / se relever. */
   sit(yaw) {
     this.seated = true; this.yaw = yaw; this.root.rotation.y = yaw; this.faceYaw = yaw;
-    this.legs.forEach((l) => { if (l.userData.sitGeo) l.geometry = l.userData.sitGeo; }); // genoux pliés
   }
   standUp() {
     this.seated = false;
     this.root.position.y = 0;
-    this.legs.forEach((l) => { if (l.userData.standGeo) l.geometry = l.userData.standGeo; });
-    this.legs.forEach((l) => { l.rotation.x = 0; });
-    this.arms.forEach((a) => { a.rotation.x = 0; });
+    for (const o of [...this.legs, ...this.shins, ...this.arms, ...this.forearms]) o.rotation.set(0, 0, 0);
+    this.body.rotation.set(0, 0, 0);
   }
 
   update(dt) {
@@ -110,11 +117,19 @@ export class Customer {
       // assis sur la chaise : jambes à l'horizontale sous la table, porte la nourriture à la bouche
       const s = this.root.scale.x;
       p.y = 0.5 - 0.92 * s;
-      this.legs[0].rotation.x = this.legs[1].rotation.x = -1.4;
-      this.phase += dt * 2.2;
-      this.arms[0].rotation.x = -0.75 - Math.max(0, Math.sin(this.phase)) * 0.9;
-      this.arms[1].rotation.x = -0.65;
-      this.arms[0].rotation.z = this.arms[1].rotation.z = 0;
+      // cuisses à l'horizontale, jambes qui retombent sous la chaise (genoux pliés)
+      this.legs[0].rotation.x = this.legs[1].rotation.x = -1.45;
+      this.shins[0].rotation.x = this.shins[1].rotation.x = 1.4;
+      this.phase += dt * 1.6;
+      // une main porte la nourriture à la bouche (le coude se plie), l'autre reste posée sur la table
+      const bite = Math.max(0, Math.sin(this.phase)) ** 2;
+      this.arms[0].rotation.x = -0.55 - bite * 0.35;
+      this.forearms[0].rotation.x = -1.0 - bite * 1.1;
+      this.arms[1].rotation.x = -0.45;
+      this.forearms[1].rotation.x = -1.0;
+      this.arms[0].rotation.z = 0.05; this.arms[1].rotation.z = -0.05;
+      this.body.rotation.x = 0.06 + bite * 0.04; // se penche un peu vers son assiette
+      this.body.rotation.y = this.body.rotation.z = 0;
       return;
     }
     let moving = false;
@@ -176,14 +191,41 @@ export class Customer {
       }
       this.turnTo(this.faceYaw + this.glance, dt * 0.4);
     }
-    this.phase += dt * (moving ? Math.max(this.v, 0.8) * 3.4 : 1.2);
-    const swing = moving ? Math.sin(this.phase) * 0.6 : 0;
-    this.legs[0].rotation.x = swing; this.legs[1].rotation.x = -swing;
-    this.arms[0].rotation.x = -swing * 0.75; this.arms[1].rotation.x = swing * 0.75;
-    // à l'arrêt : légère respiration / balancement
-    const idle = moving ? 0 : Math.sin(this.phase) * 0.04;
-    this.arms[0].rotation.z = idle * 0.5; this.arms[1].rotation.z = -idle * 0.5;
-    p.y = moving ? Math.abs(Math.cos(this.phase)) * 0.045 : 0;
+    this.animate(dt, moving);
+  }
+
+  /**
+   * Mouvements du corps.
+   * Marche : chaque jambe a son cycle (la cuisse avance, le genou se plie pendant que le pied passe en avant,
+   * puis se tend pour se poser), les bras se balancent à l'opposé avec le coude un peu plié,
+   * le buste monte et descend deux fois par cycle et tourne légèrement avec les épaules.
+   * À l'arrêt : respiration, poids du corps qui passe d'une jambe à l'autre, bras détendus.
+   * On passe de l'un à l'autre en douceur (pas d'arrêt net).
+   */
+  animate(dt, moving) {
+    this.walkK += ((moving ? 1 : 0) - this.walkK) * Math.min(1, dt * 6);
+    const w = this.walkK, rest = 1 - w;
+    // cadence : suit la vitesse (une foulée par tour de phase)
+    this.phase += dt * (moving ? Math.max(this.v, 0.8) * 3.4 : 0);
+    const f = this.phase, time = this.t + this.phase0;
+    const stride = Math.min(1, 0.55 + this.v * 0.2); // foulée plus ample quand on marche vite
+    for (let k = 0; k < 2; k++) {
+      const a = f + k * Math.PI;
+      const shift = rest * Math.sin(time * 0.45) * (k ? -1 : 1); // à l'arrêt : appui sur une jambe puis l'autre
+      this.legs[k].rotation.x = w * 0.48 * stride * Math.sin(a) - rest * 0.02;
+      this.shins[k].rotation.x = w * (0.08 + 0.85 * stride * Math.max(0, -Math.cos(a))) + rest * (0.03 + Math.max(0, shift) * 0.08);
+      this.legs[k].rotation.z = rest * (k ? -0.03 : 0.03);
+      // bras : à l'opposé de la jambe du même côté, coude plus plié quand le bras passe devant
+      this.arms[k].rotation.x = -w * 0.4 * stride * Math.sin(a) + rest * 0.03 * Math.sin(time * 0.8 + k);
+      this.forearms[k].rotation.x = -(0.15 + w * 0.35 * Math.max(0, Math.sin(a)) + rest * 0.04);
+      this.arms[k].rotation.z = (k ? -1 : 1) * (0.05 + rest * 0.02 * Math.sin(time * 1.6));
+    }
+    // buste : rebond, rotation des épaules, légère inclinaison vers l'avant en marchant ; respiration au repos
+    this.root.position.y = w * 0.028 * (1 + Math.cos(2 * f)) / 2;
+    this.body.rotation.y = w * 0.08 * Math.sin(f);
+    this.body.rotation.x = w * 0.035;
+    this.body.rotation.z = rest * 0.018 * Math.sin(time * 0.45);
+    this.body.scale.y = 1 + rest * 0.006 * Math.sin(time * 1.7);
   }
 
   turnTo(target, dt) {

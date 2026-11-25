@@ -8,7 +8,7 @@ export const MODELS = { truck: null, customer: null };
 
 /** Emplacements de la palette des clients (1 texel par matériau Blender). */
 export const PALETTE_SLOTS = ['Skin', 'Shirt', 'Pants', 'Shoes', 'Hair', 'CapColor', 'EyeWhite', 'Pupil', 'Mouth', 'Sole', 'Accent', 'Belt'];
-const CUSTOMER_PARTS = ['Body', 'LegL', 'LegR', 'ArmL', 'ArmR', 'HairShort', 'HairLong', 'Cap'];
+const CUSTOMER_PARTS = ['Body', 'LegL', 'LegR', 'ShinL', 'ShinR', 'ArmL', 'ArmR', 'ForearmL', 'ForearmR', 'HairShort', 'HairLong', 'Cap'];
 
 /** Charge les modèles ; onProgress(0 → 1) suit le téléchargement (barre de l'écran de chargement). */
 export async function loadModels(onProgress = () => {}) {
@@ -49,7 +49,7 @@ function bakeCustomer(scene) {
     part.name = name;
     part.position.copy(node.position);
     // jambes : version « assise », genou plié (la jambe d'origine est droite, sans articulation)
-    if (name === 'LegL' || name === 'LegR') part.userData.seated = bendKnee(part.geometry);
+    // (les genoux sont de vraies articulations : plus besoin d'une jambe « assise » pliée à l'avance)
     out.add(part);
   }
   return out;

@@ -311,7 +311,15 @@ const FX = {
 function rooftop(g, build) {
   const s = new THREE.Group(); build(s); s.scale.setScalar(1.1); g.add(s);
   add(cyl(0.04, 0.04, 0.5, steel(), 8), 0, -0.25, 0, g);
-  return (dt, t, k) => { s.rotation.y += dt * (0.6 + k * 1.8); s.position.y = Math.abs(Math.sin(t * (1.5 + k * 3))) * 0.12 * (0.4 + k); };
+  // (la vitesse suit l'activité en douceur, et l'enseigne flotte sur une phase qui avance toute seule :
+  //  sinon elle sautait à chaque client servi)
+  let spd = 0, ph = 0;
+  return (dt, t, k) => {
+    spd += (k - spd) * Math.min(1, dt * 1.5);
+    s.rotation.y += dt * (0.6 + spd * 1.2);
+    ph += dt * (1.6 + spd * 1.2);
+    s.position.y = 0.05 + Math.sin(ph) * 0.05;
+  };
 }
 function blender(g, col) { // blender : le mélange tourbillonne, la machine vibre
   table(g);

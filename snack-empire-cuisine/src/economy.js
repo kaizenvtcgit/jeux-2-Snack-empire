@@ -119,6 +119,8 @@ export const COOK_FACTOR = [1, 1.8, 2.5];
 /** Cuisine : quand le joueur est dans le camion, le cuisinier prend au moins ce temps pour préparer un hot-dog (on le voit faire). */
 export const COOK_SHOW_SECONDS = 7;
 export const MAX_COOKS = 3;
+/** Nombre maximum de cuisiniers / vendeurs d'un emplacement : 2 dans les camions, 3 ailleurs. */
+export const maxCooks = (i) => (i < MARKET_FIRST ? 2 : MAX_COOKS);
 
 export const BOOST_SECONDS = 180;
 export const AD_COOLDOWN = 60;
