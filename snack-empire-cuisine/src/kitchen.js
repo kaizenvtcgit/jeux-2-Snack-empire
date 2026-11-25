@@ -718,7 +718,7 @@ function makeCook(scene, parent) {
   parent.add(c.root);
   const data = c.texture.image.data;
   const paint = (slot, hex) => { const i = PALETTE_SLOTS.indexOf(slot) * 4, v = parseInt(hex.slice(1), 16); data[i] = (v >> 16) & 255; data[i + 1] = (v >> 8) & 255; data[i + 2] = v & 255; };
-  paint('Shirt', '#f4f3ee'); paint('Pants', '#2b2d33'); paint('Shoes', '#1f1f22'); paint('CapColor', '#f4f3ee');
+  paint('Shirt', '#f4f3ee'); paint('Accent', '#d8d8d2'); paint('Pants', '#2b2d33'); paint('Shoes', '#1f1f22'); paint('CapColor', '#f4f3ee');
   c.texture.needsUpdate = true;
   c.root.position.set(COOK_X, 0.75, 0.2);
   c.root.updateMatrixWorld(true);

@@ -6,7 +6,8 @@ const SHIRTS = ['#f4a262', '#457b9d', '#9b5de5', '#2a9d8f', '#e9c46a', '#ef476f'
 const PANTS = ['#2b3040', '#3a3f4a', '#4a3b30', '#1f3550', '#55565c', '#7a6a55', '#2f4a3a'];
 const SHOES = ['#f2f2f2', '#1f1f22', '#8a5a34', '#d94a3a', '#3a6ea5'];
 const HAIR = ['#2b1d14', '#5a3a22', '#141414', '#c98a3a', '#7a2e1d', '#d8c7a0', '#8a8a88'];
-const FIXED = { EyeWhite: '#f8f8f4', Pupil: '#1a1a22', Mouth: '#9a4a42', Sole: '#3a3a3a' };
+const FIXED = { EyeWhite: '#f8f8f4', Pupil: '#2a1d16', Mouth: '#a8564d', Sole: '#3a3a3a', Belt: '#3b2a20' };
+const ACCENTS = ['#f1f1ea', '#2b3040', '#e9c46a', '#e63946', '#2a9d8f', '#ffffff'];
 const pick = (a) => a[Math.floor(Math.random() * a.length)];
 
 /** Réglage global : les clients projettent-ils une ombre ? (désactivé en qualité basse) */
@@ -32,9 +33,10 @@ export class Customer {
   constructor(scene, pos) {
     const tpl = MODELS.customer;
     const root = new THREE.Group();
-    const colors = { Skin: pick(SKINS), Shirt: pick(SHIRTS), Pants: pick(PANTS), Shoes: pick(SHOES), Hair: pick(HAIR), CapColor: pick(SHIRTS) };
+    const colors = { Skin: pick(SKINS), Shirt: pick(SHIRTS), Pants: pick(PANTS), Shoes: pick(SHOES), Hair: pick(HAIR), CapColor: pick(SHIRTS), Accent: pick(ACCENTS) };
     this.texture = paletteTexture(colors);
-    this.material = new THREE.MeshStandardMaterial({ map: this.texture, roughness: 0.72, envMapIntensity: 0.7 });
+    // (une lueur de la couleur elle-même adoucit les zones à l'ombre : menton, dessous des bras)
+    this.material = new THREE.MeshStandardMaterial({ map: this.texture, roughness: 0.72, envMapIntensity: 0.7, emissive: 0xffffff, emissiveMap: this.texture, emissiveIntensity: 0.12 });
 
     // coiffure : courte, longue, ou casquette
     const r = Math.random();
