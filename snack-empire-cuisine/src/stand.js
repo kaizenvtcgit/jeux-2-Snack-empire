@@ -1,5 +1,5 @@
 import { THREE, M, add, rbox, cyl, sph, canvasTex, shadows } from './util.js';
-import { RECIPES, MARKET_RECIPES, MARKET_FIRST, PORT_FIRST, FAIR_FIRST, BEACH_FIRST, zoneOf } from './economy.js';
+import { HOTDOG_MODELS, TRUCK_RECIPES, MARKET_RECIPES, MARKET_FIRST, PORT_FIRST, FAIR_FIRST, BEACH_FIRST, zoneOf } from './economy.js';
 import { MODELS } from './models.js';
 import { buildStall, ROW2_Z, STALL_TYPES } from './market.js';
 import { buildPortShop, SHOP_TYPES } from './port.js';
@@ -55,7 +55,8 @@ export class Stand {
     this.kind = index >= MARKET_FIRST ? 'stall' : 'truck';
     /** Rangée (marché, port) : 0 = fond (on y accède par l'allée), 1 = devant. */
     this.row = SLOT_ROW[index];
-    this.recipes = zone.recipes;
+    // camion n°1 : uniquement des hot-dogs ; camions 2 à 4 : frites, tacos, burger, bubble tea
+    this.recipes = index === 0 ? HOTDOG_MODELS : zone.id === 'parking' ? TRUCK_RECIPES : zone.recipes;
     this.unlocked = false;
     this.cooks = 1;
     this.queue = [];
@@ -138,6 +139,16 @@ export class Stand {
 
   setMenu(levels) { this.truck.drawMenu(levels); }
 
+  /** Camion à hot-dogs : la terrasse ajoute 2 tables par niveau (les clients s'y installent aussi). */
+  setTerrace(level) {
+    this.terrace = this.terrace || 0;
+    while (this.terrace < Math.min(level, TERRACE.length)) {
+      const g = buildDining(this.seats, this, TERRACE[this.terrace]);
+      this.truck.group.add(g);
+      this.terrace += 1;
+    }
+  }
+
   /**
    * Position (monde) de la place n°i dans la file.
    * La file longe le camion (vers l'arrière), puis tourne et s'éloigne vers le parking : un « L ».
@@ -183,10 +194,12 @@ export class Stand {
   }
 }
 
+/** Tables de la terrasse du camion à hot-dogs (2 par niveau), devant le camion, côté droit. */
+const TERRACE = [[[3.2, 5.6], [3.2, 8.1]], [[3.2, 10.6], [5.5, 9.5]]];
 /** Tables bistro (position locale) entre ce camion et le stand suivant. */
 const TABLES = [[5.5, 4.3], [5.5, 6.9]];
 
-function buildDining(seats, stand) {
+function buildDining(seats, stand, tables = TABLES) {
   const g = new THREE.Group();
   const wood = M('#a8733f', { r: 0.7, cached: true });
   const metal = M('#2b2d31', { r: 0.45, m: 0.7, cached: true });
@@ -195,7 +208,7 @@ function buildDining(seats, stand) {
   const meat = M('#5a2f1c', { r: 0.7, cached: true });
   const cup = M('#e63946', { r: 0.5, cached: true });
 
-  for (const [tx, tz] of TABLES) {
+  for (const [tx, tz] of tables) {
     // table ronde
     add(cyl(0.38, 0.38, 0.04, wood, 28), tx, 0.75, tz, g);
     add(cyl(0.03, 0.03, 0.73, metal, 10), tx, 0.37, tz, g);
@@ -365,7 +378,7 @@ function buildTruck(index) {
     g.strokeStyle = '#b88a52'; g.lineWidth = 18; g.strokeRect(0, 0, w, h);
     g.fillStyle = '#fff'; g.textAlign = 'center'; g.font = 'bold 44px "Segoe UI", sans-serif'; g.fillText('MENU', w / 2, 70);
     g.textAlign = 'left'; g.font = '30px "Segoe UI Emoji", "Segoe UI", sans-serif';
-    RECIPES.filter((r) => (levels[r.id] || 0) > 0).forEach((r, i) => {
+    (index === 0 ? HOTDOG_MODELS : TRUCK_RECIPES).filter((r) => (levels[r.id] || 0) > 0).slice(0, 5).forEach((r, i) => {
       g.fillStyle = '#f4f1e8'; g.fillText(`${r.emoji} ${r.name}`, 26, 128 + i * 48);
     });
     menuTex.needsUpdate = true;

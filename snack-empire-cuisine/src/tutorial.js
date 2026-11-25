@@ -50,10 +50,10 @@ export function initTutorial(ui, game) {
       done: () => (S.recipes.hotdog || 0) >= 2,
     },
     {
-      text: L('<b>Débloque les frites</b> 🍟 : une nouvelle recette à la carte, qui rapporte plus.', '<b>Unlock fries</b> 🍟: a new item on the menu that earns more.'),
+      text: L('<b>Débloque le cheese-dog</b> 🧀 : un nouveau hot-dog à la carte, plus cher. Les clients vont le commander !', '<b>Unlock the cheese dog</b> 🧀: a new hot dog on the menu that sells for more. Customers will order it!'),
       prep: () => shopOn('recipes'),
-      target: () => card('r-fries'),
-      done: () => (S.recipes.fries || 0) >= 1,
+      target: () => card('r-cheesedog'),
+      done: () => (S.recipes.cheesedog || 0) >= 1,
     },
     {
       text: L('<b>Ouvre un deuxième camion</b> 🚚 : touche l\'emplacement indiqué. Deux files de clients, deux fois plus de ventes !', '<b>Open a second truck</b> 🚚: tap the highlighted plot. Two lines of customers, twice the sales!'),

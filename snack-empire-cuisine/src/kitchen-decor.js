@@ -442,3 +442,108 @@ export function makeBun() {
   add(new THREE.Mesh(new THREE.CapsuleGeometry(0.025, 0.2, 6, 16), crumb), 0, 0.05, 0, g).rotation.z = Math.PI / 2;
   return g;
 }
+
+/* ---------------- Équipement du camion à hot-dogs (s'affiche quand on l'achète) ---------------- */
+
+const PAN_CONTENT = {
+  onions: { color: '#efe7cf', shape: 'dice' },
+  friedonions: { color: '#a86a2a', shape: 'dice' },
+  pickles: { color: '#6f9a3a', shape: 'disc' },
+  jalapenos: { color: '#3f8a2a', shape: 'ring' },
+  cheese: { color: '#f2a516', shape: 'slice' },
+  chili: { color: '#7a2a14', shape: 'stew' },
+  bacon: { color: '#a8452c', shape: 'strip' },
+};
+
+/** Bac gastro en inox (rail de garnitures) avec son contenu. */
+export function buildPan(g, x, z, kind) {
+  const steel = MAT.steel(1, 1);
+  const W = 0.115, D = 0.16, H = 0.07, t = 0.005;
+  const pan = new THREE.Group();
+  add(box(W, t, D, steel), 0, 0, 0, pan);
+  add(box(W, H, t, steel), 0, H / 2, -D / 2, pan); add(box(W, H, t, steel), 0, H / 2, D / 2, pan);
+  add(box(t, H, D, steel), -W / 2, H / 2, 0, pan); add(box(t, H, D, steel), W / 2, H / 2, 0, pan);
+  const c = PAN_CONTENT[kind];
+  const m = phys({ color: c.color, roughness: kind === 'chili' ? 0.25 : 0.5, clearcoat: kind === 'chili' || kind === 'pickles' ? 0.6 : 0.1 });
+  add(box(W - 0.01, 0.01, D - 0.01, m), 0, H - 0.025, 0, pan); // fond de garniture
+  const n = { dice: 40, disc: 14, ring: 14, slice: 6, stew: 0, strip: 7 }[c.shape];
+  if (c.shape === 'stew') {
+    // chili : surface brillante bombée + louche
+    add(new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), m), 0, H - 0.03, 0, pan).scale.set(0.9, 0.25, 1.25);
+    const ladle = new THREE.Group();
+    add(cyl(0.004, 0.004, 0.2, std({ color: '#c9ced4', metalness: 0.9, roughness: 0.25 }), 8), 0, 0.1, 0, ladle);
+    add(new THREE.Mesh(new THREE.SphereGeometry(0.022, 12, 6, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2), std({ color: '#c9ced4', metalness: 0.9, roughness: 0.25 })), 0, 0, 0, ladle);
+    ladle.position.set(0.02, H - 0.02, 0.03); ladle.rotation.set(-0.5, 0, 0.3);
+    pan.add(ladle);
+  }
+  for (let i = 0; i < n; i++) {
+    let piece;
+    if (c.shape === 'dice') piece = box(0.014, 0.008, 0.014, m);
+    else if (c.shape === 'disc') piece = cyl(0.016, 0.016, 0.005, m, 12);
+    else if (c.shape === 'ring') piece = new THREE.Mesh(new THREE.TorusGeometry(0.012, 0.004, 6, 12), m);
+    else if (c.shape === 'slice') piece = box(0.085, 0.004, 0.085, m);
+    else piece = box(0.09, 0.005, 0.02, m);
+    piece.position.set(rnd(-W / 2 + 0.02, W / 2 - 0.02) * (c.shape === 'slice' || c.shape === 'strip' ? 0.2 : 1), H - 0.018 + (c.shape === 'slice' ? i * 0.005 : rnd(0, 0.01)), rnd(-D / 2 + 0.02, D / 2 - 0.02) * (c.shape === 'slice' ? 0.2 : 1));
+    piece.rotation.set(c.shape === 'ring' ? Math.PI / 2 : rnd(-0.3, 0.3), rnd(0, 3), 0);
+    pan.add(piece);
+  }
+  pan.position.set(x, 1.47, z);
+  g.add(pan);
+  return pan;
+}
+
+/** Chauffe-pains : petite vitrine inox chauffée (lueur orange), pains à l'intérieur. */
+export function buildWarmer(g, x, z, makeBun) {
+  const w = new THREE.Group();
+  const steel = MAT.steel(1, 1);
+  add(rbox(0.3, 0.22, 0.26, 0.015, steel), 0, 0.11, 0, w);
+  add(box(0.26, 0.17, 0.005, phys({ color: '#ffe2b8', transparent: true, opacity: 0.25, roughness: 0.05 })), 0, 0.12, 0.131, w).userData.noShadow = true;
+  add(box(0.26, 0.01, 0.22, std({ color: '#ff8a3a', emissive: '#ff6a1a', emissiveIntensity: 1.2 })), 0, 0.2, 0, w); // résistance
+  for (let k = 0; k < 3; k++) { const b = makeBun(); b.scale.setScalar(0.8); b.position.set(0, 0.04 + k * 0.05, 0); b.rotation.y = Math.PI / 2 + k * 0.1; w.add(b); }
+  w.position.set(x, 1.47, z);
+  g.add(w);
+  return w;
+}
+
+/** Distributeur de sauces : trois flacons à pompe fixés au mur. */
+export function buildDispenser(g, x, y, z) {
+  const d = new THREE.Group();
+  const steel = MAT.steel(1, 1);
+  add(box(0.36, 0.02, 0.14, steel), 0, 0, 0, d);
+  add(box(0.36, 0.3, 0.02, steel), 0, 0.15, -0.06, d);
+  ['#c1121f', '#e8b400', '#f1e6c8'].forEach((c, k) => {
+    const xx = -0.11 + k * 0.11;
+    add(cyl(0.035, 0.035, 0.18, phys({ color: c, roughness: 0.3, clearcoat: 0.6 }), 16), xx, 0.1, 0, d);
+    add(cyl(0.012, 0.012, 0.05, std({ color: '#222', roughness: 0.5 }), 10), xx, 0.215, 0, d);
+    add(box(0.05, 0.012, 0.02, std({ color: '#222', roughness: 0.5 })), xx, 0.245, 0.015, d);
+  });
+  d.position.set(x, y, z);
+  g.add(d);
+  return d;
+}
+
+/** Enseigne néon « HOT-DOGS » sur la carrosserie (dehors), de plus en plus lumineuse avec les niveaux. */
+export function buildNeon(g, x, y, z) {
+  const tex = canvasTex(512, 160, (c, w, h) => {
+    c.clearRect(0, 0, w, h);
+    c.font = '900 92px "Arial Black", Impact, sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.shadowColor = '#ff2d8a'; c.shadowBlur = 30; c.fillStyle = '#ffd1ea'; c.fillText('HOT-DOGS', w / 2, h / 2 + 4);
+    c.shadowBlur = 0; c.lineWidth = 6; c.strokeStyle = '#ff5fb0'; c.strokeText('HOT-DOGS', w / 2, h / 2 + 4);
+  });
+  const mat = new THREE.MeshStandardMaterial({ map: tex, emissiveMap: tex, emissive: 0xffffff, emissiveIntensity: 1.6, transparent: true, alphaTest: 0.05, roughness: 0.4 });
+  const n = new THREE.Group();
+  add(box(0.92, 0.32, 0.02, std({ color: '#1b1a24', roughness: 0.6 })), 0, 0, -0.012, n);
+  const face = new THREE.Mesh(new THREE.PlaneGeometry(0.88, 0.28), mat);
+  face.position.z = 0.001; n.add(face);
+  n.userData.mat = mat;
+  n.position.set(x, y, z);
+  g.add(n);
+  return n;
+}
+
+/** Saucisse géante (modèle « hot-dog géant ») : même forme, plus longue et plus épaisse. */
+export function giantSausageGeometry() {
+  const g = sausageGeometry();
+  g.scale(1.4, 1.2, 1.2);
+  return g;
+}

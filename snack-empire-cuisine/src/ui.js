@@ -144,6 +144,9 @@ export class UI {
       if (!btn || btn.disabled) return;
       const [act, arg] = btn.dataset.act.split(':');
       if (act === 'recipe') game.buyRecipe(arg);
+      if (act === 'top') game.buyTopping(arg);
+      if (act === 'eq') game.buyEquip(arg);
+      if (act === 'train') game.trainCooks();
       if (act === 'up') game.buyUpgrade(arg);
       if (act === 'cook') game.hireCook(+arg);
       if (act === 'stand') this.buyStand(+arg);
@@ -251,7 +254,19 @@ export class UI {
   /* ---------- Boutique ---------- */
   shopModel() {
     const g = this.game, S = g.state, cash = S.money, out = [];
-    if (this.tab === 'recipes') {
+    if (this.tab === 'recipes' && this.zone === 'parking') {
+      // camion n°1 : uniquement des hot-dogs (sa carte et ses garnitures) ; les camions 2 à 4 ont leur propre carte
+      out.push({ head: true, id: 'h-hd', title: L('🌭 Camion n°1 · la carte des hot-dogs', '🌭 Truck #1 · hot dog menu') });
+      this.recipeCards(E.HOTDOG_MODELS, out);
+      const hd = S.hd, nextTop = E.TOPPINGS.find((t) => !hd.tops[t.id]);
+      const have = E.TOPPINGS.filter((t) => hd.tops[t.id]).map((t) => t.emoji).join(' ');
+      out.push({ head: true, id: 'h-top', title: L(`🧂 Garnitures <small>${have}</small>`, `🧂 Toppings <small>${have}</small>`) });
+      if (nextTop) out.push({ id: 't-' + nextTop.id, emoji: nextTop.emoji, title: nextTop.name, sub: L(`Nouvelle garniture : un bac de plus en cuisine, les clients la commandent (+${Math.round(nextTop.price * 100)} % du prix)`, `New topping: one more tray in the kitchen, customers order it (+${Math.round(nextTop.price * 100)}% price)`), label: `${L('Débloquer', 'Unlock')}<br>${money(nextTop.unlock)}`, cost: nextTop.unlock, act: 'top:' + nextTop.id, locked: true });
+      if (S.stands.slice(1, 4).some((st) => st.unlocked)) {
+        out.push({ head: true, id: 'h-trucks', title: L('🚚 Camions 2 à 4', '🚚 Trucks 2 to 4') });
+        this.recipeCards(E.TRUCK_RECIPES, out);
+      }
+    } else if (this.tab === 'recipes') {
       let lockedShown = false;
       for (const r of E.zoneById(this.zone).recipes) {
         const lvl = S.recipes[r.id] || 0;
@@ -271,9 +286,26 @@ export class UI {
         marketing: (l) => L(`Un client toutes les ${dec(E.spawnInterval(l, 1))} s`, `One customer every ${dec(E.spawnInterval(l, 1))} s`),
         queue: (l) => L(`File d'attente : ${E.queueCap(l)} places`, `Queue: ${E.queueCap(l)} spots`),
       };
+      if (this.zone === 'parking') out.push({ head: true, id: 'h-all', title: L('⚡ Pour tous les stands', '⚡ For every stand') });
       for (const [k, u] of Object.entries(E.UPGRADES)) {
         const lvl = S.up[k], max = lvl >= u.max, cost = E.upgradeCost(u, lvl);
         out.push({ id: 'u-' + k, emoji: u.emoji, title: `${u.name} <b>${L('niv.', 'lv.')} ${lvl}</b>`, sub: subs[k](lvl), label: max ? 'MAX' : `${money(cost)}`, cost: max ? Infinity : cost, act: 'up:' + k });
+      }
+      if (this.zone === 'parking') {
+        // équipement du camion à hot-dogs : chaque achat se voit dans la cuisine (sur les deux plans de travail) ou dehors
+        out.push({ head: true, id: 'h-eq', title: L('🌭 Équipement du camion n°1', '🌭 Truck #1 equipment') });
+        const eqSub = {
+          grill: (l) => L(`${3 + l} saucisses à la fois sur la plaque`, `${3 + l} sausages at once on the griddle`),
+          warmer: (l) => L(`Pains toujours chauds · préparation −${8 * l} %`, `Buns always warm · prep −${8 * l}%`),
+          dispenser: (l) => L(`Sauces à la pompe · préparation −${10 * l} %`, `Pump sauces · prep −${10 * l}%`),
+          hood: (l) => L(`Cuisson et préparation −${10 * l} %`, `Cooking and prep −${10 * l}%`),
+          neon: (l) => L(`Enseigne lumineuse · +${20 * l} % de clients`, `Bright sign · +${20 * l}% customers`),
+          terrace: (l) => L(`${2 * l} tables en plus · pourboires +${10 * l} %`, `${2 * l} extra tables · tips +${10 * l}%`),
+        };
+        for (const [k, q] of Object.entries(E.EQUIPMENT)) {
+          const lvl = S.hd.eq[k], max = lvl >= q.costs.length, cost = max ? Infinity : q.costs[lvl];
+          out.push({ id: 'e-' + k, emoji: q.emoji, title: `${q.name} <b>${lvl}/${q.costs.length}</b>`, sub: eqSub[k](max ? lvl : lvl + 1) + (max ? '' : L(' (prochain niveau)', ' (next level)')), label: max ? 'MAX' : money(cost), cost, act: 'eq:' + k });
+        }
       }
     } else {
       const inZone = (i) => E.zoneOf(i).id === this.zone;
@@ -293,6 +325,11 @@ export class UI {
           out.push({ id: 's-' + i, emoji: { parking: '👨‍🍳', market: '🧑‍🌾', port: '🧑‍✈️', fair: '🤹', beach: '🏄' }[z], title: `${nameOf(i)} <b>${st.cooks}/${E.maxCooks(i)} ${who}</b>`, sub: max ? (z === 'parking' ? L('Équipe au complet : plus de place dans le camion', 'Full team: no more room in the truck') : L('Équipe complète', 'Full team')) : st.cooks === 0 ? L('Personne ne sert : embauche ton 1er cuisinier !', 'Nobody is serving: hire your first cook!') : L(`Service ×${E.COOK_FACTOR[st.cooks]} plus rapide`, `Service ×${E.COOK_FACTOR[st.cooks]} faster`), label: max ? 'MAX' : `${L('Embaucher', 'Hire')}<br>${money(cost)}`, cost, act: 'cook:' + i });
         }
       });
+      // camion à hot-dogs : formation des cuisiniers (dès qu'il y en a un)
+      if (this.zone === 'parking' && S.stands[0].cooks > 0) {
+        const lvl = S.hd.train, max = lvl >= E.TRAINING_COSTS.length, cost = max ? Infinity : E.TRAINING_COSTS[lvl];
+        out.push({ id: 'train', emoji: '🎓', title: `${L('Formation des cuisiniers', 'Cook training')} <b>${lvl}/${E.TRAINING_COSTS.length}</b>`, sub: max ? L('Cuisiniers experts : gestes rapides, commandes souvent parfaites', 'Expert cooks: quick hands, often perfect orders') : L(`Gestes −${10 * (lvl + 1)} %, plus de commandes parfaites (réputation)`, `Moves −${10 * (lvl + 1)}%, more perfect orders (reputation)`), label: max ? 'MAX' : money(cost), cost, act: 'train' });
+      }
       const n = g.nextLockedStand();
       // prochain emplacement à acheter : affiché dans sa zone ; l'ouverture de la zone suivante se voit aussi
       // depuis la zone précédente (le marché depuis les camions, le port depuis le marché)
@@ -312,8 +349,27 @@ export class UI {
         out.push({ id: 'n-' + n, ...card, label: `${L('Ouvrir', 'Open')}<br>${money(cost)}`, cost, act: 'stand:' + n, locked: true });
       }
     }
-    for (const c of out) c.disabled = c.cost > cash;
+    for (const c of out) c.disabled = c.head || c.cost > cash;
     return out;
+  }
+
+  /** Cartes d'une liste de recettes : celles débloquées (améliorer) + la prochaine à débloquer. */
+  recipeCards(list, out) {
+    const S = this.game.state;
+    let lockedShown = false;
+    for (const r of list) {
+      const lvl = S.recipes[r.id] || 0;
+      if (lvl === 0) {
+        if (lockedShown) continue;
+        lockedShown = true;
+        const what = r.extra === 'giant' ? L('saucisse XXL', 'XXL sausage') : r.extra ? E.EXTRAS[r.extra].name : '';
+        out.push({ id: 'r-' + r.id, emoji: r.emoji, title: `${r.name}`, sub: L(`Nouveau${what ? ' (' + what + ')' : ''} · ${money(E.recipePrice(r, 1))} la vente`, `New${what ? ' (' + what + ')' : ''} · ${money(E.recipePrice(r, 1))} per sale`), label: `${L('Débloquer', 'Unlock')}<br>${money(r.unlock)}`, cost: r.unlock, act: 'recipe:' + r.id, locked: true });
+      } else {
+        const cost = E.recipeUpCost(r, lvl);
+        const next = (lvl + 1) % 10 === 0 ? L(' · prochain niv. ×2 !', ' · next level ×2!') : '';
+        out.push({ id: 'r-' + r.id, emoji: r.emoji, title: `${r.name} <b>${L('niv.', 'lv.')} ${lvl}</b>`, sub: `${money(E.recipePrice(r, lvl))} → ${money(E.recipePrice(r, lvl + 1))}${next}`, label: `${money(cost)}`, cost, act: 'recipe:' + r.id });
+      }
+    }
   }
 
   rebuildShop() {
@@ -321,6 +377,7 @@ export class UI {
     list.innerHTML = '';
     this.cards.clear();
     for (const c of this.shopModel()) {
+      if (c.head) { const h = el('div', 'shop-head', c.title); list.appendChild(h); this.cards.set(c.id, h); continue; }
       const card = el('div', 'card' + (c.locked ? ' locked' : ''),
         `<div class="ic">${c.emoji}</div><div class="t"><div class="tt"></div><small></small></div><button data-act="${c.act}"></button>`);
       list.appendChild(card);
@@ -337,6 +394,7 @@ export class UI {
     for (const c of model) {
       const card = this.cards.get(c.id);
       if (!card) continue;
+      if (c.head) { if (card.innerHTML !== c.title) card.innerHTML = c.title; continue; }
       const tt = card.querySelector('.tt'), sm = card.querySelector('small'), b = card.querySelector('button');
       if (tt.innerHTML !== c.title) tt.innerHTML = c.title;
       if (sm.innerHTML !== c.sub) sm.innerHTML = c.sub;
@@ -346,7 +404,8 @@ export class UI {
     // pastille « achat possible » sur les onglets
     const S = this.game.state;
     const canBuy = (list) => list.some((r) => { const l = S.recipes[r.id] || 0; return S.money >= (l ? E.recipeUpCost(r, l) : r.unlock) && (l || r === list.find((x) => !(S.recipes[x.id] > 0))); });
-    const canRecipe = canBuy(E.zoneById(this.zone).recipes);
+    const hdCan = () => { const nt = E.TOPPINGS.find((t) => !S.hd.tops[t.id]); return canBuy(E.HOTDOG_MODELS) || (nt && S.money >= nt.unlock) || (S.stands.slice(1, 4).some((st) => st.unlocked) && canBuy(E.TRUCK_RECIPES)); };
+    const canRecipe = this.zone === 'parking' ? hdCan() : canBuy(E.zoneById(this.zone).recipes);
     // pastilles sur les onglets de zone : « il y a quelque chose à acheter là-bas »
     const canStaff = (lo, hi) => S.stands.some((st, i) => i >= lo && i < hi && st.unlocked && st.cooks < E.maxCooks(i) && S.money >= E.COOK_COST[i][st.cooks]);
     const nl = this.game.nextLockedStand();
@@ -362,7 +421,8 @@ export class UI {
       b.classList.toggle('locked', !this.zoneOpen(z));
       b.classList.toggle('dot', z !== this.zone && zoneCan[z]);
     });
-    const canUp = Object.entries(E.UPGRADES).some(([k, u]) => S.up[k] < u.max && S.money >= E.upgradeCost(u, S.up[k]));
+    const canUp = Object.entries(E.UPGRADES).some(([k, u]) => S.up[k] < u.max && S.money >= E.upgradeCost(u, S.up[k]))
+      || (this.zone === 'parking' && Object.entries(E.EQUIPMENT).some(([k, q]) => S.hd.eq[k] < q.costs.length && S.money >= q.costs[S.hd.eq[k]]));
     const Zc = E.zoneById(this.zone), kc = E.ZONES.indexOf(Zc);
     const canStand = canStaff(Zc.first, Zc.first + Zc.count)
       || (nl >= 0 && (E.zoneOf(nl) === Zc || (E.ZONES[kc + 1] && nl === E.ZONES[kc + 1].first)) && S.money >= E.STAND_COST[nl]);

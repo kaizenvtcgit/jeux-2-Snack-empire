@@ -1,13 +1,63 @@
 import { L } from './i18n.js';
 // Toutes les valeurs d'équilibrage du jeu sont ici.
 
-export const RECIPES = [
-  { id: 'hotdog', name: L('Hot-dog', 'Hot dog'), emoji: '🌭', base: 5, unlock: 0, up: 10 }, // (copie Cuisine : le camion n°1 est un camion à hot-dogs)
+/*
+ * Camion n°1 = camion à hot-dogs : il ne vend que des hot-dogs. Sa carte, ses garnitures, son équipement
+ * et la formation de ses cuisiniers sont propres à lui (voir plus bas). Les camions 2 à 4 vendent le reste.
+ * extra : ingrédient du modèle à ajouter au hot-dog (fromage, chili, bacon) ou saucisse géante.
+ */
+export const HOTDOG_MODELS = [
+  { id: 'hotdog', name: L('Hot-dog classique', 'Classic hot dog'), emoji: '🌭', base: 5, unlock: 0, up: 10, extra: null },
+  { id: 'cheesedog', name: L('Cheese-dog', 'Cheese dog'), emoji: '🧀', base: 9, unlock: 150, up: 40, extra: 'cheese' },
+  { id: 'chilidog', name: L('Chili-dog', 'Chili dog'), emoji: '🌶️', base: 22, unlock: 1200, up: 300, extra: 'chili' },
+  { id: 'bacondog', name: L('Bacon-dog', 'Bacon dog'), emoji: '🥓', base: 55, unlock: 8000, up: 2000, extra: 'bacon' },
+  { id: 'giantdog', name: L('Hot-dog géant', 'Giant hot dog'), emoji: '🌭', base: 150, unlock: 45000, up: 12000, extra: 'giant' },
+];
+/** Camions 2 à 4 (les frites sont offertes à l'ouverture du camion n°2). */
+export const TRUCK_RECIPES = [
   { id: 'fries', name: L('Frites', 'Fries'), emoji: '🍟', base: 8, unlock: 150, up: 40 },
   { id: 'tacos', name: L('Tacos', 'Tacos'), emoji: '🌮', base: 20, unlock: 1200, up: 300 },
   { id: 'burger', name: L('Burger', 'Burger'), emoji: '🍔', base: 55, unlock: 8000, up: 2000 },
   { id: 'bubble', name: L('Bubble tea', 'Bubble tea'), emoji: '🧋', base: 150, unlock: 45000, up: 12000 },
 ];
+export const RECIPES = [...HOTDOG_MODELS, ...TRUCK_RECIPES];
+
+/** Garnitures du camion à hot-dogs : les 3 premières sont là dès le départ, les autres se débloquent. */
+export const TOPPINGS = [
+  { id: 'ketchup', name: L('Ketchup', 'Ketchup'), emoji: '🍅', unlock: 0, price: 0.2 },
+  { id: 'mustard', name: L('Moutarde', 'Mustard'), emoji: '🟡', unlock: 0, price: 0.2 },
+  { id: 'onions', name: L('Oignons', 'Onions'), emoji: '🧅', unlock: 0, price: 0.4 },
+  { id: 'friedonions', name: L('Oignons frits', 'Crispy onions'), emoji: '🟤', unlock: 300, price: 0.35 },
+  { id: 'pickles', name: L('Cornichons', 'Pickles'), emoji: '🥒', unlock: 2500, price: 0.3 },
+  { id: 'jalapenos', name: L('Jalapeños', 'Jalapeños'), emoji: '🌶️', unlock: 15000, price: 0.4 },
+  { id: 'sauce', name: L('Sauce maison', 'House sauce'), emoji: '🥫', unlock: 90000, price: 0.5 },
+];
+/** Ingrédients des modèles (ajoutés comme une garniture, mais imposés par le modèle commandé). */
+export const EXTRAS = {
+  cheese: { name: L('cheddar fondu', 'melted cheddar'), emoji: '🧀', price: 0 },
+  chili: { name: L('chili con carne', 'chili con carne'), emoji: '🫘', price: 0 },
+  bacon: { name: L('bacon grillé', 'crispy bacon'), emoji: '🥓', price: 0 },
+};
+/**
+ * Équipement du camion à hot-dogs : chaque niveau se voit dans la cuisine (sur les deux plans de travail) ou dehors.
+ * grill : +1 saucisse sur la plaque / niveau ; warmer, dispenser, hood : préparation plus rapide (et cuisson pour la hotte) ;
+ * neon : +20 % de clients / niveau ; terrace : +2 tables et +10 % de pourboires / niveau.
+ */
+export const EQUIPMENT = {
+  grill: { name: L('Plancha plus grande', 'Bigger griddle'), emoji: '🍳', costs: [500, 6000] },
+  warmer: { name: L('Chauffe-pains', 'Bun warmer'), emoji: '🔥', costs: [800, 9000, 60000] },
+  dispenser: { name: L('Distributeur de sauces', 'Sauce dispenser'), emoji: '🧴', costs: [1500, 15000] },
+  hood: { name: L('Hotte puissante', 'Power hood'), emoji: '💨', costs: [1000, 12000, 80000] },
+  neon: { name: L('Néon « HOT-DOGS »', '“HOT DOGS” neon'), emoji: '💡', costs: [2000, 25000, 200000] },
+  terrace: { name: L('Terrasse', 'Terrace'), emoji: '⛱️', costs: [3000, 40000] },
+};
+/** Formation des cuisiniers du camion n°1 : gestes plus rapides et plus de commandes parfaites. */
+export const TRAINING_COSTS = [400, 5000, 40000];
+/** Réputation : les commandes parfaites remplissent la jauge ; pleine, c'est le rush (clients en masse, ventes ×1,5). */
+export const REP_MAX = 100;
+export const RUSH_SECONDS = 30;
+export const RUSH_MULT = 1.5;
+export const hotdogModel = (id) => HOTDOG_MODELS.find((m) => m.id === id) || HOTDOG_MODELS[0];
 
 export const UPGRADES = {
   speed: { name: L('Grill turbo', 'Turbo grill'), emoji: '🔥', base: 25, growth: 1.17, max: 40 },
@@ -114,12 +164,24 @@ export const ARRIVAL_SECONDS = 30;  // durée de l'arrivage
 export const ARRIVAL_MULT = 3;
 export const ARRIVAL_CROWD = 10;    // clients qui descendent du bateau
 /** Cuisine : supplément de chaque garniture (part du prix du hot-dog). */
-export const TOPPING_PRICE = { ketchup: 0.2, mustard: 0.2, onions: 0.4 };
+export const TOPPING_PRICE = Object.fromEntries(TOPPINGS.map((t) => [t.id, t.price]));
 export const COOK_FACTOR = [1, 1.8, 2.5];
 /** Cuisine : quand le joueur est dans le camion, le cuisinier prend au moins ce temps pour préparer un hot-dog (on le voit faire). */
 export const COOK_SHOW_SECONDS = 7;
 /** Camion n°1 : temps qu'il faut à un cuisinier pour préparer un hot-dog (le « Grill turbo » l'accélère). */
-export const hotdogPrepTime = (speedLvl) => Math.max(3.5, COOK_SHOW_SECONDS * prepTime(speedLvl) / prepTime(0));
+export const hotdogPrepTime = (speedLvl, hd = {}) => {
+  const eq = hd.eq || {}, k = (1 - 0.08 * (eq.warmer || 0)) * (1 - 0.1 * (eq.dispenser || 0)) * (1 - 0.1 * (eq.hood || 0)) * (1 - 0.1 * (hd.train || 0));
+  return Math.max(2.5, COOK_SHOW_SECONDS * prepTime(speedLvl) / prepTime(0) * k);
+};
+/** État du camion à hot-dogs dans la sauvegarde (complété si absent). */
+export function hotdogState(S) {
+  S.hd = S.hd || {};
+  S.hd.tops = Object.assign({ ketchup: 1, mustard: 1, onions: 1 }, S.hd.tops || {});
+  S.hd.eq = Object.assign(Object.fromEntries(Object.keys(EQUIPMENT).map((k) => [k, 0])), S.hd.eq || {});
+  S.hd.train = S.hd.train || 0;
+  S.hd.rep = S.hd.rep || 0;
+  return S.hd;
+}
 export const MAX_COOKS = 3;
 /** Nombre maximum de cuisiniers / vendeurs d'un emplacement : 2 dans les camions, 3 ailleurs. */
 export const maxCooks = (i) => (i < MARKET_FIRST ? 2 : MAX_COOKS);

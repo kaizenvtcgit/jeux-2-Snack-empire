@@ -77,7 +77,8 @@ export class UpgradeVisuals {
       }
 
       // Plats sur le comptoir
-      const propsKey = truck ? E.RECIPES.filter((r) => (S.recipes[r.id] || 0) > 0).map((r) => r.id).join(',') : '';
+      // plats posés sur le comptoir : les recettes des camions 2 à 4 (le camion n°1 ne vend que des hot-dogs, déjà sur son comptoir)
+      const propsKey = truck && i !== 0 ? E.TRUCK_RECIPES.filter((r) => (S.recipes[r.id] || 0) > 0).map((r) => r.id).join(',') : '';
       if (propsKey !== v.propsKey) {
         if (v.props) root.remove(v.props);
         v.props = propsKey ? this.buildProps(propsKey.split(','), first ? null : v.propsKey.split(',')) : null;
