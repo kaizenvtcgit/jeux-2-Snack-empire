@@ -369,7 +369,7 @@ export function buildProps(g) {
   add(cyl(0.015, 0.02, 0.05, std({ color: '#222', roughness: 0.5 }), 12), 0, 0.39, 0, ext);
   add(box(0.08, 0.015, 0.02, std({ color: '#222', roughness: 0.5 })), 0.03, 0.41, 0, ext);
   add(box(0.06, 0.08, 0.003, std({ color: '#ffffff', roughness: 0.8 })), 0, 0.2, 0.055, ext);
-  ext.position.set(1.84, 1.52, 1.0);
+  ext.position.set(1.86, 1.2, -0.3); // (au mur, au bout du camion)
   g.add(ext);
   // étagère à épices (mur à droite de la fenêtre)
   add(box(0.6, 0.02, 0.12, steel), -2.8, 2.15, 1.08, g);

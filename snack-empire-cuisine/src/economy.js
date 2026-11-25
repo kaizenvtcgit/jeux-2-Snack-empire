@@ -116,6 +116,8 @@ export const ARRIVAL_CROWD = 10;    // clients qui descendent du bateau
 /** Cuisine : supplément de chaque garniture (part du prix du hot-dog). */
 export const TOPPING_PRICE = { ketchup: 0.2, mustard: 0.2, onions: 0.4 };
 export const COOK_FACTOR = [1, 1.8, 2.5];
+/** Cuisine : quand le joueur est dans le camion, le cuisinier prend au moins ce temps pour préparer un hot-dog (on le voit faire). */
+export const COOK_SHOW_SECONDS = 7;
 export const MAX_COOKS = 3;
 
 export const BOOST_SECONDS = 180;

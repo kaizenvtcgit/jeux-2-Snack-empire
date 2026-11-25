@@ -274,13 +274,18 @@ export class Game {
       stand.near = Math.hypot(stand.x - cam.x, stand.z - cam.z) < near;
       stand.update(dt, this.time);
       const front = stand.queue[0];
-      // cuisine : le client au comptoir passe sa commande au joueur (le cuisinier, s'il y en a un, continue de servir)
-      if (stand.manual && front && front.state === 'queue' && front.arrived && !front.order) front.order = randomOrder();
+      // cuisine : chaque client arrivé dans la file passe sa commande (garnitures du hot-dog)
+      if (stand.manual) for (const q of stand.queue) if (q.state === 'queue' && q.arrived && !q.order) q.order = randomOrder();
       if (!stand.serving && stand.cooks > 0 && front && front.state === 'queue' && front.arrived) {
         const menu = stand.recipes.filter((r) => (S.recipes[r.id] || 0) > 0); // camion ou étal du marché
         stand.recipe = menu[Math.floor(Math.random() * menu.length)];
         stand.serving = front;
         stand.duration = stand.timer = E.serviceTime(S.up.speed, stand.cooks);
+        // joueur dans le camion : le cuisinier prépare vraiment le hot-dog commandé, sous ses yeux (il lui faut quelques secondes)
+        if (stand.manual) {
+          stand.recipe = E.RECIPES.find((r) => r.id === 'hotdog');
+          stand.duration = stand.timer = Math.max(stand.duration, E.COOK_SHOW_SECONDS);
+        }
       }
       if (stand.serving && stand.cooks > 0) {
         stand.timer -= dt;
@@ -490,19 +495,17 @@ export class Game {
   /** Ce que le client paie vraiment : le prix de la commande selon la note (q = 0 → 1). */
   manualPrice(q, order) { return this.orderPrice(order) * (0.25 + 0.75 * q); }
 
-  /** Cuisine : le joueur sert le client au comptoir. */
-  serveManual(stand, q) {
-    const c = stand.queue[0];
-    if (!c) return 0;
-    stand.serving = c;
+  /** Cuisine : le joueur sert un client (celui dont il prépare la commande). */
+  serveManual(stand, q, c = stand.queue[0]) {
+    if (!c || !stand.queue.includes(c)) return 0;
     const amount = this.manualPrice(q, c.order || []);
     this.state.handServed = (this.state.handServed || 0) + 1;
-    this.finishOrder(stand, amount);
+    this.finishOrder(stand, amount, c);
     return amount;
   }
 
-  finishOrder(stand, manualAmount) {
-    const c = stand.serving;
+  finishOrder(stand, manualAmount, customer) {
+    const c = customer || stand.serving;
     this.salesAcc += 1;
     if (manualAmount !== undefined) {
       c.order = null;
@@ -527,8 +530,9 @@ export class Game {
 
   /** Après une vente : le client va s'asseoir ou repart, la file avance. */
   afterOrder(stand, c) {
-    stand.serving = null;
-    stand.queue.shift();
+    if (stand.serving === c) stand.serving = null;
+    const i = stand.queue.indexOf(c);
+    if (i >= 0) stand.queue.splice(i, 1);
     // une partie des clients s'installe à une table pour manger, les autres repartent avec leur plat
     const seat = Math.random() < 0.65 ? stand.freeSeat() : null;
     if (seat) this.goSit(c, stand, seat);

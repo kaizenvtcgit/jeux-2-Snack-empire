@@ -304,7 +304,7 @@ function buildTruck(index) {
       dog.scale.setScalar(1.25);
       dog.position.set(x, 1.525, 1.48);
       dog.rotation.y = rot;
-      dog.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+      dog.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; o.userData.part = 'CounterDog'; } }); // (cachés quand on est dans le camion)
       group.add(dog);
     }
   }
