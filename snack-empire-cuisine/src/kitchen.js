@@ -310,7 +310,7 @@ export class Kitchen {
         if (Math.abs(dx) > 8) down.moved = true;
         // glisser sur le côté : on se déplace le long du plan de travail (utile sur téléphone)
         if (down.moved) this.lastDrag = performance.now();
-        if (down.moved) this.camX = THREE.MathUtils.clamp(down.camX + dx / innerWidth * 2.6, C - 1.3, C + 1.3);
+        if (down.moved) this.camX = THREE.MathUtils.clamp(down.camX + dx / innerWidth * (1.6 + 1.0 * this.zoomK), C - 1.6, C + 1.6);
       }
       const o = pick(e);
       this.setHover(o, e);
@@ -324,6 +324,22 @@ export class Kitchen {
       if (o) this.act(o.userData.action, o.userData.ref);
     });
     el.addEventListener('pointerleave', () => { down = null; this.setHover(null); });
+    // molette (ou pincer sur téléphone) : s'approcher du plan de travail / reculer pour voir tout le camion
+    addEventListener('wheel', (e) => { if (!this.active || e.target.closest?.('.panel, #shop')) return; e.preventDefault(); this.zoom = THREE.MathUtils.clamp((this.zoom ?? 0) + Math.sign(e.deltaY) * 0.25, 0, 1); }, { passive: false });
+    const touches = new Map();
+    let pinch0 = 0;
+    el.addEventListener('pointerdown', (e) => { if (e.pointerType === 'touch') touches.set(e.pointerId, e); });
+    el.addEventListener('pointermove', (e) => {
+      if (!this.active || !touches.has(e.pointerId)) return;
+      touches.set(e.pointerId, e);
+      if (touches.size === 2) {
+        const [a, b] = [...touches.values()], dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+        if (pinch0) this.zoom = THREE.MathUtils.clamp((this.zoom ?? 0) + (pinch0 - dist) / 300, 0, 1);
+        pinch0 = dist; down = null;
+      }
+    });
+    const lift = (e) => { touches.delete(e.pointerId); pinch0 = 0; };
+    el.addEventListener('pointerup', lift); el.addEventListener('pointercancel', lift);
   }
 
   setHover(o, e) {
@@ -404,7 +420,9 @@ export class Kitchen {
     this.stand.manual = true;
     document.body.classList.add('in-kitchen');
     // vue de départ : ta moitié ; équipe au complet : les deux cuisiniers ; écran étroit : le centre de ta moitié
-    this.camX = this.full() ? C : innerWidth / innerHeight < 1.1 ? C - 1.15 : CAM_X0;
+    // près de ton plan de travail (centré sur ta moitié) ; équipe au complet : vue d'ensemble sur les deux cuisiniers
+    this.zoom = this.full() ? 1 : 0; this.zoomK = this.zoom;
+    this.camX = this.full() ? C : C - 1.15;
     this.anim = 0; // petite entrée en douceur
     this.from = { pos: w.camera.position.clone(), target: w.controls.target.clone() };
     w.fixed = { pos: new THREE.Vector3(), target: new THREE.Vector3(), fov: w.camera.fov };
@@ -809,9 +827,12 @@ export class Kitchen {
     // caméra : debout derrière le plan de travail, on regarde le comptoir et la rue
     const narrow = innerWidth / innerHeight < 1.1;
     // (debout au fond du camion : on voit tout le plan de travail, le cuisinier et la rue)
-    const fov = narrow ? 64 : 60;
-    const pos = this.stand.root.localToWorld(new THREE.Vector3(this.camX, 2.5, -1.5));
-    const target = this.stand.root.localToWorld(new THREE.Vector3(this.camX + 0.05, 1.5, 1.35));
+    // zoom = 0 : debout juste devant ton plan de travail (on voit bien chaque bac) ; zoom = 1 : tout le camion
+    this.zoomK = (this.zoomK ?? 0); this.zoomK += ((this.zoom ?? 0) - this.zoomK) * Math.min(1, dt * 6);
+    const z = this.zoomK, lerp = THREE.MathUtils.lerp;
+    const fov = lerp(narrow ? 68 : 60, narrow ? 64 : 60, z);
+    const pos = this.stand.root.localToWorld(new THREE.Vector3(this.camX, lerp(2.3, 2.5, z), lerp(0.05, -1.5, z)));
+    const target = this.stand.root.localToWorld(new THREE.Vector3(this.camX + 0.02, lerp(1.3, 1.5, z), lerp(1.0, 1.35, z)));
     this.anim = Math.min(1, this.anim + dt / 0.9);
     const k = 1 - (1 - this.anim) ** 3;
     w.fixed.pos.lerpVectors(this.from.pos, pos, k);
