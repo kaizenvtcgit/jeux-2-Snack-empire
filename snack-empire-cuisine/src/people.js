@@ -39,8 +39,10 @@ export class Customer {
     this.material = new THREE.MeshStandardMaterial({ map: this.texture, roughness: 0.72, envMapIntensity: 0.7, emissive: 0xffffff, emissiveMap: this.texture, emissiveIntensity: 0.12 });
 
     // coiffure : courte, longue, ou casquette
+    // (coiffures disponibles dans le modèle : courts, longs, chignon, bouclés ; casquette = cheveux courts dessous)
+    const styles = tpl.children.map((p) => p.name).filter((n) => n.startsWith('Hair'));
     const r = Math.random();
-    const hair = r < 0.45 ? 'HairShort' : r < 0.8 ? 'HairLong' : 'Cap';
+    const hair = r < 0.18 ? 'Cap' : styles[Math.floor(Math.random() * styles.length)];
     const parts = {};
     for (const p of tpl.children) {
       if (p.name.startsWith('Hair') || p.name === 'Cap') {

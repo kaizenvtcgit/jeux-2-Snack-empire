@@ -8,18 +8,20 @@ export const MODELS = { truck: null, customer: null };
 
 /** Emplacements de la palette des clients (1 texel par matériau Blender). */
 export const PALETTE_SLOTS = ['Skin', 'Shirt', 'Pants', 'Shoes', 'Hair', 'CapColor', 'EyeWhite', 'Pupil', 'Mouth', 'Sole', 'Accent', 'Belt'];
-const CUSTOMER_PARTS = ['Body', 'LegL', 'LegR', 'ShinL', 'ShinR', 'ArmL', 'ArmR', 'ForearmL', 'ForearmR', 'HairShort', 'HairLong', 'Cap'];
+export const HAIR_STYLES = ['HairShort', 'HairLong', 'HairBun', 'HairCurly'];
+const CUSTOMER_PARTS = ['Body', 'LegL', 'LegR', 'ShinL', 'ShinR', 'ArmL', 'ArmR', 'ForearmL', 'ForearmR', ...HAIR_STYLES, 'Cap'];
 
 /** Charge les modèles ; onProgress(0 → 1) suit le téléchargement (barre de l'écran de chargement). */
 export async function loadModels(onProgress = () => {}) {
   const loader = new GLTFLoader();
   const url = (f) => new URL('models/' + f, document.baseURI).href;
-  const track = (e) => { if (e.total) onProgress(Math.min(1, e.loaded / e.total)); };
-  const truck = await loader.loadAsync(url('food_truck.glb'), track);
+  const done = [0, 0], size = [0, 0];
+  const track = (k) => (e) => { if (e.total) { done[k] = e.loaded; size[k] = e.total; } const t = size[0] + size[1]; if (t) onProgress(Math.min(1, (done[0] + done[1]) / t)); };
+  // personnages : modèle Blender (tools/blender/people.py) ; en secours, le modèle construit dans le jeu (character.js)
+  const [truck, people] = await Promise.all([loader.loadAsync(url('food_truck.glb'), track(0)), loader.loadAsync(url('people.glb'), track(1)).catch(() => null)]);
   onProgress(1);
   MODELS.truck = truck.scene;
-  // personnages : modèle détaillé construit dans le jeu (character.js), même articulation que l'ancien customer.glb
-  MODELS.customer = bakeCustomer(buildCharacter());
+  MODELS.customer = bakeCustomer(people ? people.scene : buildCharacter());
 }
 
 /**
@@ -31,7 +33,7 @@ function bakeCustomer(scene) {
   const n = PALETTE_SLOTS.length;
   for (const name of CUSTOMER_PARTS) {
     const node = scene.getObjectByName(name);
-    if (!node) throw new Error('Partie manquante dans customer.glb : ' + name);
+    if (!node) { if (name.startsWith('Hair')) continue; throw new Error('Partie manquante dans le modèle des personnages : ' + name); }
     const meshes = node.isMesh ? [node] : node.children.filter((c) => c.isMesh);
     const geos = meshes.map((m) => {
       const g = new THREE.BufferGeometry();
