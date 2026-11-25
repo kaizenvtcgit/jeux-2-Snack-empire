@@ -32,9 +32,16 @@ export function initTutorial(ui, game) {
 
   const STEPS = [
     {
-      text: L('<b>Bienvenue dans Snack Empire !</b> 🍔<br>Les clients font la queue devant ton camion : chaque burger vendu te rapporte de l\'argent.', '<b>Welcome to Snack Empire!</b> 🍔<br>Customers line up at your truck: every burger you sell makes you money.'),
-      ok: L('C\'est parti !', 'Let\'s go!'),
-      target: () => document.querySelector('.pill.money'),
+      text: L('<b>Bienvenue dans Snack Empire !</b> 🌭<br>Ton camion n\'a pas encore de cuisinier : les clients attendent ! Entre dans le camion et prépare toi-même un hot-dog.', '<b>Welcome to Snack Empire!</b> 🌭<br>Your truck has no cook yet, so customers are waiting! Step into the truck and make a hot dog yourself.'),
+      prep: () => { if (ui.zone !== 'parking') ui.setZone('parking'); },
+      target: () => document.getElementById('kitchen-btn'),
+      done: () => (S.handServed || 0) >= 1,
+    },
+    {
+      text: L('<b>Embauche ton premier cuisinier</b> 👨‍🍳 : il servira les clients tout seul, même quand tu n\'es pas dans le camion.<br><small>Pas assez d\'argent ? Sers encore quelques hot-dogs.</small>', '<b>Hire your first cook</b> 👨‍🍳: they will serve customers on their own, even when you are not in the truck.<br><small>Not enough money? Serve a few more hot dogs.</small>'),
+      prep: () => shopOn('stands'),
+      target: () => card('s-0'),
+      done: () => S.stands[0].cooks >= 1,
     },
     {
       text: L('<b>Améliore ton burger</b> : il se vendra plus cher.<br><small>Pas assez d\'argent ? Attends quelques ventes.</small>', '<b>Upgrade your burger</b>: it will sell for more.<br><small>Not enough money? Wait for a few sales.</small>'),

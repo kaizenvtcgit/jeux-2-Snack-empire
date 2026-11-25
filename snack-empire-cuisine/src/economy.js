@@ -88,9 +88,9 @@ export const STAND_COST = [
   1.2e15, 8e16, 1.2e18, 5e18, 2e19, 6e19, 1.2e20, 1.5e20,   // plage
   2e20, 2e22, 3e23, 1.2e24, 3e24, 6e24, 1.2e25, 1.5e25,     // fête foraine
 ];
-/** Prix du 2e et du 3e vendeur de chaque emplacement. */
+/** Prix du 2e et du 3e vendeur de chaque emplacement (camion n°1 : il démarre sans cuisinier, le 1er coûte 50 $). */
 export const COOK_COST = [
-  [0, 150, 600], [0, 200, 800], [0, 5000, 25000], [0, 80000, 4e5],
+  [50, 150, 600], [0, 200, 800], [0, 5000, 25000], [0, 80000, 4e5],
   [0, 3e6, 1.5e7], [0, 1.5e7, 7.5e7], [0, 5e7, 2.5e8], [0, 2e8, 8e8], [0, 8e8, 4e9], [0, 3e9, 1.5e10],
   [0, 1.2e10, 6e10], [0, 8e11, 4e12], [0, 1e13, 5e13], [0, 4e13, 2e14], [0, 1e14, 5e14], [0, 2.5e14, 1.2e15], [0, 4e14, 2e15], [0, 6e14, 3e15],
   [0, 2e15, 1e16], [0, 1.2e17, 6e17], [0, 2e18, 8e18], [0, 8e18, 4e19], [0, 3e19, 1.5e20], [0, 1e20, 5e20], [0, 2e20, 1e21], [0, 2.5e20, 1.2e21],
@@ -125,6 +125,6 @@ export const recipePrice = (r, lvl) => (lvl <= 0 ? 0 : r.base * (1 + 0.2 * (lvl 
 export const recipeUpCost = (r, lvl) => Math.ceil(r.up * 1.15 ** (lvl - 1));
 export const upgradeCost = (u, lvl) => Math.ceil(u.base * u.growth ** lvl);
 export const prepTime = (speedLvl) => Math.max(0.35, 2.8 * 0.92 ** speedLvl);
-export const serviceTime = (speedLvl, cooks) => prepTime(speedLvl) / COOK_FACTOR[cooks - 1];
+export const serviceTime = (speedLvl, cooks) => (cooks > 0 ? prepTime(speedLvl) / COOK_FACTOR[cooks - 1] : Infinity); // 0 cuisinier : personne ne sert
 export const spawnInterval = (mkLvl, stands) => Math.max(0.22, (3.2 * 0.9 ** mkLvl) / stands);
 export const queueCap = (qLvl) => 3 + qLvl;

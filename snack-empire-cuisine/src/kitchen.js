@@ -1,4 +1,5 @@
-import { THREE, M, add, rbox, box, cyl, sph } from './util.js';
+import { THREE, M, add, rbox, box, cyl, sph, money } from './util.js';
+import * as E from './economy.js';
 import { L } from './i18n.js';
 import { sfx } from './audio.js';
 
@@ -474,6 +475,12 @@ export class Kitchen {
     else if (wrong) why = L(' (mauvaises garnitures)', ' (wrong toppings)');
     this.game.serveManual(this.stand, q);
     this.ui.toast(`${face} ${'⭐'.repeat(stars)}${why}`);
+    // premier cuisinier à portée de main : on le signale une fois
+    const S = this.game.state, cost = E.COOK_COST[0][0];
+    if (this.stand.index === 0 && S.stands[0].cooks === 0 && S.money >= cost && !this.cookTip) {
+      this.cookTip = true;
+      setTimeout(() => this.ui.toast(L(`👨‍🍳 Tu as de quoi embaucher un cuisinier (${money(cost)}) : sors du camion → Boutique → Stands`, `👨‍🍳 You can afford a cook (${money(cost)}): exit the truck → Shop → Stands`)), 1400);
+    }
     // le hot-dog s'envole vers le client
     this.group.remove(d.hitbox);
     this.flying.push({ group: d.group, from: d.group.position.clone(), to: this.stand.root.worldToLocal(c.headPos().add(new THREE.Vector3(0, -0.5, 0))), t: 0 });

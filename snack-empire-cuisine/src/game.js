@@ -19,7 +19,9 @@ function defaultState() {
     total: 0,
     recipes: { burger: 1 },
     up: { speed: 0, marketing: 0, queue: 0 },
-    stands: SLOT_X.map((_, i) => ({ unlocked: i === 0, cooks: 1 })),
+    // le camion n°1 démarre sans cuisinier : c'est le joueur qui cuisine, jusqu'à ce qu'il en embauche un
+    stands: SLOT_X.map((_, i) => ({ unlocked: i === 0, cooks: i === 0 ? 0 : 1 })),
+    handServed: 0,
     rate: 0,
     lastSeen: Date.now(),
   };
@@ -275,7 +277,7 @@ export class Game {
       if (stand.manual) {
         // cuisine : c'est le joueur qui sert ; le client au comptoir passe sa commande
         if (front && front.state === 'queue' && front.arrived && !front.order) front.order = randomOrder();
-      } else if (!stand.serving && front && front.state === 'queue' && front.arrived) {
+      } else if (!stand.serving && stand.cooks > 0 && front && front.state === 'queue' && front.arrived) {
         const menu = stand.recipes.filter((r) => (S.recipes[r.id] || 0) > 0); // camion ou étal du marché
         stand.recipe = menu[Math.floor(Math.random() * menu.length)];
         stand.serving = front;
@@ -471,7 +473,7 @@ export class Game {
     const S = this.state;
     const demand = 1 / (3.2 * 0.9 ** S.up.marketing);
     let theo = 0;
-    for (const s of open) theo += Math.min(demand, 1 / E.serviceTime(S.up.speed, s.cooks));
+    for (const s of open) if (s.cooks > 0) theo += Math.min(demand, 1 / E.serviceTime(S.up.speed, s.cooks));
     const target = Math.max(1, theo / Math.max(0.3, this.salesRate));
     return this.affluence + (Math.min(target, 400) - this.affluence) * 0.15; // évolue en douceur
   }
@@ -491,6 +493,7 @@ export class Game {
     if (!c) return 0;
     stand.serving = c;
     const amount = this.manualPrice(q);
+    this.state.handServed = (this.state.handServed || 0) + 1;
     this.finishOrder(stand, amount);
     return amount;
   }
@@ -501,7 +504,7 @@ export class Game {
     if (manualAmount !== undefined) {
       c.order = null;
       this.addMoney(manualAmount);
-      this.earnAcc += manualAmount;
+      // (pas compté dans le revenu par seconde : les gains hors ligne et la livraison VIP ne viennent que des cuisiniers)
       this.hooks.earn(c.headPos(), manualAmount, '🌭');
       this.afterOrder(stand, c);
       return;

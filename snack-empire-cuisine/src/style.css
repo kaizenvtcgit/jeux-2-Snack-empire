@@ -244,7 +244,7 @@ body.in-kitchen #kitchen-gauges { display: block; position: fixed; inset: 0; poi
 #kitchen-label.show { opacity: 1; }
 body:not(.in-kitchen) #kitchen-label { display: none; }
 /* dans la cuisine : on cache la carte, la boutique et les bonus */
-body.in-kitchen #zones, body.in-kitchen #shop, body.in-kitchen #shop-toggle, body.in-kitchen #ad-bar, body.in-kitchen #tuto,
+body.in-kitchen #zones, body.in-kitchen #tuto-ring, body.in-kitchen #shop, body.in-kitchen #shop-toggle, body.in-kitchen #ad-bar, body.in-kitchen #tuto,
 body.in-kitchen #settings-btn, body.in-kitchen #mute-btn, body.in-kitchen #settings, body.in-kitchen .plot-btn { display: none !important; }
 body.in-kitchen #hud { top: 16px; max-width: calc(50vw - 150px); }
 @media (max-width: 760px) {
