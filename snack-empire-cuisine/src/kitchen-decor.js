@@ -154,7 +154,8 @@ export const MAT = {
 /** Murs, plafond, fenêtre, plan de travail et meubles bas. */
 export function buildRoomDecor(g) {
   // (intérieur symétrique autour du milieu de la fenêtre, x = -0,9 : deux moitiés identiques)
-  const X0 = -3.2, X1 = 1.4, Z0 = -1.15, Z1 = 1.17, F = 0.75, C = 3.0;
+  // (murs 2 à 3 cm à l'intérieur de la carrosserie : s'ils la touchent, les deux surfaces se mélangent en points blancs vues de dehors)
+  const X0 = -3.17, X1 = 1.37, Z0 = -1.12, Z1 = 1.11, F = 0.75, C = 2.97;
   const W0 = -2.45, W1 = 0.65, S0 = 1.525, S1 = 2.9; // ouverture de la fenêtre de service (grande : jusque sous le toit)
   const tile = (w, h) => MAT.tiles(w / 0.6, h / 0.6);
   add(box(X1 - X0, 0.05, Z1 - Z0, MAT.floor()), (X0 + X1) / 2, F, 0, g);
@@ -167,10 +168,10 @@ export function buildRoomDecor(g) {
   back.position.set((X0 + X1) / 2, (F + C) / 2, Z0 + 0.01);
   g.add(back);
   // mur de la fenêtre : carrelé autour de l'ouverture, inox en dessous (derrière le plan de travail)
-  add(box(X1 - X0, S0 - F, 0.06, MAT.steel(5, 1)), (X0 + X1) / 2, (F + S0) / 2, Z1, g);
-  add(box(X1 - X0, C - S1, 0.06, tile(X1 - X0, C - S1)), (X0 + X1) / 2, (S1 + C) / 2, Z1, g);
-  add(box(W0 - X0, S1 - S0, 0.06, tile(W0 - X0, S1 - S0)), (X0 + W0) / 2, (S0 + S1) / 2, Z1, g);
-  add(box(X1 - W1, S1 - S0, 0.06, tile(X1 - W1, S1 - S0)), (W1 + X1) / 2, (S0 + S1) / 2, Z1, g);
+  add(box(X1 - X0, S0 - F, 0.04, MAT.steel(5, 1)), (X0 + X1) / 2, (F + S0) / 2, Z1, g);
+  add(box(X1 - X0, C - S1, 0.04, tile(X1 - X0, C - S1)), (X0 + X1) / 2, (S1 + C) / 2, Z1, g);
+  add(box(W0 - X0, S1 - S0, 0.04, tile(W0 - X0, S1 - S0)), (X0 + W0) / 2, (S0 + S1) / 2, Z1, g);
+  add(box(X1 - W1, S1 - S0, 0.04, tile(X1 - W1, S1 - S0)), (W1 + X1) / 2, (S0 + S1) / 2, Z1, g);
   // cadre de fenêtre en aluminium + vitre coulissante rangée sur le côté (ouverte)
   const alu = std({ color: '#aeb4bb', metalness: 0.8, roughness: 0.3 });
   for (const [w, h, x, y] of [[W1 - W0 + 0.1, 0.05, (W0 + W1) / 2, S0], [W1 - W0 + 0.1, 0.05, (W0 + W1) / 2, S1], [0.05, S1 - S0, W0, (S0 + S1) / 2], [0.05, S1 - S0, W1, (S0 + S1) / 2]]) {

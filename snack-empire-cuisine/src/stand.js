@@ -27,6 +27,18 @@ export function queueLocal(i) {
   if (i < QUEUE_ALONG) return { x: -0.9 - i * 0.8, z: 2.7 };
   return { x: -0.9 - (QUEUE_ALONG - 1) * 0.8 - 0.45, z: 2.7 + (i - QUEUE_ALONG + 1) * 0.8 };
 }
+/**
+ * Camion n°1 : deux clients sont servis en même temps, un devant chaque moitié de la fenêtre
+ * (place 0 à gauche, côté 1er cuisinier ; place 1 à droite, côté joueur / 2e cuisinier), puis la file attend derrière.
+ */
+export function queueLocalFor(index, i) {
+  if (index !== 0) return queueLocal(i);
+  if (i === 0) return { x: -0.3, z: 2.7 };
+  if (i === 1) return { x: -1.5, z: 2.7 };
+  return queueLocal(i + 1);
+}
+/** Nombre de places au comptoir (clients servis en même temps, tournés vers la fenêtre). */
+export const counterSpots = (index) => (index === 0 ? 2 : 1);
 const BODY_COLORS = ['#e63946', '#1f9aa6', '#f4a62a', '#8a5cd6'];
 const AWNING_COLORS = ['#1f9aa6', '#e63946', '#2a6f97', '#f4a62a'];
 
@@ -132,18 +144,18 @@ export class Stand {
    * Un léger décalage par place évite l'effet « rangée militaire ».
    */
   queuePos(i) {
-    const p = queueLocal(i);
+    const p = queueLocalFor(this.index, i);
     return this.toWorld(p.x + Math.sin(i * 12.9) * 0.12, p.z + Math.cos(i * 7.3) * 0.12);
   }
   /** Direction dans laquelle la file se prolonge après la place i (par où arrivent les clients). */
   queueBack(i) {
-    const a = queueLocal(i), b = queueLocal(i + 1);
+    const a = queueLocalFor(this.index, i), b = queueLocalFor(this.index, i + 1);
     return this.dirWorld(b.x - a.x, b.z - a.z).normalize();
   }
   /** Orientation d'un client à la place i : vers la fenêtre, ou vers la personne devant lui. */
   queueYaw(i) {
-    if (i === 0) return Math.PI + this.yaw;
-    const a = queueLocal(i), b = queueLocal(i - 1);
+    if (i < counterSpots(this.index)) return Math.PI + this.yaw; // au comptoir : face à la fenêtre
+    const a = queueLocalFor(this.index, i), b = queueLocalFor(this.index, i - 1);
     return Math.atan2(b.x - a.x, b.z - a.z) + this.yaw;
   }
   /** Point au-dessus du comptoir (bulle de commande). */

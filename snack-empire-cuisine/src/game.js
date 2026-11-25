@@ -117,8 +117,11 @@ export class Game {
     const D = E.hotdogPrepTime(S.up.speed);
     for (let k = 0; k < stand.cooks; k++) {
       if (stand.jobs.some((j) => j.k === k)) continue;
-      const c = stand.queue.find((q) => q.state === 'queue' && q.arrived && q !== stand.reserved && !stand.jobs.some((j) => j.c === q));
-      if (!c) break;
+      // chacun sert d'abord le client devant sa moitié de fenêtre (1er cuisinier : place 0 à gauche ; 2e : place 1 à droite)
+      const free = (q) => q && q.state === 'queue' && q.arrived && q !== stand.reserved && !stand.jobs.some((j) => j.c === q);
+      const mine = stand.queue[k === 0 ? 0 : 1];
+      const c = free(mine) ? mine : stand.queue.find(free);
+      if (!c) continue;
       const menu = stand.recipes.filter((r) => (S.recipes[r.id] || 0) > 0);
       stand.jobs.push({ k, c, timer: D, duration: D, recipe: menu[Math.floor(Math.random() * menu.length)] });
     }

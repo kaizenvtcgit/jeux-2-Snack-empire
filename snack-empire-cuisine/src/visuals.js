@@ -1,7 +1,7 @@
 import { THREE, M, add, cyl, sph, rbox, canvasTex } from './util.js';
 import { L } from './i18n.js';
 import * as E from './economy.js';
-import { queueLocal, QUEUE_ALONG } from './stand.js';
+import { queueLocalFor, counterSpots, QUEUE_ALONG } from './stand.js';
 import { buildMarketHall, hallFront, setRoofFade, HALL } from './market.js';
 import { ArrivalBoat } from './port.js';
 import { buildFairDecor, setFairNight } from './fair.js';
@@ -50,7 +50,7 @@ export class UpgradeVisuals {
 
       // Espace d'attente (camions et étals)
       const cap = open ? E.queueCap(S.up.queue) : 0;
-      if (cap !== v.cap) { this.buildRails(v, root, cap, !first && v.cap > 0); v.cap = cap; }
+      if (cap !== v.cap) { this.buildRails(v, root, cap, !first && v.cap > 0, i); v.cap = cap; }
 
       // Ballons
       const nb = truck && mk >= 1 ? Math.min(6, 1 + Math.floor(mk / 2)) : 0;
@@ -133,7 +133,8 @@ export class UpgradeVisuals {
    * bacs à plantes en bois côté extérieur de la file (un de plus tous les 2 niveaux),
    * olivier en pot au coin et ardoise « La file c'est par ici » au bout.
    */
-  buildRails(v, root, cap, animate) {
+  buildRails(v, root, cap, animate, index) {
+    const queueLocal = (k) => queueLocalFor(index, k);
     if (v.rails) root.remove(v.rails);
     v.rails = null;
     if (!cap) { v.cap = 0; return; }
@@ -152,7 +153,7 @@ export class UpgradeVisuals {
 
     for (let k = 0; k < cap; k++) {
       // empreintes de pas peintes
-      const p = queueLocal(k), yaw = k === 0 ? Math.PI : Math.atan2(queueLocal(k - 1).x - p.x, queueLocal(k - 1).z - p.z);
+      const p = queueLocal(k), yaw = k < counterSpots(index) ? Math.PI : Math.atan2(queueLocal(k - 1).x - p.x, queueLocal(k - 1).z - p.z);
       const feet = new THREE.Mesh(R.decalPlane, R.feetDecal);
       feet.rotation.set(-Math.PI / 2, 0, yaw + Math.PI);
       feet.scale.setScalar(0.5);

@@ -450,7 +450,8 @@ export class Kitchen {
     const st = this.stand, jobs = st.jobs || [];
     const ok = (c) => c && st.queue.includes(c) && c.state === 'queue' && c.arrived && c.order && !jobs.some((j) => j.c === c);
     if (!this.active || this.full()) { st.reserved = null; return null; }
-    if (!ok(this.target)) this.target = st.queue.find(ok) || null;
+    // (le joueur, à droite, sert d'abord le client devant sa moitié de fenêtre : la place 1)
+    if (!ok(this.target)) this.target = (ok(st.queue[1]) ? st.queue[1] : st.queue.find(ok)) || null;
     st.reserved = this.target;
     return this.target;
   }
