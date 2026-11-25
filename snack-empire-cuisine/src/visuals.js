@@ -66,7 +66,7 @@ export class UpgradeVisuals {
       if (nf !== v.nFlags) {
         v.flags.forEach((f) => root.remove(f));
         v.flags = [];
-        const spots = [[4.7, 2.1, 'BURGERS'], [-5.0, 1.7, 'FOOD']];
+        const spots = [[4.7, 2.1, i === 0 ? 'HOT-DOGS' : 'BURGERS'], [-5.0, 1.7, 'FOOD']]; // (camion n°1 : camion à hot-dogs)
         for (let k = 0; k < nf; k++) {
           const f = this.buildFlag(spots[k][2], i + k);
           f.position.set(spots[k][0], 0, spots[k][1]);
@@ -241,7 +241,7 @@ export class UpgradeVisuals {
       g.fillStyle = colors[0]; g.fillRect(0, 0, w, h);
       g.save(); g.translate(w / 2, h / 2); g.rotate(-Math.PI / 2);
       g.fillStyle = colors[1]; g.font = '900 76px "Arial Black", Impact, sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-      g.fillText(text, 0, 4); g.restore();
+      g.fillText(text, 0, 4, h - 36); g.restore(); // (texte resserré s'il est trop long)
     });
     const geo = new THREE.PlaneGeometry(0.62, 2.3, 1, 10);
     const pos = geo.attributes.position;

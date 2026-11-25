@@ -7,6 +7,7 @@ import { buildFairStand, FAIR_SLOTS, FAIR_TYPES } from './fair.js';
 import { buildBeachHut, BEACH_SLOTS, BEACH_TYPES } from './beach.js';
 import { buildStandFx } from './standfx.js';
 import { rigChefs, STAND_ACTION } from './chefanim.js';
+import { makeBun, makeTray, sausageGeometry } from './kitchen-decor.js';
 
 // 4 camions sur le parking, 6 étals dans le marché couvert (à droite), 8 boutiques au port (à gauche).
 // Marché et port : une rangée du fond (z = 0) et une rangée devant (z = ROW2_Z), séparées par une allée.
@@ -201,9 +202,19 @@ function buildDining(seats, stand) {
       // assiette + burger + boisson, visibles quand quelqu'un mange
       const food = new THREE.Group();
       add(cyl(0.13, 0.11, 0.015, plateM, 20), 0, 0, 0, food);
-      add(cyl(0.07, 0.07, 0.03, bun, 16), 0, 0.022, 0, food);
-      add(cyl(0.075, 0.075, 0.025, meat, 16), 0, 0.048, 0, food);
-      add(new THREE.Mesh(new THREE.SphereGeometry(0.07, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), bun), 0, 0.06, 0, food);
+      if (stand.index === 0) {
+        // camion à hot-dogs : un hot-dog dans sa barquette
+        const dog = new THREE.Group();
+        dog.add(makeTray());
+        const b2 = makeBun(); b2.position.y = 0.004; dog.add(b2);
+        const sg = new THREE.Mesh(sausageGeometry(), M('#9c4a26', { r: 0.4, cached: true })); sg.position.y = 0.078; dog.add(sg);
+        dog.scale.setScalar(0.75); dog.position.y = 0.01;
+        food.add(dog);
+      } else {
+        add(cyl(0.07, 0.07, 0.03, bun, 16), 0, 0.022, 0, food);
+        add(cyl(0.075, 0.075, 0.025, meat, 16), 0, 0.048, 0, food);
+        add(new THREE.Mesh(new THREE.SphereGeometry(0.07, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2), bun), 0, 0.06, 0, food);
+      }
       add(cyl(0.035, 0.028, 0.12, cup, 12), 0.1, 0.06, 0.1, food);
       food.position.set(tx + s * 0.2, 0.78, tz);
       food.visible = false;
@@ -277,6 +288,26 @@ function buildTruck(index) {
     if (o.material.envMapIntensity !== undefined) o.material.envMapIntensity = 0.7;
   });
   group.add(model);
+
+  // Camion n°1 (camion à hot-dogs) : on retire les burgers et les steaks du modèle, et on pose des hot-dogs sur le comptoir
+  if (index === 0) {
+    model.traverse((o) => { if (o.isMesh && (o.userData.part === 'Bun' || o.userData.part === 'Food')) o.visible = false; });
+    for (const [x, rot] of [[-2.1, 0.25], [-1.65, -0.15]]) {
+      const dog = new THREE.Group();
+      dog.add(makeTray());
+      const bun = makeBun(); bun.position.y = 0.004; dog.add(bun);
+      const saus = new THREE.Mesh(sausageGeometry(), new THREE.MeshPhysicalMaterial({ color: '#9c4a26', roughness: 0.4, clearcoat: 0.55 }));
+      saus.position.y = 0.078; dog.add(saus);
+      const pts = [];
+      for (let k = 0; k <= 24; k++) pts.push(new THREE.Vector3(-0.11 + k * 0.22 / 24, 0.108, Math.sin(k * 0.9) * 0.018));
+      dog.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 48, 0.0065, 8), new THREE.MeshPhysicalMaterial({ color: x < -2 ? '#a50f16' : '#e2a800', roughness: 0.25, clearcoat: 0.8 })));
+      dog.scale.setScalar(1.25);
+      dog.position.set(x, 1.525, 1.48);
+      dog.rotation.y = rot;
+      dog.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+      group.add(dog);
+    }
+  }
 
   // Lambrequin festonné au bord de l'auvent
   const valance = canvasTex(512, 64, (g, w, h) => {
