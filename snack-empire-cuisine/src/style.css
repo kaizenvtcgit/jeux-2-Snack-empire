@@ -1,0 +1,253 @@
+:root {
+  --panel: rgba(22, 22, 32, 0.78);
+  --panel-border: rgba(255, 255, 255, 0.08);
+  --text: #ffffff;
+  --muted: rgba(255, 255, 255, 0.7);
+  --gold: #ffd23f;
+  --gold-dark: #7a4a00;
+  --green: #7ee36b;
+  --radius: 14px;
+  --shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; height: 100%; overflow: hidden; background: #6d8fe0; color: var(--text);
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif; user-select: none; -webkit-user-select: none;
+  touch-action: none;
+}
+canvas { display: block; }
+button { font: inherit; cursor: pointer; }
+
+#overlay { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+
+/* ---------- HUD ---------- */
+/* le haut de l'écran ne passe jamais sous la boutique (à droite) : les pastilles passent à la ligne */
+#hud { position: fixed; left: 16px; top: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; max-width: calc(100vw - 394px); }
+.pill { padding: 10px 18px; border-radius: var(--radius); background: var(--panel); border: 1px solid var(--panel-border); box-shadow: var(--shadow); font-weight: 800; backdrop-filter: blur(6px); }
+.pill.money { font-size: 26px; }
+.pill.rate { font-size: 17px; }
+.pill.boost { display: none; background: linear-gradient(135deg, #ff7a00, #ff2d55); font-size: 17px; animation: pulse 1s infinite alternate; }
+.pill.boost.show { display: block; }
+.pill.port { display: none; font-size: 15px; background: linear-gradient(135deg, rgba(29, 53, 87, 0.9), rgba(42, 111, 151, 0.85)); }
+.pill.port.show { display: block; }
+.pill.night { display: none; font-size: 15px; background: linear-gradient(135deg, rgba(58, 42, 96, 0.9), rgba(106, 63, 160, 0.85)); }
+.pill.night.show { display: block; }
+.pill.night.hot { background: linear-gradient(135deg, #3a0ca3, #f72585); animation: pulse 0.8s infinite alternate; }
+.pill.heat { display: none; font-size: 15px; background: linear-gradient(135deg, rgba(204, 102, 0, 0.9), rgba(244, 162, 97, 0.85)); }
+.pill.heat.show { display: block; }
+.pill.heat.hot { background: linear-gradient(135deg, #f77f00, #ffd60a); color: #3a1a00; animation: pulse 0.8s infinite alternate; }
+.pill.port.hot { background: linear-gradient(135deg, #1d8fd1, #06d6a0); animation: pulse 0.8s infinite alternate; }
+/* « scale » (et non « transform ») : ne remplace pas le positionnement des éléments attachés à la 3D */
+@keyframes pulse { from { scale: 1; } to { scale: 1.08; } }
+
+#settings-btn { position: fixed; left: 16px; bottom: 16px; width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--panel-border); background: var(--panel); font-size: 20px; }
+#mute-btn { position: fixed; left: 68px; bottom: 16px; width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--panel-border); background: var(--panel); font-size: 20px; }
+#settings { position: fixed; left: 16px; bottom: 68px; display: none; width: 240px; padding: 14px; border-radius: var(--radius); background: rgba(22, 22, 32, 0.92); box-shadow: var(--shadow); z-index: 12; }
+#settings.show { display: block; }
+.set-label { font-weight: 700; font-size: 13px; margin-bottom: 8px; }
+.seg { display: flex; gap: 4px; padding: 3px; border-radius: 10px; background: rgba(255, 255, 255, 0.08); }
+.seg button { flex: 1; padding: 7px 4px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-weight: 700; font-size: 13px; }
+.seg button.on { background: var(--gold); color: #1b1b1b; }
+.set-note { min-height: 16px; margin: 6px 0 12px; font-size: 12px; color: var(--muted); }
+#reset-btn { width: 100%; padding: 10px 14px; border-radius: 10px; border: 0; background: #ff5a5f; color: #fff; font-weight: 700; }
+
+/* ---------- Boutique ---------- */
+#shop { position: fixed; right: 16px; top: 16px; width: 330px; max-height: calc(100% - 32px); display: flex; flex-direction: column; gap: 10px; }
+#tabs { display: flex; gap: 6px; }
+#tabs button { position: relative; flex: 1; padding: 9px 4px; border-radius: 12px; border: 1px solid var(--panel-border); background: var(--panel); color: var(--muted); font-weight: 700; font-size: 13px; backdrop-filter: blur(6px); }
+#tabs button.on { color: #1b1b1b; background: var(--gold); }
+/* flèche sur l'onglet ouvert : ▾ liste visible, ▸ liste repliée */
+#tabs button.on::before { content: '▾ '; font-size: 11px; }
+#shop.collapsed #tabs button.on::before { content: '▸ '; }
+#shop.collapsed #tabs button.on { background: rgba(255, 210, 63, 0.35); color: var(--text); }
+#shop.collapsed #shop-list { display: none; }
+#tabs button.dot::after { content: ''; position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; border-radius: 50%; background: #ff3b5c; border: 2px solid #fff; }
+#shop-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; padding-bottom: 4px; }
+.card { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: var(--radius); background: var(--panel); border: 1px solid var(--panel-border); box-shadow: var(--shadow); backdrop-filter: blur(6px); }
+.card.locked { border: 1px dashed rgba(255, 210, 63, 0.6); }
+.card .ic { font-size: 30px; width: 36px; text-align: center; }
+.card .t { flex: 1; min-width: 0; }
+.card .tt { font-weight: 700; font-size: 15px; }
+.card .tt b { color: var(--gold); font-weight: 800; margin-left: 4px; }
+.card small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
+.card button { min-width: 88px; border: 0; border-radius: 10px; padding: 8px 10px; font-weight: 800; font-size: 13px; line-height: 1.2; color: #1b1b1b; background: var(--gold); box-shadow: 0 3px 0 var(--gold-dark); transition: transform .08s; }
+.card button:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--gold-dark); }
+.card button:disabled { background: #4a4a55; color: rgba(255, 255, 255, 0.55); box-shadow: none; cursor: default; }
+#shop-toggle { display: none; }
+
+/* ---------- Pubs récompensées ---------- */
+#ad-bar { position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; flex-wrap: wrap; justify-content: center; gap: 8px 10px; width: max-content; max-width: calc(100vw - 2 * 372px); }
+#ad-toggle { display: none; position: relative; }
+#ad-toggle.dot::after { content: ''; position: absolute; top: -4px; right: -4px; width: 12px; height: 12px; border-radius: 50%; background: #ff3b5c; border: 2px solid #fff; }
+.pill .s { display: none; }
+#ad-bar button { padding: 11px 16px; border-radius: var(--radius); border: 0; font-weight: 800; font-size: 14px; color: #1b1b1b; background: linear-gradient(180deg, #8ff07d, #4cc94a); box-shadow: 0 4px 0 #2b7a2a, var(--shadow); white-space: nowrap; }
+#ad-bar button:disabled { background: var(--panel); color: var(--muted); box-shadow: var(--shadow); cursor: default; }
+#ad-bar button.active { background: linear-gradient(135deg, #ff7a00, #ff2d55); color: #fff; }
+
+/* ---------- Éléments 3D ---------- */
+.order, .plot-btn, .float { position: absolute; left: 0; top: 0; will-change: transform; }
+.order { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border-radius: 12px; background: rgba(255, 255, 255, 0.95); box-shadow: var(--shadow); }
+.order .emoji { font-size: 22px; }
+.order .bar { width: 54px; height: 8px; border-radius: 4px; background: #ddd; overflow: hidden; }
+.order .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #4cc94a, #8ff07d); }
+/* .plot-btn suit l'emplacement 3D (transform) ; .pb porte l'apparence et la pulsation */
+.plot-btn { pointer-events: auto; padding: 0; border: 0; background: none; }
+.plot-btn .pb { display: block; padding: 8px 14px; border-radius: 12px; border: 2px solid rgba(255, 210, 63, 0.7); background: rgba(0, 0, 0, 0.62); color: #fff; font-weight: 700; font-size: 14px; line-height: 1.3; text-align: center; }
+.plot-btn b { color: var(--gold); font-size: 16px; }
+.plot-btn.can .pb { background: linear-gradient(180deg, #ffd23f, #f4a62a); color: #1b1b1b; border-color: #fff; animation: pulse .7s infinite alternate; }
+.plot-btn.can b { color: #1b1b1b; }
+.float { font-weight: 900; font-size: 22px; color: var(--gold); text-shadow: 0 2px 0 var(--gold-dark), 0 0 10px rgba(0, 0, 0, 0.5); white-space: nowrap; }
+.float.boost { color: #ff8a3c; font-size: 26px; }
+
+/* ---------- Toasts, modales, pubs simulées ---------- */
+.toast { position: fixed; left: 50%; top: 84px; transform: translateX(-50%); padding: 12px 20px; border-radius: var(--radius); background: var(--panel); box-shadow: var(--shadow); font-weight: 700; animation: toast 2.6s forwards; z-index: 20; text-align: center; }
+@keyframes toast { 0% { opacity: 0; transform: translate(-50%, -10px); } 10%, 85% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; } }
+.modal, .ad-sim { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(0, 0, 0, 0.55); z-index: 30; padding: 16px; }
+.modal-box, .ad-box { width: min(420px, 100%); padding: 24px; border-radius: 20px; background: #1f1f2c; box-shadow: var(--shadow); text-align: center; }
+.modal-box h2 { margin: 0 0 8px; }
+.modal-box p { color: var(--muted); margin: 0 0 12px; }
+.modal-box .big { font-size: 40px; font-weight: 900; color: var(--gold); margin-bottom: 18px; }
+.modal-box .row { display: flex; gap: 10px; }
+.modal-box .row button { flex: 1; padding: 12px; border-radius: 12px; border: 0; font-weight: 800; font-size: 15px; }
+.modal-box .ghost { background: #3a3a4a; color: #fff; }
+.modal-box .danger { background: #ff5a5f; color: #fff; box-shadow: 0 3px 0 #a3262a; }
+.modal-box .gold { background: var(--gold); color: #1b1b1b; box-shadow: 0 3px 0 var(--gold-dark); }
+.ad-label { font-size: 22px; font-weight: 800; }
+.ad-sub { color: var(--muted); font-size: 13px; margin: 6px 0 16px; }
+.ad-count { font-size: 56px; font-weight: 900; color: var(--gold); }
+
+
+/* ---------- Onglets de zone (niveaux) ---------- */
+/* repliés : petites icônes ; au survol, la barre se déplie et affiche les noms */
+/* (placée juste sous les pastilles du haut, qui peuvent tenir sur 1 ou 2 lignes : --hud-bottom, mis à jour par ui.js) */
+#zones { position: fixed; left: 16px; top: calc(var(--hud-bottom, 76px) + 16px); display: flex; flex-direction: column; gap: 4px; padding: 4px; border-radius: 14px; background: var(--panel); box-shadow: var(--shadow); backdrop-filter: blur(6px); z-index: 9; }
+#zones button { position: relative; display: flex; align-items: center; gap: 0; width: 40px; height: 40px; padding: 0 7px; overflow: hidden; border-radius: 10px; border: 2px solid transparent; background: transparent; color: var(--text); text-align: left; white-space: nowrap; transition: width .18s ease, gap .18s ease, background .12s; }
+#zones .zi { font-size: 20px; flex: none; }
+#zones .zt { display: flex; flex-direction: column; font-weight: 800; font-size: 14px; line-height: 1.1; opacity: 0; transition: opacity .15s; }
+#zones .zt small { font-weight: 600; font-size: 11px; color: var(--muted); }
+#zones:hover button { width: 140px; gap: 8px; }
+#zones:hover .zt { opacity: 1; }
+#zones button:hover { background: rgba(255, 255, 255, 0.08); }
+#zones button.on { border-color: var(--gold); background: rgba(255, 210, 63, 0.18); }
+#zones button.locked { opacity: 0.55; }
+#zones button.locked .zi::after { content: '🔒'; position: absolute; left: 22px; top: 1px; font-size: 10px; }
+#zones button.dot::after { content: ''; position: absolute; top: 2px; right: 2px; width: 9px; height: 9px; border-radius: 50%; background: #ff3b5c; border: 2px solid #fff; }
+
+/* pastilles d'événements en version courte quand la place manque (la boutique occupe la droite) */
+@media (max-width: 1500px) {
+  .pill .l { display: none; }
+  .pill .s { display: inline; }
+}
+
+/* ---------- Tutoriel ---------- */
+#tuto { position: fixed; z-index: 40; width: min(300px, calc(100vw - 20px)); padding: 14px 16px 12px; border-radius: 16px; background: #fffaf0; color: #2b2118; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); border: 3px solid var(--gold); pointer-events: auto; transition: left .25s ease, top .25s ease; }
+#tuto .tuto-step { font-size: 11px; font-weight: 800; color: #b07a12; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+#tuto .tuto-text { font-size: 15px; line-height: 1.35; }
+#tuto .tuto-text small { color: #7a6a58; }
+#tuto .tuto-text.hint::before { content: '👉 Ouvre d’abord la boutique 🛒'; display: block; margin-bottom: 6px; font-weight: 800; color: #d0471f; }
+#tuto .tuto-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
+#tuto .tuto-ok { padding: 9px 14px; border: 0; border-radius: 10px; background: var(--gold); color: #1b1b1b; font-weight: 800; box-shadow: 0 3px 0 var(--gold-dark); }
+#tuto .tuto-skip { margin-left: auto; padding: 4px 2px; border: 0; background: none; color: #8a7a68; font-size: 12px; text-decoration: underline; }
+#tuto-ring { position: fixed; z-index: 39; display: none; border-radius: 14px; border: 3px solid var(--gold); box-shadow: 0 0 0 4px rgba(255, 210, 63, 0.35), 0 0 22px rgba(255, 210, 63, 0.8); pointer-events: none; animation: tutoRing 0.9s ease-in-out infinite alternate; }
+@keyframes tutoRing { from { opacity: 1; scale: 1; } to { opacity: 0.55; scale: 1.06; } }
+/* écran moyen (tablette, petite fenêtre) : les pubs passent au-dessus de la boutique, à gauche */
+@media (max-width: 1250px) and (min-width: 901px) {
+  /* (à droite des boutons ⚙️ et 🔇, en bas à gauche) */
+  #ad-bar { left: 124px; transform: none; justify-content: flex-start; max-width: calc(100vw - 124px - 370px); }
+}
+
+/* ---------- Mobile ---------- */
+@media (max-width: 900px) {
+  /* Haut de l'écran : argent + revenu, puis une ligne de petites pastilles d'événements */
+  #hud { left: 10px; right: 58px; top: 10px; gap: 6px; }
+  .pill { padding: 6px 10px; border-radius: 11px; }
+  .pill.money { font-size: 19px; padding: 7px 12px; }
+  .pill.rate, .pill.boost { font-size: 13px; }
+  .pill.port, .pill.night, .pill.heat { font-size: 12.5px; padding: 5px 9px; }
+  .pill .l { display: none; }
+  .pill .s { display: inline; }
+  /* Réglages en haut à droite */
+  #settings-btn { top: 10px; bottom: auto; left: auto; right: 10px; width: 40px; height: 40px; }
+  #settings { top: 56px; bottom: auto; left: auto; right: 10px; }
+  #mute-btn { top: 10px; bottom: auto; left: auto; right: 56px; width: 40px; height: 40px; }
+  #hud { right: 104px; }
+  /* Niveaux : petites icônes à gauche, sous les pastilles */
+  #zones { left: 10px; top: calc(var(--hud-bottom, 96px) + 12px); }
+  #hud { max-width: none; }
+  #zones:hover button { width: 40px; gap: 0; } /* sur téléphone : pas de dépliage, juste les icônes */
+  #zones:hover .zt { opacity: 0; }
+  #zones button { width: 44px; height: 44px; }
+  /* Boutique : panneau qui monte depuis le bas, par-dessus tout le reste */
+  #shop { left: 0; right: 0; top: auto; bottom: 0; width: auto; max-height: 58%; padding: 10px 10px calc(10px + env(safe-area-inset-bottom)); background: rgba(15, 15, 22, 0.94); border-radius: 18px 18px 0 0; transform: translateY(100%); transition: transform .25s; z-index: 14; }
+  body.shop-open #shop { transform: none; height: 58%; }
+  #shop.collapsed { height: auto !important; }
+  #tabs button { padding: 11px 4px; font-size: 13px; }
+  .card { padding: 9px 10px; gap: 10px; }
+  .card .ic { font-size: 26px; width: 30px; }
+  .card .tt { font-size: 14px; }
+  .card button { min-width: 92px; padding: 11px 10px; font-size: 13px; }
+  #shop-toggle { display: block; position: fixed; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 15; padding: 13px 18px; border-radius: 14px; border: 0; background: var(--gold); color: #1b1b1b; font-weight: 800; font-size: 16px; box-shadow: 0 3px 0 var(--gold-dark); }
+  body.shop-open #shop-toggle { bottom: calc(58% + 8px); }
+  body.shop-open:has(#shop.collapsed) #shop-toggle { bottom: 120px; }
+  /* Pubs : un seul bouton « 📺 Bonus » en bas à gauche, qui déplie la liste au-dessus de lui */
+  #ad-bar { left: 12px; right: auto; bottom: calc(12px + env(safe-area-inset-bottom)); transform: none; flex-direction: column-reverse; align-items: flex-start; flex-wrap: nowrap; gap: 8px; width: auto; max-width: calc(100vw - 24px); z-index: 13; }
+  #ad-bar button { font-size: 14px; padding: 12px 14px; }
+  #ad-bar button:not(#ad-toggle) { display: none !important; }
+  body.ads-open #ad-bar button:not(#ad-toggle) { display: block !important; }
+  body.ads-open #ad-bar button.off:not(#ad-toggle) { display: none !important; }
+  #ad-toggle { display: block; font-size: 16px !important; padding: 13px 18px !important; }
+  body.shop-open #ad-bar { display: none; }
+  .toast { top: 96px; width: calc(100vw - 32px); font-size: 14px; }
+  .plot-btn .pb { font-size: 13px; padding: 8px 12px; }
+}
+
+/* ---------- Publicités (SDK CrazyGames) ---------- */
+/* pendant la demande d'une pub : le jeu est en pause et l'écran bloqué */
+.ad-wait { position: fixed; inset: 0; z-index: 45; display: grid; place-items: center; background: rgba(0, 0, 0, 0.45); }
+.ad-wait-box { display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-radius: 14px; background: var(--panel); font-weight: 800; box-shadow: var(--shadow); }
+.ad-spin { width: 22px; height: 22px; border-radius: 50%; border: 3px solid rgba(255, 255, 255, 0.25); border-top-color: var(--gold); animation: adSpin .8s linear infinite; }
+@keyframes adSpin { to { transform: rotate(360deg); } }
+/* pas de pubs possibles : pas de boutons de bonus (jamais de bouton cliquable sans effet) */
+body.no-ads #ad-bar > button { display: none !important; }
+/* bonus d'une zone pas encore ouverte (bateau, canicule, nuit) */
+#ad-bar button.off { display: none !important; }
+#ad-note { display: none; padding: 8px 12px; border-radius: 12px; background: var(--panel); color: var(--muted); font-size: 12px; font-weight: 700; }
+body.adblocked #ad-note { display: block; }
+/* ---------- Cuisine (dans le camion n°1) ---------- */
+#kitchen-btn { position: fixed; left: 16px; bottom: 76px; display: none; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 16px; border: 0; border-radius: var(--radius);
+  font-weight: 900; font-size: 17px; color: #3a1a00; background: linear-gradient(180deg, #ffe07a, #ffb703); box-shadow: 0 4px 0 #b0700a, var(--shadow); z-index: 8; animation: kbIn .4s ease both; }
+#kitchen-btn small { font-size: 11px; font-weight: 700; color: #6a4300; }
+#kitchen-btn.show { display: flex; }
+#kitchen-btn:hover { filter: brightness(1.06); }
+@keyframes kbIn { from { transform: translateY(10px); opacity: 0; } }
+#kitchen-exit, #kitchen-ticket, #kitchen-hint, #kitchen-gauges { display: none; }
+body.in-kitchen #kitchen-exit { display: block; position: fixed; right: 16px; top: 16px; padding: 11px 18px; border: 0; border-radius: var(--radius); font-weight: 900; font-size: 16px;
+  color: #fff; background: var(--panel); box-shadow: var(--shadow); backdrop-filter: blur(6px); z-index: 9; }
+body.in-kitchen #kitchen-ticket { display: flex; flex-direction: column; gap: 4px; position: fixed; left: 50%; top: 14px; transform: translateX(-50%) rotate(-1deg); min-width: 240px; max-width: calc(100vw - 32px);
+  padding: 10px 18px 14px; background: #fffdf4; color: #2a2118; border-radius: 4px 4px 10px 10px; box-shadow: var(--shadow); font-size: 17px; font-weight: 800; text-align: center; z-index: 8;
+  background-image: radial-gradient(circle at 10px -4px, transparent 8px, #fffdf4 9px); background-size: 20px 100%; }
+#kitchen-ticket b { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #b0402a; }
+#kitchen-ticket .wait { color: #8a7a68; font-weight: 600; }
+#kitchen-ticket.new { animation: tkNew .5s cubic-bezier(.2, 1.6, .4, 1); }
+@keyframes tkNew { from { transform: translateX(-50%) translateY(-30px) rotate(-6deg); } }
+body.in-kitchen #kitchen-hint { display: block; position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); max-width: calc(100vw - 32px); padding: 11px 18px; border-radius: var(--radius);
+  background: var(--panel); box-shadow: var(--shadow); backdrop-filter: blur(6px); font-weight: 800; font-size: 15px; text-align: center; z-index: 8; }
+#kitchen-hint.warn { background: rgba(176, 52, 32, .9); }
+body.in-kitchen #kitchen-gauges { display: block; position: fixed; inset: 0; pointer-events: none; z-index: 7; }
+.kg { position: absolute; left: 0; top: 0; width: 64px; height: 12px; border-radius: 6px; background: linear-gradient(90deg, #f4a3a0 0 37.5%, #7ee36b 37.5% 67.5%, #8a4a2a 67.5% 85%, #222 85%);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, .55), 0 3px 8px rgba(0, 0, 0, .4); }
+.kg b { position: absolute; top: -4px; width: 4px; height: 20px; margin-left: -2px; border-radius: 2px; background: #fff; box-shadow: 0 0 0 1.5px #000; }
+.kg.ok { animation: kgOk .35s infinite alternate; }
+@keyframes kgOk { to { box-shadow: 0 0 0 2px #7ee36b, 0 0 14px #7ee36b; } }
+#kitchen-label { position: fixed; left: 0; top: 0; padding: 5px 10px; border-radius: 8px; background: rgba(20, 20, 28, .85); font-size: 13px; font-weight: 700; pointer-events: none; opacity: 0; z-index: 9; transition: opacity .1s; }
+#kitchen-label.show { opacity: 1; }
+body:not(.in-kitchen) #kitchen-label { display: none; }
+/* dans la cuisine : on cache la carte, la boutique et les bonus */
+body.in-kitchen #zones, body.in-kitchen #shop, body.in-kitchen #shop-toggle, body.in-kitchen #ad-bar, body.in-kitchen #tuto,
+body.in-kitchen #settings-btn, body.in-kitchen #mute-btn, body.in-kitchen #settings, body.in-kitchen .plot-btn { display: none !important; }
+body.in-kitchen #hud { top: 16px; max-width: calc(50vw - 150px); }
+@media (max-width: 760px) {
+  body.in-kitchen #kitchen-ticket { top: 72px; font-size: 15px; }
+  body.in-kitchen #hud { max-width: calc(100vw - 120px); }
+}

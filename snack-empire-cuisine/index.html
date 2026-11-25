@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <!-- SDK CrazyGames (pubs, sauvegarde dans le compte du joueur) : sans lui, le jeu tourne sans pubs -->
+  <script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Snack Empire – Cuisine</title>
+  <meta name="description" content="Snack Empire: build your snack empire! Serve customers, upgrade recipes and open food trucks, market stalls, harbor shops, beach huts and fair stands.">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <meta name="theme-color" content="#f4a262">
+  <!-- écran de chargement : styles ici (et non dans style.css) pour qu'il soit beau dès la première image -->
+  <style>
+    #loading { position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+      background: radial-gradient(ellipse at 50% 120%, #ffd9a0 0%, #ffb27a 30%, #8aa7e8 75%, #6d8fe0 100%); font-family: system-ui, "Segoe UI", Roboto, sans-serif; transition: opacity .6s ease; }
+    #loading.done { opacity: 0; pointer-events: none; }
+    #loading .ld-logo { width: min(520px, 82vw); height: auto; animation: ldIn .8s cubic-bezier(.2, 1.6, .4, 1) both, ldFloat 2.6s ease-in-out .8s infinite; }
+    #loading .ld-bar { width: min(360px, 70vw); height: 22px; padding: 4px; border-radius: 14px; background: rgba(40, 20, 10, .35); box-shadow: inset 0 2px 6px rgba(0, 0, 0, .3); }
+    #loading .ld-bar i { display: block; height: 100%; width: 3%; border-radius: 10px; transition: width .35s ease;
+      background: repeating-linear-gradient(-45deg, #ff5a4e 0 14px, #fff4e6 14px 28px); background-size: 40px 40px; animation: ldStripes .8s linear infinite; box-shadow: 0 0 10px rgba(255, 210, 63, .7); }
+    #loading .ld-tip { max-width: min(420px, 86vw); color: #fff; font-weight: 700; font-size: 15px; text-align: center; text-shadow: 0 2px 6px rgba(60, 20, 0, .45); min-height: 2.6em; }
+    @keyframes ldIn { from { transform: scale(.4) translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+    @keyframes ldFloat { 50% { transform: translateY(-8px) rotate(-1deg); } }
+    @keyframes ldStripes { to { background-position: 40px 0; } }
+  </style></head>
+<body>
+  <div id="app"></div>
+  <div id="overlay"></div>
+
+  <div id="hud">
+    <div class="pill money">💰 <span id="money">0</span></div>
+    <div class="pill rate" id="rate">+0/s</div>
+    <div class="pill boost" id="boost-badge">🔥 ×2</div>
+    <div class="pill port" id="port-pill"></div>
+    <div class="pill heat" id="heat-pill"></div>
+    <div class="pill night" id="night-pill"></div>
+  </div>
+
+  <nav id="zones">
+    <button data-zone="parking"><span class="zi">🚚</span><span class="zt" data-fr="Camions&lt;small&gt;Niveau 1&lt;/small&gt;">Trucks<small>Level 1</small></span></button>
+    <button data-zone="market"><span class="zi">🏛️</span><span class="zt" data-fr="Marché&lt;small&gt;Niveau 2&lt;/small&gt;">Market<small>Level 2</small></span></button>
+    <button data-zone="port"><span class="zi">⚓</span><span class="zt" data-fr="Port&lt;small&gt;Niveau 3&lt;/small&gt;">Harbor<small>Level 3</small></span></button>
+    <button data-zone="beach"><span class="zi">🏖️</span><span class="zt" data-fr="Plage&lt;small&gt;Niveau 4&lt;/small&gt;">Beach<small>Level 4</small></span></button>
+    <button data-zone="fair"><span class="zi">🎡</span><span class="zt" data-fr="Fête&lt;small&gt;Niveau 5&lt;/small&gt;">Fair<small>Level 5</small></span></button>
+  </nav>
+
+  <button id="settings-btn" title="Settings" data-fr-title="Réglages">⚙️</button>
+  <button id="mute-btn" title="Sound on / off" data-fr-title="Couper / remettre le son">🔊</button>
+  <div id="settings">
+    <div class="set-label" data-fr="Qualité graphique">Graphics quality</div>
+    <div class="seg" id="quality-seg">
+      <button data-q="auto">Auto</button>
+      <button data-q="high" data-fr="Haute">High</button>
+      <button data-q="low" data-fr="Basse">Low</button>
+    </div>
+    <div class="set-note" id="quality-note"></div>
+    <div class="set-label" data-fr="Son">Sound</div>
+    <div class="seg" id="sound-seg">
+      <button data-s="sfx" data-fr="🔊 Effets">🔊 Effects</button>
+      <button data-s="music" data-fr="🎵 Musique">🎵 Music</button>
+    </div>
+    <div class="set-note"></div>
+    <div class="set-label">Language / Langue</div>
+    <div class="seg" id="lang-seg">
+      <button data-lang="en">English</button>
+      <button data-lang="fr">Français</button>
+    </div>
+    <div class="set-note"></div>
+    <button id="reset-btn" data-fr="Recommencer à zéro">Start over</button>
+  </div>
+
+  <aside id="shop">
+    <div id="tabs">
+      <button data-tab="recipes" class="on">🍔 Recipes</button>
+      <button data-tab="upgrades" data-fr="⚡ Améliorations">⚡ Upgrades</button>
+      <button data-tab="stands">🚚 Stands</button>
+    </div>
+    <div id="shop-list"></div>
+  </aside>
+  <button id="shop-toggle" data-fr="🛒 Boutique">🛒 Shop</button>
+
+  <div id="ad-bar">
+    <button id="ad-toggle">📺 Bonus</button>
+    <div id="ad-note" data-fr="📺 Bonus indisponibles : un bloqueur de publicités est actif">📺 Bonuses unavailable: an ad blocker is active</div>
+    <button id="ad-rush">📺 Rush ×2 (3 min)</button>
+    <button id="ad-vip">📺 VIP order</button>
+    <button id="ad-boat" class="off">📺 Call a fishing boat</button>
+    <button id="ad-heat" class="off">📺 Start a heatwave</button>
+    <button id="ad-night" class="off">📺 Make it night</button>
+  </div>
+
+  <div id="loading">
+    <img class="ld-logo" src="logo.svg" alt="Snack Empire">
+    <div class="ld-bar"><i id="ld-fill"></i></div>
+    <div class="ld-tip" id="ld-tip">The food trucks are heating up their grills…</div>
+  </div>
+  <script>
+    // langue (même règle que src/i18n.js : choix du joueur, sinon anglais, ou français si le navigateur est en français)
+    // puis textes de la page en français si besoin (attributs data-fr), et astuce au hasard pendant le chargement
+    (function () {
+      var lang = 'en';
+      try { var s = localStorage.getItem('snack-empire-lang'); if (s === 'fr' || s === 'en') lang = s; else if (((navigator.languages && navigator.languages[0]) || navigator.language || '').toLowerCase().indexOf('fr') === 0) lang = 'fr'; } catch (e) {}
+      if (lang === 'fr') {
+        document.querySelectorAll('[data-fr]').forEach(function (el) { el.innerHTML = el.getAttribute('data-fr'); });
+        document.querySelectorAll('[data-fr-title]').forEach(function (el) { el.title = el.getAttribute('data-fr-title'); });
+      }
+      var tipsEn = [
+        '💡 Upgrade your recipes: every level raises the selling price.',
+        '💡 Every 10 levels, a recipe\'s price doubles!',
+        '💡 Hire cooks: a well-staffed stand serves much faster.',
+        '💡 Fishing boat, heatwave and fair night: sales ×3!',
+        '💡 Even when the game is closed, your stands keep making money.',
+        '💡 📺 bonuses double your earnings for 3 minutes.'
+      ];
+      var tips = [
+        '💡 Améliore tes recettes : chaque niveau fait monter le prix de vente.',
+        '💡 Tous les 10 niveaux, le prix d\'une recette double !',
+        '💡 Embauche des cuisiniers : un stand bien équipé sert bien plus vite.',
+        '💡 Le bateau du pêcheur, la canicule et la nuit à la fête : ventes ×3 !',
+        '💡 Même quand tu fermes le jeu, tes stands continuent de gagner de l\'argent.',
+        '💡 Les bonus 📺 doublent tes gains pendant 3 minutes.'
+      ];
+      if (lang !== 'fr') tips = tipsEn;
+      document.getElementById('ld-tip').textContent = tips[Math.floor(Math.random() * tips.length)];
+    })();
+  </script>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
