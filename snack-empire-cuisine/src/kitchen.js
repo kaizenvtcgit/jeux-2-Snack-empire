@@ -3,6 +3,8 @@ import * as E from './economy.js';
 import { buildRoomDecor, buildHood, buildProps, buildGriddle, buildPack, buildBoard, buildBasket, buildBottle, buildOnionPan, buildBin, sausageGeometry, makeBun, makeTray, grillMarksTex, smokeTex } from './kitchen-decor.js';
 import { L } from './i18n.js';
 import { sfx, setSizzle } from './audio.js';
+import { Customer } from './people.js';
+import { PALETTE_SLOTS } from './models.js';
 
 /*
  * Cuisine : le joueur entre dans le camion n°1 et prépare lui-même les hot-dogs.
@@ -32,6 +34,8 @@ const TOPPING_EMOJI = { ketchup: '🍅', mustard: '🟡', onions: '🧅' };
 const GRILL_SLOTS = [0.66, 0.82, 0.98]; // z des saucisses sur le grill
 const GRILL_X = 0.15;
 const BOARD = new THREE.Vector3(-0.72, 1.5, 0.82);
+const COOK_X = 1.35; // poste du cuisinier embauché
+const CAM_X0 = -0.35; // position de départ de la caméra le long du plan de travail
 const SAUS_Y = 1.616; // hauteur d'une saucisse posée sur la plaque
 /** Marques de grill visibles selon la cuisson de la face du dessus. */
 const markOpacity = (v) => THREE.MathUtils.clamp((v - 0.45) * 1.6, 0, 0.85);
@@ -67,7 +71,7 @@ export class Kitchen {
     this.sausages = []; // sur le grill
     this.dog = null; // hot-dog en préparation sur la planche
     this.flying = []; // hot-dogs servis, en vol vers le client
-    this.camX = -0.72;
+    this.camX = CAM_X0;
     this.hover = null;
     this.lastDrag = 0;
 
@@ -153,6 +157,22 @@ export class Kitchen {
     buildBin(g, -2.22, 0.8);
     this.hit(0.3, 0.34, 0.3, -2.22, 1.62, 0.8, 'trash', L('🗑️ Poubelle', '🗑️ Trash'));
 
+    // Poste du cuisinier embauché (petite plaque au bout du plan de travail) : visible seulement s'il y a un cuisinier
+    this.cookStation = new THREE.Group();
+    g.add(this.cookStation);
+    const mini = buildGriddle(this.cookStation, COOK_X, 0.82);
+    mini.scale.x = 0.62;
+    this.cookSausages = [0.72, 0.9].map((z, k) => {
+      const m = new THREE.Mesh(this.sausageGeo, new THREE.MeshPhysicalMaterial({ color: '#a4512a', roughness: 0.42, clearcoat: 0.55, envMapIntensity: 0.9 }));
+      const marks = new THREE.Mesh(this.sausageGeo, new THREE.MeshStandardMaterial({ map: grillMarksTex(), transparent: true, opacity: 0.7, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1 }));
+      marks.scale.setScalar(1.015); m.add(marks);
+      m.position.set(COOK_X, SAUS_Y, z); m.scale.setScalar(0.95);
+      m.userData.ph = k * 1.7;
+      this.cookStation.add(m);
+      return m;
+    });
+    this.cookStation.visible = false;
+
     // Fumée au-dessus de la plaque (réserve de petits nuages réutilisés)
     this.smoke = [];
     for (let k = 0; k < 28; k++) {
@@ -227,7 +247,7 @@ export class Kitchen {
         if (Math.abs(dx) > 8) down.moved = true;
         // glisser sur le côté : on se déplace le long du plan de travail (utile sur téléphone)
         if (down.moved) this.lastDrag = performance.now();
-        if (down.moved) this.camX = THREE.MathUtils.clamp(down.camX + dx / innerWidth * 2.2, -1.9, 0.45);
+        if (down.moved) this.camX = THREE.MathUtils.clamp(down.camX + dx / innerWidth * 2.6, -1.9, 0.9);
       }
       const o = pick(e);
       this.setHover(o, e);
@@ -267,9 +287,14 @@ export class Kitchen {
     this.stand.truck.chefs.forEach((c) => { c.userData.wasVisible = c.visible; c.visible = false; });
     this.group.visible = true;
     this.stand.manual = true;
-    if (this.stand.serving) { this.stand.serving = null; } // le vendeur s'efface : c'est toi qui sers
+    if (this.stand.serving && this.stand.cooks === 0) this.stand.serving = null;
+    // cuisinier embauché : on le voit travailler à son poste, au bout du plan de travail
+    const hasCook = this.stand.cooks > 0;
+    if (hasCook && !this.cook) this.cook = makeCook(this.world.scene, this.group);
+    if (this.cook) this.cook.root.visible = hasCook;
+    this.cookStation.visible = hasCook;
     document.body.classList.add('in-kitchen');
-    this.camX = -0.72;
+    this.camX = CAM_X0;
     this.anim = 0; // petite entrée en douceur
     this.from = { pos: w.camera.position.clone(), target: w.controls.target.clone() };
     w.fixed = { pos: new THREE.Vector3(), target: new THREE.Vector3(), fov: w.camera.fov };
@@ -472,10 +497,10 @@ export class Kitchen {
     const w = this.world;
     // caméra : debout derrière le plan de travail, on regarde le comptoir et la rue
     const narrow = innerWidth / innerHeight < 1.1;
-    const fov = narrow ? 68 : 56;
-    const camZ = narrow ? -1.05 : -0.95;
-    const pos = this.stand.root.localToWorld(new THREE.Vector3(this.camX, 2.4, camZ));
-    const target = this.stand.root.localToWorld(new THREE.Vector3(this.camX + 0.05, 1.55, 1.4));
+    // (debout au fond du camion : on voit tout le plan de travail, le cuisinier et la rue)
+    const fov = narrow ? 64 : 52;
+    const pos = this.stand.root.localToWorld(new THREE.Vector3(this.camX, 2.5, -1.5));
+    const target = this.stand.root.localToWorld(new THREE.Vector3(this.camX + 0.05, 1.5, 1.35));
     this.anim = Math.min(1, this.anim + dt / 0.9);
     const k = 1 - (1 - this.anim) ** 3;
     w.fixed.pos.lerpVectors(this.from.pos, pos, k);
@@ -505,6 +530,24 @@ export class Kitchen {
       s.gauge.classList.toggle('ok', v >= GOOD[0] && v <= GOOD[1]);
       s.gauge.classList.toggle('burn', v > GOOD[1]);
     }
+    // le cuisinier : retourne ses saucisses, se tourne de temps en temps vers la fenêtre
+    if (this.cook && this.cook.root.visible) {
+      const t = performance.now() / 1000, busy = this.stand.serving ? 1 : 0.4;
+      const c = this.cook;
+      c.arms[0].rotation.x = -1.15 + Math.sin(t * (4 + busy * 4)) * 0.3 * busy - 0.1;
+      c.arms[1].rotation.x = -0.85 + Math.sin(t * 2.3) * 0.08;
+      c.arms[0].rotation.z = 0.1; c.arms[1].rotation.z = -0.15;
+      c.root.rotation.y = 0.55 + Math.sin(t * 0.6) * 0.12 - (Math.sin(t * 0.21) > 0.85 ? 0.6 : 0);
+      c.root.position.y = 0.75 + Math.abs(Math.sin(t * 4)) * 0.008 * busy;
+      for (const m of this.cookSausages) {
+        const p = (t * (0.5 + busy * 0.6) + m.userData.ph) % 3; // un retournement toutes les ~3 s
+        m.rotation.x = p < 0.3 ? (p / 0.3) * Math.PI : 0;
+        m.position.y = SAUS_Y + (p < 0.3 ? Math.sin((p / 0.3) * Math.PI) * 0.05 : 0);
+      }
+      this.cookPuffT = (this.cookPuffT || 0) - dt;
+      if (this.cookPuffT <= 0) { this.cookPuffT = 0.35; this.puff(COOK_X, 0.81, false); }
+    }
+
     // nuages de fumée : montent vers la hotte, grossissent et s'effacent
     for (const p of this.smoke) {
       if (p.life <= 0) continue;
@@ -516,7 +559,7 @@ export class Kitchen {
       p.sp.material.opacity = p.peak * Math.min(1, k * 5) * (1 - k);
       if (p.life <= 0) p.sp.visible = false;
     }
-    setSizzle(Math.min(1, this.sausages.length / 2));
+    setSizzle(Math.min(1, (this.sausages.length + (this.cookStation.visible ? 1 : 0)) / 2));
     for (const b of [this.ketchup, this.mustard]) {
       const q = b.userData.squeeze || 0;
       b.scale.set(1 + q * 0.12, 1 - q * 0.1, 1 + q * 0.12);
@@ -535,7 +578,7 @@ export class Kitchen {
     // commande du client et conseil du moment
     const c = this.customer();
     this.ticket.innerHTML = c
-      ? `<b>${L('Commande', 'Order')}</b><span>🌭 ${L('Hot-dog', 'Hot dog')} + ${c.order.map((t) => `${TOPPING_EMOJI[t]} ${TOPPING_NAMES[t]()}`).join(' + ')}</span>`
+      ? `<b>${L('Commande', 'Order')}</b><span>🌭 ${L('Hot-dog', 'Hot dog')} + ${c.order.map((t) => `${TOPPING_EMOJI[t]} ${TOPPING_NAMES[t]()}`).join(' + ')}</span><em>${money(this.game.orderPrice(c.order))}</em>`
       : `<b>${L('Commande', 'Order')}</b><span class="wait">${L('En attente d’un client…', 'Waiting for a customer…')}</span>`;
     this.ticket.classList.toggle('new', !!c && c !== this.lastCustomer);
     this.lastCustomer = c;
@@ -565,3 +608,36 @@ export class Kitchen {
     return [L('⏳ Ça grille… attends que la jauge soit dans le vert', '⏳ Sizzling… wait for the gauge to hit the green'), GRILL_X];
   }
 }
+
+/**
+ * Le cuisinier embauché : un personnage du jeu en tenue (veste et tablier blancs, toque),
+ * debout devant son poste au bout du plan de travail.
+ */
+function makeCook(scene, parent) {
+  const c = new Customer(scene, new THREE.Vector3());
+  scene.remove(c.root);
+  parent.add(c.root);
+  const data = c.texture.image.data;
+  const paint = (slot, hex) => { const i = PALETTE_SLOTS.indexOf(slot) * 4, v = parseInt(hex.slice(1), 16); data[i] = (v >> 16) & 255; data[i + 1] = (v >> 8) & 255; data[i + 2] = v & 255; };
+  paint('Shirt', '#f4f3ee'); paint('Pants', '#2b2d33'); paint('Shoes', '#1f1f22'); paint('CapColor', '#f4f3ee');
+  c.texture.needsUpdate = true;
+  c.root.position.set(COOK_X - 0.45, 0.75, 0.25);
+  c.root.updateMatrixWorld(true);
+  const bb = new THREE.Box3().setFromObject(c.root);
+  const top = bb.max.y - 0.75, front = bb.max.z - 0.25;
+  // toque de chef + tablier
+  const white = new THREE.MeshStandardMaterial({ color: '#fbfbf8', roughness: 0.85 });
+  const s = 1 / c.root.scale.x; // (le personnage est légèrement agrandi ou réduit : on compense)
+  const hat = new THREE.Group();
+  add(cyl(0.1, 0.095, 0.05, white, 24), 0, 0, 0, hat);
+  add(cyl(0.11, 0.09, 0.12, white, 24), 0, 0.08, 0, hat);
+  add(new THREE.Mesh(new THREE.SphereGeometry(0.12, 20, 12), white), 0, 0.15, 0, hat).scale.set(1, 0.55, 1);
+  hat.position.set(0, (top - 0.06) * s, 0);
+  c.root.add(hat);
+  const apron = add(box(0.3, 0.55, 0.012, white), 0, (top * 0.42) * s, (front - 0.01) * s, c.root);
+  apron.rotation.x = 0.05;
+  c.root.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  c.state = 'cook';
+  return c;
+}
+

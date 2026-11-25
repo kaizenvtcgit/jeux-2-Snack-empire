@@ -251,3 +251,4 @@ body.in-kitchen #hud { top: 16px; max-width: calc(50vw - 150px); }
   body.in-kitchen #kitchen-ticket { top: 72px; font-size: 15px; }
   body.in-kitchen #hud { max-width: calc(100vw - 120px); }
 }
+#kitchen-ticket em { font-style: normal; font-size: 20px; font-weight: 900; color: #1f7a2e; font-variant-numeric: tabular-nums; }

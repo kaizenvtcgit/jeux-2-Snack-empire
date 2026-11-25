@@ -44,10 +44,10 @@ export function initTutorial(ui, game) {
       done: () => S.stands[0].cooks >= 1,
     },
     {
-      text: L('<b>Améliore ton burger</b> : il se vendra plus cher.<br><small>Pas assez d\'argent ? Attends quelques ventes.</small>', '<b>Upgrade your burger</b>: it will sell for more.<br><small>Not enough money? Wait for a few sales.</small>'),
+      text: L('<b>Améliore ton hot-dog</b> : il se vendra plus cher (même ceux que tu prépares toi-même).<br><small>Pas assez d\'argent ? Attends quelques ventes.</small>', '<b>Upgrade your hot dog</b>: it will sell for more (even the ones you make yourself).<br><small>Not enough money? Wait for a few sales.</small>'),
       prep: () => shopOn('recipes'),
-      target: () => card('r-burger'),
-      done: () => (S.recipes.burger || 0) >= 2,
+      target: () => card('r-hotdog'),
+      done: () => (S.recipes.hotdog || 0) >= 2,
     },
     {
       text: L('<b>Débloque les frites</b> 🍟 : une nouvelle recette à la carte, qui rapporte plus.', '<b>Unlock fries</b> 🍟: a new item on the menu that earns more.'),

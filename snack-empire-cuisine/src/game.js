@@ -17,7 +17,7 @@ function defaultState() {
   return {
     money: 0,
     total: 0,
-    recipes: { burger: 1 },
+    recipes: { hotdog: 1 },
     up: { speed: 0, marketing: 0, queue: 0 },
     // le camion n°1 démarre sans cuisinier : c'est le joueur qui cuisine, jusqu'à ce qu'il en embauche un
     stands: SLOT_X.map((_, i) => ({ unlocked: i === 0, cooks: i === 0 ? 0 : 1 })),
@@ -274,16 +274,15 @@ export class Game {
       stand.near = Math.hypot(stand.x - cam.x, stand.z - cam.z) < near;
       stand.update(dt, this.time);
       const front = stand.queue[0];
-      if (stand.manual) {
-        // cuisine : c'est le joueur qui sert ; le client au comptoir passe sa commande
-        if (front && front.state === 'queue' && front.arrived && !front.order) front.order = randomOrder();
-      } else if (!stand.serving && stand.cooks > 0 && front && front.state === 'queue' && front.arrived) {
+      // cuisine : le client au comptoir passe sa commande au joueur (le cuisinier, s'il y en a un, continue de servir)
+      if (stand.manual && front && front.state === 'queue' && front.arrived && !front.order) front.order = randomOrder();
+      if (!stand.serving && stand.cooks > 0 && front && front.state === 'queue' && front.arrived) {
         const menu = stand.recipes.filter((r) => (S.recipes[r.id] || 0) > 0); // camion ou étal du marché
         stand.recipe = menu[Math.floor(Math.random() * menu.length)];
         stand.serving = front;
         stand.duration = stand.timer = E.serviceTime(S.up.speed, stand.cooks);
       }
-      if (stand.serving && !stand.manual) {
+      if (stand.serving && stand.cooks > 0) {
         stand.timer -= dt;
         if (stand.timer <= 0) this.finishOrder(stand);
       }
@@ -479,20 +478,24 @@ export class Game {
   }
 
   /**
-   * Cuisine : prix d'un hot-dog fait à la main (q = qualité 0 → 1).
-   * Base : 4 × la meilleure recette des camions, puis affluence et bonus Rush, comme une vente normale.
+   * Cuisine : prix affiché d'une commande (avant la note du client).
+   * Hot-dog fait main = 3 × le prix du hot-dog du camion (il monte avec ses améliorations), + chaque garniture.
    */
-  manualPrice(q) {
-    const best = Math.max(...E.RECIPES.filter((r) => (this.state.recipes[r.id] || 0) > 0).map((r) => E.recipePrice(r, this.state.recipes[r.id])));
-    return best * 4 * (0.25 + 0.75 * q) * this.affluence * (this.boost > 0 ? 2 : 1);
+  orderPrice(order) {
+    const hd = E.RECIPES.find((r) => r.id === 'hotdog');
+    const unit = E.recipePrice(hd, Math.max(1, this.state.recipes.hotdog || 1)) * 3;
+    const extra = order.reduce((sum, t) => sum + (E.TOPPING_PRICE[t] || 0), 0);
+    return unit * (1 + extra) * this.affluence * (this.boost > 0 ? 2 : 1);
   }
+  /** Ce que le client paie vraiment : le prix de la commande selon la note (q = 0 → 1). */
+  manualPrice(q, order) { return this.orderPrice(order) * (0.25 + 0.75 * q); }
 
   /** Cuisine : le joueur sert le client au comptoir. */
   serveManual(stand, q) {
     const c = stand.queue[0];
     if (!c) return 0;
     stand.serving = c;
-    const amount = this.manualPrice(q);
+    const amount = this.manualPrice(q, c.order || []);
     this.state.handServed = (this.state.handServed || 0) + 1;
     this.finishOrder(stand, amount);
     return amount;

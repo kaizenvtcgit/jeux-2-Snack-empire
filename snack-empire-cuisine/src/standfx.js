@@ -64,7 +64,7 @@ function table(g, w = 0.9, d = 0.7) {
 /* ---------- Les machines, une par spécialité ---------- */
 const FX = {
   /* Camions : grosse enseigne qui tourne sur le toit */
-  truck0: (g) => rooftop(g, (s) => { // burger
+  truck3: (g) => rooftop(g, (s) => { // burger
     add(cyl(0.45, 0.5, 0.25, C('#d99a4e'), 20), 0, 0, 0, s);
     add(cyl(0.52, 0.52, 0.08, C('#3fa34d'), 20), 0, 0.16, 0, s);
     add(cyl(0.5, 0.5, 0.18, C('#5a2f1c', { r: 0.8 }), 20), 0, 0.29, 0, s);
@@ -81,7 +81,7 @@ const FX = {
     add(box(0.12, 0.25, 0.8, C('#3fa34d')), 0, 0.35, 0, s);
     add(box(0.14, 0.18, 0.75, C('#a8402a')), 0, 0.3, 0, s);
   }),
-  truck3: (g) => rooftop(g, (s) => { // hot-dog
+  truck0: (g) => rooftop(g, (s) => { // hot-dog (camion n°1)
     const bun = new THREE.Mesh(new THREE.CapsuleGeometry(0.22, 0.9, 6, 14), C('#d99a4e')); bun.rotation.z = Math.PI / 2; bun.position.y = 0.25; s.add(bun);
     const saus = new THREE.Mesh(new THREE.CapsuleGeometry(0.14, 1.2, 6, 14), C('#a8402a', { r: 0.4 })); saus.rotation.z = Math.PI / 2; saus.position.y = 0.42; s.add(saus);
     for (let i = 0; i < 5; i++) add(sph(0.05, C('#ffd60a'), 6, 4), -0.4 + i * 0.2, 0.56, Math.sin(i) * 0.05, s);

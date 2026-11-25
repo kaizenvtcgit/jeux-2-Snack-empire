@@ -160,7 +160,7 @@ export function buildRoomDecor(g) {
   add(box(X1 - X0, 0.05, Z1 - Z0, MAT.ceiling()), (X0 + X1) / 2, C, 0, g);
   add(box(0.05, C - F, Z1 - Z0, tile(Z1 - Z0, C - F)), X0, (F + C) / 2, 0, g);
   add(box(0.05, C - F, Z1 - Z0, tile(Z1 - Z0, C - F)), X1, (F + C) / 2, 0, g);
-  add(box(X1 - X0, C - F, 0.05, tile(X1 - X0, C - F)), (X0 + X1) / 2, (F + C) / 2, Z0, g);
+  // (pas de mur du fond : la caméra se tient au fond du camion, juste derrière)
   // mur de la fenêtre : carrelé autour de l'ouverture, inox en dessous (derrière le plan de travail)
   add(box(X1 - X0, S0 - F, 0.06, MAT.steel(5, 1)), (X0 + X1) / 2, (F + S0) / 2, Z1, g);
   add(box(X1 - X0, C - S1, 0.06, tile(X1 - X0, C - S1)), (X0 + X1) / 2, (S1 + C) / 2, Z1, g);
@@ -369,7 +369,7 @@ export function buildProps(g) {
   add(cyl(0.015, 0.02, 0.05, std({ color: '#222', roughness: 0.5 }), 12), 0, 0.39, 0, ext);
   add(box(0.08, 0.015, 0.02, std({ color: '#222', roughness: 0.5 })), 0.03, 0.41, 0, ext);
   add(box(0.06, 0.08, 0.003, std({ color: '#ffffff', roughness: 0.8 })), 0, 0.2, 0.055, ext);
-  ext.position.set(1.6, 1.52, 1.07);
+  ext.position.set(1.84, 1.52, 1.0);
   g.add(ext);
   // étagère à épices (mur à droite de la fenêtre)
   add(box(0.6, 0.02, 0.12, steel), -2.8, 2.15, 1.08, g);

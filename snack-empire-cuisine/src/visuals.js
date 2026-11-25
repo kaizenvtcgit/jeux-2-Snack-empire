@@ -262,7 +262,7 @@ export class UpgradeVisuals {
   /* ---------- Plats sur le comptoir ---------- */
   buildProps(ids, before) {
     const g = new THREE.Group();
-    const spots = { fries: -1.2, tacos: -0.85, hotdog: -0.48, bubble: -0.15 };
+    const spots = { fries: -1.2, tacos: -0.85, burger: -0.48, bubble: -0.15 };
     for (const id of ids) {
       if (!(id in spots)) continue;
       const p = PROP_BUILDERS[id]();
@@ -488,6 +488,15 @@ const PROP_BUILDERS = {
     add(sph(0.035, M('#d62828', { cached: true }), 8, 6), -0.05, 0.19, 0, g);
     return g;
   },
+  burger() {
+    const g = new THREE.Group();
+    add(cyl(0.075, 0.07, 0.035, M('#d99a4e', { r: 0.55, cached: true }), 18), 0, 0.02, 0, g);
+    add(cyl(0.08, 0.08, 0.012, M('#5aa832', { r: 0.7, cached: true }), 18), 0, 0.044, 0, g);
+    add(cyl(0.078, 0.078, 0.03, M('#5a2f1c', { r: 0.8, cached: true }), 18), 0, 0.064, 0, g);
+    add(cyl(0.08, 0.08, 0.008, M('#ffc300', { r: 0.5, cached: true }), 18), 0, 0.082, 0, g);
+    add(new THREE.Mesh(new THREE.SphereGeometry(0.075, 18, 8, 0, Math.PI * 2, 0, Math.PI / 2), M('#e3a55a', { r: 0.55, cached: true })), 0, 0.086, 0, g);
+    return g;
+  },
   hotdog() {
     const g = new THREE.Group();
     const bun = new THREE.Mesh(new THREE.CapsuleGeometry(0.05, 0.2, 6, 12), M('#d99a4e', { r: 0.55, cached: true }));
@@ -526,7 +535,7 @@ function buildBillboard(R) {
     c.fillStyle = '#ffffff'; c.textAlign = 'center';
     c.font = '900 96px "Arial Black", Impact, sans-serif'; c.fillText('SNACK', w / 2, 140);
     c.fillStyle = '#ffd23f'; c.fillText('EMPIRE', w / 2, 245);
-    c.fillStyle = '#ffffff'; c.font = 'bold 44px "Segoe UI Emoji", "Segoe UI", sans-serif'; c.fillText(L('🍔 Les meilleurs burgers de la ville ! 🍟', '🍔 The best burgers in town! 🍟'), w / 2, 330);
+    c.fillStyle = '#ffffff'; c.font = 'bold 44px "Segoe UI Emoji", "Segoe UI", sans-serif'; c.fillText(L('🌭 Les meilleurs hot-dogs de la ville ! 🍟', '🌭 The best hot dogs in town! 🍟'), w / 2, 330);
   });
   const face = new THREE.Mesh(new THREE.PlaneGeometry(6.9, 2.65), M('#ffffff', { map: tex, emap: tex, emissive: '#ffffff', ei: 0.35, r: 0.6 }));
   face.position.set(0, 6.1, 0.08); g.add(face);

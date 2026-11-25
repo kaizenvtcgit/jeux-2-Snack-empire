@@ -2,10 +2,10 @@ import { L } from './i18n.js';
 // Toutes les valeurs d'équilibrage du jeu sont ici.
 
 export const RECIPES = [
-  { id: 'burger', name: L('Burger', 'Burger'), emoji: '🍔', base: 5, unlock: 0, up: 10 },
+  { id: 'hotdog', name: L('Hot-dog', 'Hot dog'), emoji: '🌭', base: 5, unlock: 0, up: 10 }, // (copie Cuisine : le camion n°1 est un camion à hot-dogs)
   { id: 'fries', name: L('Frites', 'Fries'), emoji: '🍟', base: 8, unlock: 150, up: 40 },
   { id: 'tacos', name: L('Tacos', 'Tacos'), emoji: '🌮', base: 20, unlock: 1200, up: 300 },
-  { id: 'hotdog', name: L('Hot-dog', 'Hot dog'), emoji: '🌭', base: 55, unlock: 8000, up: 2000 },
+  { id: 'burger', name: L('Burger', 'Burger'), emoji: '🍔', base: 55, unlock: 8000, up: 2000 },
   { id: 'bubble', name: L('Bubble tea', 'Bubble tea'), emoji: '🧋', base: 150, unlock: 45000, up: 12000 },
 ];
 
@@ -113,6 +113,8 @@ export const ARRIVAL_EVERY = 120;   // secondes entre deux bateaux
 export const ARRIVAL_SECONDS = 30;  // durée de l'arrivage
 export const ARRIVAL_MULT = 3;
 export const ARRIVAL_CROWD = 10;    // clients qui descendent du bateau
+/** Cuisine : supplément de chaque garniture (part du prix du hot-dog). */
+export const TOPPING_PRICE = { ketchup: 0.2, mustard: 0.2, onions: 0.4 };
 export const COOK_FACTOR = [1, 1.8, 2.5];
 export const MAX_COOKS = 3;
 
