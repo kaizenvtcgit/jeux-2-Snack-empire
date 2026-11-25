@@ -294,6 +294,11 @@ export class UI {
       }
       if (this.zone === 'parking') {
         // équipement du camion à hot-dogs : chaque achat se voit dans la cuisine (sur les deux plans de travail) ou dehors
+        const eqSub = {
+          speed: (l) => L(`Cuisson et préparation −${15 * l} %`, `Cooking and prep −${15 * l}%`),
+          counter: (l) => L(`+${l} place${l > 1 ? 's' : ''} dans la file du camion`, `+${l} spot${l > 1 ? 's' : ''} in the truck's queue`),
+          sign: (l) => L(`+${20 * l} % de clients`, `+${20 * l}% customers`),
+        };
         // équipement de chaque camion-cuisine ouvert : chaque achat se voit dans son camion (sur les deux plans de travail) ou dehors
         for (const [ti, emoji, label] of [[0, '🌭', L('Camion n°1', 'Truck #1')], [1, '🍕', L('Camion n°2', 'Truck #2')], [2, '🌮', L('Camion n°3', 'Truck #3')]]) {
           if (!S.stands[ti].unlocked) continue;

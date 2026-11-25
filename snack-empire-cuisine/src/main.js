@@ -86,7 +86,8 @@ function loop(now) {
   setScene(ui.zone, game.night, game.heat, world.camera.position.distanceTo(world.controls.target));
   audio.update(dt);
   hudT += dt;
-  if (hudT > 0.1) { hudT = 0; ui.refresh(); visuals.sync(); }
+  // (une erreur dans l'interface ne doit jamais arrêter tout le jeu : on la signale et on continue)
+  if (hudT > 0.1) { hudT = 0; try { ui.refresh(); visuals.sync(); } catch (e) { console.error(e); } }
   world.render();
   requestAnimationFrame(loop);
 }

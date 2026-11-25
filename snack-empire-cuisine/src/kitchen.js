@@ -506,10 +506,13 @@ export class Kitchen {
   customer() {
     // le joueur garde « son » client jusqu'à ce qu'il le serve ; les cuisiniers prennent les autres
     const st = this.stand, jobs = st.jobs || [];
-    const ok = (c) => c && st.queue.includes(c) && c.state === 'queue' && c.arrived && c.order && !jobs.some((j) => j.c === c);
-    if (!this.active || this.full()) { st.reserved = null; return null; }
+    // un client déjà attribué au joueur le reste, même s'il avance dans la file (il n'est alors plus « arrivé ») :
+    // sinon un cuisinier pouvait le prendre pendant que le joueur préparait sa commande
+    const mine = (c) => c && st.queue.includes(c) && c.state === 'queue' && c.order && !jobs.some((j) => j.c === c);
+    const ok = (c) => mine(c) && c.arrived;
+    if (!this.active || this.full()) { st.reserved = null; this.target = null; return null; }
     // (le joueur, à droite, sert d'abord le client devant sa moitié de fenêtre : la place 1)
-    if (!ok(this.target)) this.target = (ok(st.queue[1]) ? st.queue[1] : st.queue.find(ok)) || null;
+    if (!mine(this.target)) this.target = (ok(st.queue[1]) ? st.queue[1] : st.queue.find(ok)) || null;
     st.reserved = this.target;
     return this.target;
   }
